@@ -18,11 +18,13 @@ export default function StudiesPage() {
                 <div className="flex-1">
                     <h1 className="font-semibold text-lg md:text-2xl">Estudios</h1>
                 </div>
-                <Button size="sm" className="h-8 gap-1">
-                    <PlusCircle className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Subir Estudio
-                    </span>
+                 <Button size="sm" className="h-8 gap-1" asChild>
+                    <Link href="/dashboard/studies/upload">
+                        <PlusCircle className="h-3.5 w-3.5" />
+                        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                            Subir Estudio
+                        </span>
+                    </Link>
                 </Button>
             </div>
             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
