@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "./logo";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,9 @@ export function DashboardHeader() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col">
+            <SheetHeader>
+                <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+            </SheetHeader>
           <nav className="grid gap-2 text-lg font-medium">
             <Link href="#" className="flex items-center gap-2 text-lg font-semibold mb-4" prefetch={false}>
               <Logo />
