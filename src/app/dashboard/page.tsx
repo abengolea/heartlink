@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { patients, studies, users } from "@/lib/data";
 import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
 export default function Dashboard() {
   const recentStudies = studies
@@ -111,7 +112,7 @@ export default function Dashboard() {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">{getRequesterName(study.patientId)}</TableCell>
                   <TableCell className="hidden md:table-cell">
-                    {format(parseISO(study.date), "PPP")}
+                    {format(parseISO(study.date), "PPP", { locale: es })}
                   </TableCell>
                   <TableCell className="text-right">
                     {study.isUrgent ? (
