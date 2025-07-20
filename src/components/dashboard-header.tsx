@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CircleUser, Menu, Package2 } from "lucide-react";
+import { CircleUser, Menu, Package2, Shield } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,10 +22,12 @@ const navItems = [
     { href: "/dashboard/patients", label: "Pacientes" },
     { href: "/dashboard/studies", label: "Estudios" },
     { href: "/dashboard/whatsapp-upload", label: "Subir por WhatsApp" },
+    { href: "/admin", label: "Admin", icon: <Shield className="h-5 w-5" /> },
 ];
 
 export function DashboardHeader() {
   const pathname = usePathname();
+  const isAdminSection = pathname.startsWith('/admin');
   
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
@@ -37,12 +39,13 @@ export function DashboardHeader() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col">
-            <SheetHeader>
-                <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
-            </SheetHeader>
+          <SheetHeader>
+            <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+          </SheetHeader>
           <nav className="grid gap-2 text-lg font-medium">
             <Link href="#" className="flex items-center gap-2 text-lg font-semibold mb-4" prefetch={false}>
               <Logo />
+              {isAdminSection && <span className="text-sm text-muted-foreground">(Admin)</span>}
             </Link>
             {navItems.map((item) => (
                 <Link
@@ -50,10 +53,12 @@ export function DashboardHeader() {
                 href={item.href}
                 className={cn(
                     "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
-                    pathname === item.href && "bg-muted text-foreground"
+                    pathname.startsWith(item.href) && item.href !== '/dashboard' && "bg-muted text-foreground",
+                    pathname === '/dashboard' && item.href === '/dashboard' && "bg-muted text-foreground"
                 )}
                 prefetch={false}
                 >
+                {item.icon}
                 {item.label}
                 </Link>
             ))}

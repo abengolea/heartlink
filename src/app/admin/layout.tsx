@@ -1,13 +1,22 @@
 import Link from "next/link";
-import { Bell, FileText, Home, Package, Shield, Syringe, Users, Workflow } from "lucide-react";
+import {
+  Bell,
+  FileText,
+  Home,
+  Link2,
+  ListOrdered,
+  Package,
+  Shield,
+  Syringe,
+  Users,
+  Webhook,
+  Workflow,
+} from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/components/dashboard-header";
 import Logo from "@/components/logo";
-import { cn } from "@/lib/utils";
 
-export default function DashboardLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -17,8 +26,13 @@ export default function DashboardLayout({
       <div className="hidden border-r bg-muted/40 md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/dashboard" className="flex items-center gap-2 font-semibold" prefetch={false}>
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 font-semibold"
+              prefetch={false}
+            >
               <Logo />
+              <span className="text-sm text-muted-foreground">(Admin)</span>
             </Link>
           </div>
           <div className="flex-1">
@@ -29,39 +43,55 @@ export default function DashboardLayout({
                 prefetch={false}
               >
                 <Home className="h-4 w-4" />
-                Panel de control
+                Panel Principal
               </Link>
               <Link
-                href="/dashboard/patients"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                href="/admin/users"
+                className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
                 prefetch={false}
               >
                 <Users className="h-4 w-4" />
+                Usuarios
+              </Link>
+              <Link
+                href="#"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <Syringe className="h-4 w-4" />
                 Pacientes
               </Link>
               <Link
-                href="/dashboard/studies"
+                href="#"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
                 <FileText className="h-4 w-4" />
                 Estudios
               </Link>
-               <Link
-                href="/dashboard/whatsapp-upload"
+              <Link
+                href="#"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
-                <Workflow className="h-4 w-4" />
-                Subir por WhatsApp
+                <Link2 className="h-4 w-4" />
+                Links Públicos
               </Link>
-               <Link
-                href="/admin"
+              <Link
+                href="#"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
-                <Shield className="h-4 w-4" />
-                Admin
+                <ListOrdered className="h-4 w-4" />
+                Actividad
+              </Link>
+              <Link
+                href="#"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <Webhook className="h-4 w-4" />
+                Soporte / Errores
               </Link>
             </nav>
           </div>
@@ -70,7 +100,7 @@ export default function DashboardLayout({
       <div className="flex flex-col">
         <DashboardHeader />
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
-            {children}
+          {children}
         </main>
       </div>
     </div>
