@@ -9,7 +9,6 @@ import { submitWhatsappStudy } from "@/actions/whatsapp-study-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, UploadCloud, Loader2, CheckCircle } from "lucide-react";
@@ -17,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 
 const formSchema = z.object({
-  video: z.instanceof(File).refine(file => file.size > 0, "Se requiere un archivo de video."),
+  video: z.any().refine((files) => files?.length > 0, "Se requiere un archivo de video."),
   patientName: z.string().min(1, "El nombre del paciente es obligatorio."),
   requestingDoctorName: z.string().min(1, "El nombre del médico solicitante es obligatorio."),
 });
@@ -37,8 +36,9 @@ function SubmitButton() {
 export function WhatsappUploadForm() {
     const [videoDataUri, setVideoDataUri] = useState('');
     const formRef = useRef<HTMLFormElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
 
-    const { register, handleSubmit, formState: { errors }, watch } = useForm<FormFields>({
+    const { register, handleSubmit, formState: { errors }, watch, reset } = useForm<FormFields>({
         resolver: zodResolver(formSchema),
     });
     
@@ -66,13 +66,12 @@ export function WhatsappUploadForm() {
     
     const onFormSubmit = (data: FormFields) => {
         if(!videoDataUri) {
-            // This should be caught by zod validation, but as a fallback
             console.error("No hay datos de URI de video disponibles");
             return;
         }
 
         const formData = new FormData();
-        formData.append('video', data.video);
+        // The file itself is not needed in the server action, only the data URI
         formData.append('patientName', data.patientName);
         formData.append('requestingDoctorName', data.requestingDoctorName);
         formData.append('videoDataUri', videoDataUri);
@@ -82,17 +81,20 @@ export function WhatsappUploadForm() {
 
     useEffect(() => {
         if (state.status === 'success') {
-            formRef.current?.reset();
+            reset();
             setVideoDataUri('');
+            if(videoInputRef.current) {
+                videoInputRef.current.value = "";
+            }
         }
-    }, [state.status]);
+    }, [state.status, reset]);
 
   return (
     <form ref={formRef} onSubmit={handleSubmit(onFormSubmit)} className="grid gap-6">
         <div className="grid gap-2">
             <Label htmlFor="video">Video del Estudio (MP4)</Label>
-            <Input id="video" type="file" accept="video/mp4" {...register('video')} />
-            {errors.video && <p className="text-sm text-destructive">{errors.video.message}</p>}
+            <Input id="video" type="file" accept="video/mp4" {...register('video')} ref={videoInputRef}/>
+            {errors.video && <p className="text-sm text-destructive">{typeof errors.video.message === 'string' ? errors.video.message : ''}</p>}
         </div>
        
         <div className="grid gap-2">
@@ -118,8 +120,7 @@ export function WhatsappUploadForm() {
                     {state.status === 'success' && state.data?.studyId && (
                         <span className="block mt-2 font-code text-xs">ID del Estudio: {state.data.studyId}</span>
                     )}
-                </Aler
-tDescription>
+                </AlertDescription>
             </Alert>
         )}
     </form>
