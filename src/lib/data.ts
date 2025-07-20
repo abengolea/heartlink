@@ -23,8 +23,12 @@ export const studies: Study[] = [
     reportUrl: '',
     date: '2024-05-20T10:00:00Z',
     isUrgent: true,
-    description: 'Echocardiogram to assess left ventricular function.',
-    diagnosis: 'Mild mitral regurgitation.',
+    description: 'Ecocardiograma para evaluar la función ventricular izquierda.',
+    diagnosis: 'Insuficiencia mitral leve.',
+    comments: [
+      { id: 'c1', userId: 'user1', userName: 'Dr. Alan Grant', role: 'operator', text: 'Dr. Sattler, he subido el ecocardiograma del paciente. La fracción de eyección es del 55%. Quedo atento a sus comentarios.', timestamp: '2024-05-20T10:05:00Z' },
+      { id: 'c2', userId: 'user2', userName: 'Dr. Ellie Sattler', role: 'requester', text: 'Gracias, Dr. Grant. Lo reviso y le doy una devolución. ¿Podría verificar la presión arterial registrada durante el estudio?', timestamp: '2024-05-20T11:30:00Z' },
+    ]
   },
   {
     id: 'study2',
@@ -33,8 +37,9 @@ export const studies: Study[] = [
     reportUrl: '',
     date: '2024-05-19T14:30:00Z',
     isUrgent: false,
-    description: 'Stress test due to recent chest pain.',
-    diagnosis: 'No signs of ischemia.',
+    description: 'Prueba de esfuerzo por dolor torácico reciente.',
+    diagnosis: 'Sin signos de isquemia.',
+    comments: []
   },
   {
     id: 'study3',
@@ -43,8 +48,9 @@ export const studies: Study[] = [
     reportUrl: '',
     date: '2023-11-10T09:00:00Z',
     isUrgent: false,
-    description: 'Follow-up echocardiogram.',
-    diagnosis: 'Stable condition.',
+    description: 'Ecocardiograma de seguimiento.',
+    diagnosis: 'Condición estable.',
+    comments: []
   },
     {
     id: 'study4',
@@ -53,8 +59,9 @@ export const studies: Study[] = [
     reportUrl: '',
     date: '2024-05-18T11:00:00Z',
     isUrgent: false,
-    description: 'Routine cardiac check-up.',
-    diagnosis: 'Normal cardiac function.',
+    description: 'Control cardiológico de rutina.',
+    diagnosis: 'Función cardíaca normal.',
+    comments: []
   },
   {
     id: 'study5',
@@ -63,8 +70,11 @@ export const studies: Study[] = [
     reportUrl: '',
     date: '2024-05-17T16:00:00Z',
     isUrgent: true,
-    description: 'Pre-operative cardiac assessment.',
-    diagnosis: 'Aortic stenosis identified.',
+    description: 'Evaluación cardíaca preoperatoria.',
+    diagnosis: 'Estenosis aórtica identificada.',
+    comments: [
+      { id: 'c3', userId: 'user4', userName: 'Dr. John Hammond', role: 'operator', text: 'Estudio urgente para evaluación pre-quirúrgica. Se observa estenosis aórtica severa.', timestamp: '2024-05-17T16:10:00Z' },
+    ]
   },
 ];
 

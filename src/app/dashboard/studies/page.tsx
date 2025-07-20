@@ -56,7 +56,7 @@ export default function StudiesPage() {
                         </CardContent>
                         <CardFooter className="p-4 pt-0">
                             <Button asChild size="sm" className="w-full gap-1">
-                                <Link href="#">
+                                <Link href={`/dashboard/studies/${study.id}`}>
                                 Ver Estudio
                                 <ArrowUpRight className="h-4 w-4" />
                                 </Link>

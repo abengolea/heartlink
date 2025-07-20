@@ -7,6 +7,15 @@ export interface Patient {
   requesterId: string;
 }
 
+export interface Comment {
+  id: string;
+  userId: string;
+  userName: string;
+  role: 'operator' | 'requester';
+  text: string;
+  timestamp: string;
+}
+
 export interface Study {
   id: string;
   patientId: string;
@@ -16,6 +25,7 @@ export interface Study {
   isUrgent: boolean;
   description: string;
   diagnosis: string;
+  comments: Comment[];
   sharedLink?: {
     url: string;
     pin: string;
