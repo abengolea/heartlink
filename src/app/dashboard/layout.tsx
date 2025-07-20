@@ -29,7 +29,7 @@ export default function DashboardLayout({
                 prefetch={false}
               >
                 <Home className="h-4 w-4" />
-                Dashboard
+                Panel de control
               </Link>
               <Link
                 href="/dashboard/patients"
@@ -37,7 +37,7 @@ export default function DashboardLayout({
                 prefetch={false}
               >
                 <Users className="h-4 w-4" />
-                Patients
+                Pacientes
               </Link>
               <Link
                 href="/dashboard/studies"
@@ -45,7 +45,7 @@ export default function DashboardLayout({
                 prefetch={false}
               >
                 <FileText className="h-4 w-4" />
-                Studies
+                Estudios
               </Link>
                <Link
                 href="/dashboard/whatsapp-upload"
@@ -53,7 +53,7 @@ export default function DashboardLayout({
                 prefetch={false}
               >
                 <Workflow className="h-4 w-4" />
-                WhatsApp Upload
+                Subir por WhatsApp
               </Link>
             </nav>
           </div>

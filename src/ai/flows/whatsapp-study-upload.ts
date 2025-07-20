@@ -52,7 +52,7 @@ const whatsappStudyUploadFlow = ai.defineFlow(
     const patientId = 'patient123'; // Replace with actual patient ID
     const requestingDoctorId = 'doctor456'; // Replace with actual doctor ID
     const studyId = 'study789'; // Replace with actual study ID
-    const confirmationMessage = `Study for ${input.patientName} has been uploaded and the requesting doctor, ${input.requestingDoctorName}, has been notified.`;
+    const confirmationMessage = `El estudio para ${input.patientName} ha sido subido y el médico solicitante, ${input.requestingDoctorName}, ha sido notificado.`;
 
     return {
       patientId,

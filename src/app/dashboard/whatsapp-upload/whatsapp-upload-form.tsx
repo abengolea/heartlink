@@ -17,9 +17,9 @@ import { cn } from "@/lib/utils";
 
 
 const formSchema = z.object({
-  video: z.instanceof(File).refine(file => file.size > 0, "A video file is required."),
-  patientName: z.string().min(1, "Patient name is required."),
-  requestingDoctorName: z.string().min(1, "Requesting doctor name is required."),
+  video: z.instanceof(File).refine(file => file.size > 0, "Se requiere un archivo de video."),
+  patientName: z.string().min(1, "El nombre del paciente es obligatorio."),
+  requestingDoctorName: z.string().min(1, "El nombre del médico solicitante es obligatorio."),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -29,7 +29,7 @@ function SubmitButton() {
   return (
     <Button type="submit" disabled={pending} className="w-full">
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-      {pending ? "Uploading..." : "Upload Study"}
+      {pending ? "Subiendo..." : "Subir Estudio"}
     </Button>
   );
 }
@@ -67,7 +67,7 @@ export function WhatsappUploadForm() {
     const onFormSubmit = (data: FormFields) => {
         if(!videoDataUri) {
             // This should be caught by zod validation, but as a fallback
-            console.error("No video data URI available");
+            console.error("No hay datos de URI de video disponibles");
             return;
         }
 
@@ -90,20 +90,20 @@ export function WhatsappUploadForm() {
   return (
     <form ref={formRef} onSubmit={handleSubmit(onFormSubmit)} className="grid gap-6">
         <div className="grid gap-2">
-            <Label htmlFor="video">Study Video (MP4)</Label>
+            <Label htmlFor="video">Video del Estudio (MP4)</Label>
             <Input id="video" type="file" accept="video/mp4" {...register('video')} />
             {errors.video && <p className="text-sm text-destructive">{errors.video.message}</p>}
         </div>
        
         <div className="grid gap-2">
-            <Label htmlFor="patientName">Patient Full Name</Label>
-            <Input id="patientName" placeholder="e.g., John Doe" {...register('patientName')} />
+            <Label htmlFor="patientName">Nombre Completo del Paciente</Label>
+            <Input id="patientName" placeholder="Ej., Juan Pérez" {...register('patientName')} />
             {errors.patientName && <p className="text-sm text-destructive">{errors.patientName.message}</p>}
         </div>
 
         <div className="grid gap-2">
-            <Label htmlFor="requestingDoctorName">Requesting Doctor Name</Label>
-            <Input id="requestingDoctorName" placeholder="e.g., Dr. Ellie Sattler" {...register('requestingDoctorName')} />
+            <Label htmlFor="requestingDoctorName">Nombre del Médico Solicitante</Label>
+            <Input id="requestingDoctorName" placeholder="Ej., Dra. Ellie Sattler" {...register('requestingDoctorName')} />
             {errors.requestingDoctorName && <p className="text-sm text-destructive">{errors.requestingDoctorName.message}</p>}
         </div>
       
@@ -112,13 +112,14 @@ export function WhatsappUploadForm() {
         {state.status !== 'idle' && (
              <Alert variant={state.status === 'error' ? 'destructive' : 'default'} className={cn(state.status === 'success' && "bg-accent/50 border-accent")}>
                 {state.status === 'success' ? <CheckCircle className="h-4 w-4" /> : <Terminal className="h-4 w-4" />}
-                <AlertTitle>{state.status === 'error' ? 'Upload Failed' : 'Upload Successful'}</AlertTitle>
+                <AlertTitle>{state.status === 'error' ? 'Fallo en la Subida' : 'Subida Exitosa'}</AlertTitle>
                 <AlertDescription>
                     {state.message}
                     {state.status === 'success' && state.data?.studyId && (
-                        <span className="block mt-2 font-code text-xs">Study ID: {state.data.studyId}</span>
+                        <span className="block mt-2 font-code text-xs">ID del Estudio: {state.data.studyId}</span>
                     )}
-                </AlertDescription>
+                </Aler
+tDescription>
             </Alert>
         )}
     </form>

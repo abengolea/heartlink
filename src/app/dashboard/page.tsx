@@ -26,13 +26,13 @@ export default function Dashboard() {
     .slice(0, 5);
 
   const getPatientName = (patientId: string) => {
-    return patients.find(p => p.id === patientId)?.name || "Unknown Patient";
+    return patients.find(p => p.id === patientId)?.name || "Paciente Desconocido";
   }
 
   const getRequesterName = (patientId: string) => {
       const patient = patients.find(p => p.id === patientId);
-      if (!patient) return "Unknown Doctor";
-      return users.find(u => u.id === patient.requesterId)?.name || "Unknown Doctor";
+      if (!patient) return "Doctor Desconocido";
+      return users.find(u => u.id === patient.requesterId)?.name || "Doctor Desconocido";
   }
 
 
@@ -41,54 +41,54 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Pacientes</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{patients.length}</div>
-            <p className="text-xs text-muted-foreground">+2 since last month</p>
+            <p className="text-xs text-muted-foreground">+2 desde el mes pasado</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Studies</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Estudios</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{studies.length}</div>
-            <p className="text-xs text-muted-foreground">+10 since last month</p>
+            <p className="text-xs text-muted-foreground">+10 desde el mes pasado</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Urgent Cases</CardTitle>
+            <CardTitle className="text-sm font-medium">Casos Urgentes</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{studies.filter(s => s.isUrgent).length}</div>
-            <p className="text-xs text-muted-foreground">+1 in the last 24h</p>
+            <p className="text-xs text-muted-foreground">+1 en las últimas 24h</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Platform Activity</CardTitle>
+            <CardTitle className="text-sm font-medium">Actividad de la Plataforma</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+573</div>
-            <p className="text-xs text-muted-foreground">+201 since last hour</p>
+            <p className="text-xs text-muted-foreground">+201 desde la última hora</p>
           </CardContent>
         </Card>
       </div>
       <Card>
         <CardHeader className="flex flex-row items-center">
           <div className="grid gap-2">
-            <CardTitle>Recent Studies</CardTitle>
-            <CardDescription>An overview of the most recent studies uploaded.</CardDescription>
+            <CardTitle>Estudios Recientes</CardTitle>
+            <CardDescription>Un resumen de los estudios más recientes.</CardDescription>
           </div>
           <Button asChild size="sm" className="ml-auto gap-1">
             <Link href="/dashboard/studies">
-              View All
+              Ver Todos
               <ArrowUpRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -97,10 +97,10 @@ export default function Dashboard() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead className="hidden md:table-cell">Requester</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
-                <TableHead className="text-right">Urgency</TableHead>
+                <TableHead>Paciente</TableHead>
+                <TableHead className="hidden md:table-cell">Solicitante</TableHead>
+                <TableHead className="hidden md:table-cell">Fecha</TableHead>
+                <TableHead className="text-right">Urgencia</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -115,9 +115,9 @@ export default function Dashboard() {
                   </TableCell>
                   <TableCell className="text-right">
                     {study.isUrgent ? (
-                      <Badge variant="destructive">Urgent</Badge>
+                      <Badge variant="destructive">Urgente</Badge>
                     ) : (
-                      <Badge variant="outline">Routine</Badge>
+                      <Badge variant="outline">Rutina</Badge>
                     )}
                   </TableCell>
                 </TableRow>

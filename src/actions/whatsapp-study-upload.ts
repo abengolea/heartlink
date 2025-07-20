@@ -5,9 +5,9 @@ import { whatsappStudyUpload, WhatsappStudyUploadInput } from '@/ai/flows/whatsa
 
 const formSchema = z.object({
   video: z.any(), // File handled separately
-  patientName: z.string().min(1, 'Patient name is required.'),
-  requestingDoctorName: z.string().min(1, 'Requesting doctor name is required.'),
-  videoDataUri: z.string().min(1, 'Video data is missing.'),
+  patientName: z.string().min(1, 'El nombre del paciente es obligatorio.'),
+  requestingDoctorName: z.string().min(1, 'El nombre del médico solicitante es obligatorio.'),
+  videoDataUri: z.string().min(1, 'Faltan los datos del video.'),
 });
 
 type State = {
@@ -33,7 +33,7 @@ export async function submitWhatsappStudy(
     if (!validatedFields.success) {
       return {
         status: 'error',
-        message: 'Invalid form data. Please check your inputs.',
+        message: 'Datos de formulario no válidos. Por favor, comprueba tus entradas.',
       };
     }
     
@@ -52,10 +52,10 @@ export async function submitWhatsappStudy(
     };
   } catch (error) {
     console.error(error);
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
     return {
       status: 'error',
-      message: `Failed to upload study: ${errorMessage}`,
+      message: `Error al subir el estudio: ${errorMessage}`,
     };
   }
 }

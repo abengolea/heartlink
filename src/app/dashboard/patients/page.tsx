@@ -28,46 +28,46 @@ import { patients, users } from "@/lib/data";
 
 export default function PatientsPage() {
 
-    const getDoctorName = (id: string) => users.find(u => u.id === id)?.name || "Unknown";
+    const getDoctorName = (id: string) => users.find(u => u.id === id)?.name || "Desconocido";
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center">
         <div className="flex-1">
-            <h1 className="font-semibold text-lg md:text-2xl">Patients</h1>
+            <h1 className="font-semibold text-lg md:text-2xl">Pacientes</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="h-8 gap-1">
             <File className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Export
+              Exportar
             </span>
           </Button>
           <Button size="sm" className="h-8 gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Add Patient
+              Añadir Paciente
             </span>
           </Button>
         </div>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Patient Directory</CardTitle>
+          <CardTitle>Directorio de Pacientes</CardTitle>
           <CardDescription>
-            Manage your patients and view their study history.
+            Gestiona tus pacientes y mira su historial de estudios.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Nombre</TableHead>
                 <TableHead>DNI</TableHead>
-                <TableHead className="hidden md:table-cell">Date of Birth</TableHead>
-                <TableHead className="hidden md:table-cell">Requesting Doctor</TableHead>
+                <TableHead className="hidden md:table-cell">Fecha de Nacimiento</TableHead>
+                <TableHead className="hidden md:table-cell">Médico Solicitante</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">Acciones</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -91,10 +91,10 @@ export default function PatientsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem>Ver Detalles</DropdownMenuItem>
+                        <DropdownMenuItem>Editar</DropdownMenuItem>
+                        <DropdownMenuItem>Eliminar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

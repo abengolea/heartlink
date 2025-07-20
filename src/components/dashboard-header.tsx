@@ -18,10 +18,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/dashboard/patients", label: "Patients" },
-    { href: "/dashboard/studies", label: "Studies" },
-    { href: "/dashboard/whatsapp-upload", label: "WhatsApp Upload" },
+    { href: "/dashboard", label: "Panel de control" },
+    { href: "/dashboard/patients", label: "Pacientes" },
+    { href: "/dashboard/studies", label: "Estudios" },
+    { href: "/dashboard/whatsapp-upload", label: "Subir por WhatsApp" },
 ];
 
 export function DashboardHeader() {
@@ -69,13 +69,13 @@ export function DashboardHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
+          <DropdownMenuItem>Configuración</DropdownMenuItem>
+          <DropdownMenuItem>Soporte</DropdownMenuItem>
           <DropdownMenuSeparator />
            <DropdownMenuItem asChild>
-            <Link href="/" prefetch={false}>Logout</Link>
+            <Link href="/" prefetch={false}>Cerrar Sesión</Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

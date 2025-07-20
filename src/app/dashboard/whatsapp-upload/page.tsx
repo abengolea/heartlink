@@ -5,14 +5,14 @@ export default function WhatsappUploadPage() {
     return (
         <div className="mx-auto grid w-full max-w-4xl gap-4">
              <div className="flex-1">
-                <h1 className="font-semibold text-lg md:text-2xl">WhatsApp Study Upload</h1>
+                <h1 className="font-semibold text-lg md:text-2xl">Subida de Estudios por WhatsApp</h1>
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Automated Study Upload</CardTitle>
+                    <CardTitle>Subida Automatizada de Estudios</CardTitle>
                     <CardDescription>
-                        Simulate uploading a study via WhatsApp. The system uses AI to extract patient and doctor names,
-                        upload the study, and notify the requester.
+                        Simula la subida de un estudio a través de WhatsApp. El sistema utiliza IA para extraer los nombres del paciente y del médico,
+                        subir el estudio y notificar al solicitante.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
