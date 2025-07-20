@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFormState, useFormStatus } from "react-dom";
@@ -9,16 +10,19 @@ import { submitWhatsappStudy } from "@/actions/whatsapp-study-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, UploadCloud, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AudioTranscriber } from "./audio-transcriber";
 
 
 const formSchema = z.object({
   video: z.any().refine((files) => files?.length > 0, "Se requiere un archivo de video."),
   patientName: z.string().min(1, "El nombre del paciente es obligatorio."),
   requestingDoctorName: z.string().min(1, "El nombre del médico solicitante es obligatorio."),
+  description: z.string().optional(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -38,7 +42,7 @@ export function UploadStudyForm() {
     const formRef = useRef<HTMLFormElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
 
-    const { register, handleSubmit, formState: { errors }, watch, reset } = useForm<FormFields>({
+    const { register, handleSubmit, formState: { errors }, watch, reset, setValue } = useForm<FormFields>({
         resolver: zodResolver(formSchema),
     });
     
@@ -88,6 +92,10 @@ export function UploadStudyForm() {
         }
     }, [state.status, reset]);
 
+    const handleTranscription = (text: string) => {
+        setValue('description', text);
+    }
+
   return (
     <form ref={formRef} onSubmit={handleSubmit(onFormSubmit)} className="grid gap-6">
         <div className="grid gap-2">
@@ -106,6 +114,12 @@ export function UploadStudyForm() {
             <Label htmlFor="requestingDoctorName">Nombre del Médico Solicitante</Label>
             <Input id="requestingDoctorName" placeholder="Ej., Dra. Ellie Sattler" {...register('requestingDoctorName')} />
             {errors.requestingDoctorName && <p className="text-sm text-destructive">{errors.requestingDoctorName.message}</p>}
+        </div>
+      
+        <div className="grid gap-2">
+          <Label htmlFor="description">Descripción / Borrador de Informe</Label>
+          <Textarea id="description" placeholder="Describa los hallazgos del estudio o dicte el informe..." {...register('description')} rows={5} />
+          <AudioTranscriber onTranscription={handleTranscription} />
         </div>
       
         <SubmitButton />
