@@ -26,5 +26,7 @@ export interface Study {
 export interface User {
   id: string;
   name: string;
-  role: 'operator' | 'requester';
+  role: 'admin' | 'operator' | 'requester';
+  status: 'active' | 'suspended';
+  subscriptionStatus: 'paid' | 'pending' | 'overdue';
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, FileText, Home, Package, Shield, Syringe, Users, Workflow } from "lucide-react";
+import { Bell, CreditCard, FileText, Home, Package, Shield, Syringe, Users, Workflow } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,14 @@ export default function DashboardLayout({
               >
                 <Workflow className="h-4 w-4" />
                 Subir por WhatsApp
+              </Link>
+              <Link
+                href="/dashboard/subscription"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <CreditCard className="h-4 w-4" />
+                Suscripción
               </Link>
                <Link
                 href="/admin"

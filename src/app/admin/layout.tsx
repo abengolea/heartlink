@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   Bell,
+  CreditCard,
   FileText,
   Home,
   Link2,
@@ -47,11 +48,19 @@ export default function AdminLayout({
               </Link>
               <Link
                 href="/admin/users"
-                className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
                 <Users className="h-4 w-4" />
                 Usuarios
+              </Link>
+               <Link
+                href="#"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <CreditCard className="h-4 w-4" />
+                Facturación
               </Link>
               <Link
                 href="#"

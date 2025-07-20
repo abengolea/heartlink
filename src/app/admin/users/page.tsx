@@ -28,15 +28,32 @@ import { MoreHorizontal } from "lucide-react";
 import { users } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { User } from "@/lib/types";
 
 export default function AdminUsersPage() {
+  const getSubscriptionBadge = (status: User["subscriptionStatus"]) => {
+    switch (status) {
+      case "paid":
+        return <Badge variant="default" className="bg-green-600">Al día</Badge>;
+      case "pending":
+        return <Badge variant="secondary">Pendiente</Badge>;
+      case "overdue":
+        return <Badge variant="destructive">Vencido</Badge>;
+      default:
+        return <Badge variant="outline">N/A</Badge>;
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center">
         <div className="flex-1">
-            <h1 className="font-semibold text-lg md:text-2xl">Gestión de Usuarios</h1>
-            <p className="text-muted-foreground text-sm">Crea, edita y gestiona las cuentas de los usuarios del sistema.</p>
+          <h1 className="font-semibold text-lg md:text-2xl">
+            Gestión de Usuarios
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Crea, edita y gestiona las cuentas de los usuarios del sistema.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="h-8 gap-1">
@@ -57,7 +74,8 @@ export default function AdminUsersPage() {
         <CardHeader>
           <CardTitle>Directorio de Usuarios</CardTitle>
           <CardDescription>
-            Un listado de todos los médicos operadores y solicitantes en el sistema.
+            Un listado de todos los médicos operadores y solicitantes en el
+            sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -67,7 +85,9 @@ export default function AdminUsersPage() {
                 <TableHead>Nombre</TableHead>
                 <TableHead>Rol</TableHead>
                 <TableHead className="hidden md:table-cell">Estado</TableHead>
-                <TableHead className="hidden md:table-cell">ID de Usuario</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  Suscripción
+                </TableHead>
                 <TableHead>
                   <span className="sr-only">Acciones</span>
                 </TableHead>
@@ -77,15 +97,26 @@ export default function AdminUsersPage() {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
-                   <TableCell>
-                    <Badge variant={user.role === 'operator' ? 'default' : 'secondary'} className={cn(user.role === 'admin' && 'bg-destructive/80')}>
+                  <TableCell>
+                    <Badge
+                      variant={user.role === "operator" ? "default" : "secondary"}
+                      className={cn(
+                        user.role === "admin" && "bg-destructive/80"
+                      )}
+                    >
                       {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                     <Badge variant="outline">Activo</Badge>
+                    <Badge variant={user.status === 'active' ? 'outline' : 'destructive'}>
+                        {user.status === 'active' ? 'Activo' : 'Suspendido'}
+                    </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell font-mono text-xs">{user.id}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {user.role === "operator"
+                      ? getSubscriptionBadge(user.subscriptionStatus)
+                      : "N/A"}
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -103,8 +134,12 @@ export default function AdminUsersPage() {
                         <DropdownMenuItem>Ver Detalles</DropdownMenuItem>
                         <DropdownMenuItem>Editar</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">Suspender</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          Suspender
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          Eliminar
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

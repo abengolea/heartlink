@@ -1,16 +1,18 @@
 import type { Patient, Study, User } from './types';
 
 export const users: User[] = [
-  { id: 'user1', name: 'Dr. Alan Grant', role: 'operator' },
-  { id: 'user2', name: 'Dr. Ellie Sattler', role: 'requester' },
-  { id: 'user3', name: 'Dr. Ian Malcolm', role: 'requester' },
+  { id: 'user1', name: 'Dr. Alan Grant', role: 'operator', status: 'active', subscriptionStatus: 'paid' },
+  { id: 'user2', name: 'Dr. Ellie Sattler', role: 'requester', status: 'active', subscriptionStatus: 'paid' },
+  { id: 'user3', name: 'Dr. Ian Malcolm', role: 'requester', status: 'active', subscriptionStatus: 'paid' },
+  { id: 'user4', name: 'Dr. John Hammond', role: 'operator', status: 'suspended', subscriptionStatus: 'overdue'},
+  { id: 'user5', name: 'Dennis Nedry', role: 'admin', status: 'active', subscriptionStatus: 'paid'}
 ];
 
 export const patients: Patient[] = [
   { id: 'patient1', name: 'John Doe', dni: '12345678A', dob: '1980-05-15', operatorId: 'user1', requesterId: 'user2' },
   { id: 'patient2', name: 'Jane Smith', dni: '87654321B', dob: '1992-11-20', operatorId: 'user1', requesterId: 'user3' },
   { id: 'patient3', name: 'Peter Jones', dni: '56781234C', dob: '1975-02-10', operatorId: 'user1', requesterId: 'user2' },
-  { id: 'patient4', name: 'Mary Williams', dni: '43218765D', dob: '2001-08-30', operatorId: 'user1', requesterId: 'user3' },
+  { id: 'patient4', name: 'Mary Williams', dni: '43218765D', dob: '2001-08-30', operatorId: 'user4', requesterId: 'user3' },
 ];
 
 export const studies: Study[] = [
