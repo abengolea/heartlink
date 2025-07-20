@@ -30,3 +30,12 @@ export interface User {
   status: 'active' | 'suspended';
   subscriptionStatus: 'paid' | 'pending' | 'overdue';
 }
+
+export interface Backup {
+  id: string;
+  date: string;
+  firestoreSize: string;
+  fileCount: number;
+  destinationUrl: string;
+  status: 'completed' | 'in-progress' | 'failed';
+}

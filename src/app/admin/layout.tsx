@@ -12,6 +12,7 @@ import {
   Users,
   Webhook,
   Workflow,
+  Database
 } from "lucide-react";
 
 import { DashboardHeader } from "@/components/dashboard-header";
@@ -85,6 +86,14 @@ export default function AdminLayout({
               >
                 <Link2 className="h-4 w-4" />
                 Links Públicos
+              </Link>
+               <Link
+                href="/admin/backups"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <Database className="h-4 w-4" />
+                Copias de Seguridad
               </Link>
               <Link
                 href="#"

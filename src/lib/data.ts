@@ -1,4 +1,4 @@
-import type { Patient, Study, User } from './types';
+import type { Patient, Study, User, Backup } from './types';
 
 export const users: User[] = [
   { id: 'user1', name: 'Dr. Alan Grant', role: 'operator', status: 'active', subscriptionStatus: 'paid' },
@@ -66,4 +66,11 @@ export const studies: Study[] = [
     description: 'Pre-operative cardiac assessment.',
     diagnosis: 'Aortic stenosis identified.',
   },
+];
+
+export const backups: Backup[] = [
+  { id: 'backup1', date: '2024-05-22T03:00:00Z', firestoreSize: '1.2 GB', fileCount: 125, destinationUrl: 'gs://heartlink-backups/2024-05-22.gz', status: 'completed' },
+  { id: 'backup2', date: '2024-05-21T03:00:00Z', firestoreSize: '1.1 GB', fileCount: 110, destinationUrl: 'gs://heartlink-backups/2024-05-21.gz', status: 'completed' },
+  { id: 'backup3', date: '2024-05-20T03:00:00Z', firestoreSize: '1.0 GB', fileCount: 95, destinationUrl: 'gs://heartlink-backups/2024-05-20.gz', status: 'failed' },
+  { id: 'backup4', date: '2024-05-23T03:00:00Z', firestoreSize: 'N/A', fileCount: 0, destinationUrl: '', status: 'in-progress' },
 ];
