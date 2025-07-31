@@ -1,4 +1,9 @@
-import { File, PlusCircle } from "lucide-react";
+
+"use client";
+
+import { useState } from "react";
+import { File, PlusCircle, Search } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,16 +32,23 @@ import { MoreHorizontal } from "lucide-react";
 
 import { patients, users } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 export default function PatientsPage() {
+  const [searchTerm, setSearchTerm] = useState("");
 
-    const getDoctorName = (id: string) => users.find(u => u.id === id)?.name || "Desconocido";
+  const getDoctorName = (id: string) =>
+    users.find((u) => u.id === id)?.name || "Desconocido";
+
+  const filteredPatients = patients.filter((patient) =>
+    patient.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center">
         <div className="flex-1">
-            <h1 className="font-semibold text-lg md:text-2xl">Pacientes</h1>
+          <h1 className="font-semibold text-lg md:text-2xl">Pacientes</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="h-8 gap-1">
@@ -55,10 +67,24 @@ export default function PatientsPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Directorio de Pacientes</CardTitle>
-          <CardDescription>
-            Gestiona tus pacientes y mira su historial de estudios.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+              <CardTitle>Directorio de Pacientes</CardTitle>
+              <CardDescription>
+                Gestiona tus pacientes y mira su historial de estudios.
+              </CardDescription>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Buscar por nombre..."
+                    className="w-full rounded-lg bg-background pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -67,23 +93,37 @@ export default function PatientsPage() {
                 <TableHead>Nombre</TableHead>
                 <TableHead>DNI</TableHead>
                 <TableHead className="hidden md:table-cell">Estado</TableHead>
-                <TableHead className="hidden md:table-cell">Médico Solicitante</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  Médico Solicitante
+                </TableHead>
                 <TableHead>
                   <span className="sr-only">Acciones</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {patients.map((patient) => (
+              {filteredPatients.map((patient) => (
                 <TableRow key={patient.id}>
-                  <TableCell className="font-medium">{patient.name}</TableCell>
-                  <TableCell className="font-mono font-code">{patient.dni}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/dashboard/patients/${patient.id}`} className="hover:underline" prefetch={false}>
+                        {patient.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="font-mono font-code">
+                    {patient.dni}
+                  </TableCell>
                   <TableCell className="hidden md:table-cell">
-                     <Badge variant={patient.status === 'active' ? 'outline' : 'secondary'}>
-                        {patient.status === 'active' ? 'Activo' : 'Archivado'}
+                    <Badge
+                      variant={
+                        patient.status === "active" ? "outline" : "secondary"
+                      }
+                    >
+                      {patient.status === "active" ? "Activo" : "Archivado"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">{getDoctorName(patient.requesterId)}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {getDoctorName(patient.requesterId)}
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -98,11 +138,15 @@ export default function PatientsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem>Ver Detalles</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                           <Link href={`/dashboard/patients/${patient.id}`} prefetch={false}>Ver Detalles</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Editar</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem>Archivar</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          Eliminar
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
