@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { whatsappStudyUpload, WhatsappStudyUploadInput } from '@/ai/flows/whatsapp-study-upload';
 
 const formSchema = z.object({
-  video: z.any(), // File handled separately
+  // The 'video' field is handled on the client-side to generate a data URI
+  // and is not sent directly to the server action. Thus, we remove it from schema validation here.
   patientName: z.string().min(1, 'El nombre del paciente es obligatorio.'),
   requestingDoctorName: z.string().min(1, 'El nombre del médico solicitante es obligatorio.'),
   videoDataUri: z.string().min(1, 'Faltan los datos del video.'),
@@ -24,13 +25,13 @@ export async function submitWhatsappStudy(
 ): Promise<State> {
   try {
     const validatedFields = formSchema.safeParse({
-      video: formData.get('video'),
       patientName: formData.get('patientName'),
       requestingDoctorName: formData.get('requestingDoctorName'),
       videoDataUri: formData.get('videoDataUri'),
     });
 
     if (!validatedFields.success) {
+      // We can refine the error message to be more specific if needed
       return {
         status: 'error',
         message: 'Datos de formulario no válidos. Por favor, comprueba tus entradas.',
