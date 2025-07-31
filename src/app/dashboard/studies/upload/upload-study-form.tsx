@@ -1,7 +1,6 @@
 
 "use client";
 
-import { useFormStatus } from "react-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -12,11 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, UploadCloud, Loader2, CheckCircle } from "lucide-react";
+import { Terminal, UploadCloud, Loader2, CheckCircle, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { users, patients } from "@/lib/data";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
+import { AudioTranscriber } from "./audio-transcriber";
 
 const formSchema = z.object({
   video: z.any().optional(),
@@ -49,45 +49,25 @@ export function UploadStudyForm() {
     
     const videoFile = watch("video");
 
-    const handleTranscription = async (dataUri: string) => {
-        if (!dataUri) return;
-        setIsTranscribing(true);
-        setValue('description', 'Transcribiendo audio del video...');
-        try {
-            const result = await transcribeAudioAction(dataUri);
-            if (result.status === 'success' && result.transcription) {
-                setValue('description', result.transcription);
-            } else {
-                console.error("Error de transcripción:", result.message);
-                 setValue('description', `Error al transcribir: ${result.message}`);
-            }
-        } catch (error) {
-            console.error("Error al transcribir:", error);
-            const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-            setValue('description', `Error al transcribir: ${errorMessage}`);
-        } finally {
-            setIsTranscribing(false);
-        }
+    const handleTranscriptionResult = (transcription: string) => {
+        setValue('description', transcription);
     };
 
-
-    useEffect(() => {
-        if(videoFile && videoFile.length > 0) {
-            const file = videoFile[0];
+    const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                if(e.target?.result) {
-                    const dataUri = e.target.result as string;
+            reader.onload = (event) => {
+                if (event.target?.result) {
+                    const dataUri = event.target.result as string;
                     setVideoDataUri(dataUri);
-                    handleTranscription(dataUri);
                 }
             };
             reader.readAsDataURL(file);
         } else {
             setVideoDataUri('');
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [videoFile, setValue]);
+    };
     
     const onFormSubmit = (data: FormFields) => {
         const formData = new FormData();
@@ -113,7 +93,7 @@ export function UploadStudyForm() {
     <form onSubmit={handleSubmit(onFormSubmit)} className="grid gap-6">
         <div className="grid gap-2">
             <Label htmlFor="video">Video del Estudio (MP4)</Label>
-            <Input id="video" type="file" accept="video/mp4" {...register('video')} ref={videoInputRef}/>
+            <Input id="video" type="file" accept="video/mp4,video/webm" {...register('video')} ref={videoInputRef} onChange={handleVideoFileChange}/>
             {errors.video && <p className="text-sm text-destructive">{typeof errors.video.message === 'string' ? errors.video.message : ''}</p>}
         </div>
        
@@ -165,18 +145,13 @@ export function UploadStudyForm() {
       
         <div className="grid gap-2">
           <Label htmlFor="description">Descripción / Borrador de Informe</Label>
-          <div className="relative">
-             <Textarea id="description" placeholder="Seleccione un video para transcribir automáticamente el audio..." {...register('description')} rows={5} readOnly={isTranscribing} />
-             {isTranscribing && (
-                <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md">
-                    <Loader2 className="mr-2 h-6 w-6 animate-spin text-primary" />
-                    <span className="text-muted-foreground">Transcribiendo...</span>
-                </div>
-             )}
+          <div className="grid gap-2">
+             <Textarea id="description" placeholder="Graba un audio o sube un video para transcribir automáticamente el borrador del informe..." {...register('description')} rows={5} />
+              <AudioTranscriber onTranscription={handleTranscriptionResult} disabled={isPending} />
           </div>
         </div>
       
-        <Button type="submit" disabled={isPending || isTranscribing} className="w-full">
+        <Button type="submit" disabled={isPending || !videoDataUri} className="w-full">
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             {isPending ? "Subiendo..." : "Subir Estudio"}
         </Button>
@@ -196,3 +171,4 @@ export function UploadStudyForm() {
     </form>
   );
 }
+
