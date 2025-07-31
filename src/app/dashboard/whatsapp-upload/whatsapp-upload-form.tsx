@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 
-import { submitWhatsappStudy } from "@/actions/whatsapp-study-upload";
+import { submitStudy } from "@/actions/whatsapp-study-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +32,7 @@ function SubmitButton() {
   return (
     <Button type="submit" disabled={pending} className="w-full">
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-      {pending ? "Subiendo..." : "Subir Estudio"}
+      {pending ? "Subiendo..." : "Simular Subida por WhatsApp"}
     </Button>
   );
 }
@@ -47,7 +47,7 @@ export function WhatsappUploadForm() {
         resolver: zodResolver(formSchema),
     });
     
-    const [state, formAction] = useActionState(submitWhatsappStudy, {
+    const [state, formAction] = useActionState(submitStudy, {
         status: "idle",
         message: "",
     });
@@ -76,7 +76,6 @@ export function WhatsappUploadForm() {
         }
 
         const formData = new FormData();
-        // The file itself is not needed in the server action, only the data URI
         formData.append('patientName', data.patientName);
         formData.append('requestingDoctorName', data.requestingDoctorName);
         formData.append('videoDataUri', videoDataUri);

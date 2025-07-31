@@ -1,20 +1,19 @@
 'use server';
 
 /**
- * @fileOverview This file implements the WhatsApp study upload flow.
+ * @fileOverview This file implements the study upload flow.
  *
- * It allows doctors to upload heart studies (videos) via WhatsApp by sending the video, patient name, and requesting doctor to the system's WhatsApp number.
- * The system uses AI to identify the patient and doctor, uploads the study, and notifies the requesting doctor automatically.
- * - whatsappStudyUpload - A function that handles the WhatsApp study upload process.
- * - WhatsappStudyUploadInput - The input type for the whatsappStudyUpload function.
- * - WhatsappStudyUploadOutput - The return type for the whatsappStudyUpload function.
+ * It allows doctors to upload heart studies (videos), uploads the study, and notifies the requesting doctor automatically.
+ * - studyUploadFlow - A function that handles the study upload process.
+ * - StudyUploadFlowInput - The input type for the studyUploadFlow function.
+ * - StudyUploadFlowOutput - The return type for the studyUploadFlow function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { uploadVideoToStorage } from '@/services/firebase';
 
-const WhatsappStudyUploadInputSchema = z.object({
+const StudyUploadFlowInputSchema = z.object({
   videoDataUri: z
     .string()
     .describe(
@@ -22,27 +21,28 @@ const WhatsappStudyUploadInputSchema = z.object({
     ),
   patientName: z.string().describe('The full name of the patient.'),
   requestingDoctorName: z.string().describe('The full name of the requesting doctor.'),
+  description: z.string().optional().describe('The description or report draft for the study.'),
 });
-export type WhatsappStudyUploadInput = z.infer<typeof WhatsappStudyUploadInputSchema>;
+export type StudyUploadFlowInput = z.infer<typeof StudyUploadFlowInputSchema>;
 
-const WhatsappStudyUploadOutputSchema = z.object({
+const StudyUploadFlowOutputSchema = z.object({
   patientId: z.string().describe('The ID of the patient in the system.'),
   requestingDoctorId: z.string().describe('The ID of the requesting doctor in the system.'),
   studyId: z.string().describe('The ID of the uploaded study in the system.'),
   confirmationMessage: z.string().describe('A message confirming the successful upload and notification.'),
   videoUrl: z.string().describe("The public URL of the uploaded video file.")
 });
-export type WhatsappStudyUploadOutput = z.infer<typeof WhatsappStudyUploadOutputSchema>;
+export type StudyUploadFlowOutput = z.infer<typeof StudyUploadFlowOutputSchema>;
 
-export async function whatsappStudyUpload(input: WhatsappStudyUploadInput): Promise<WhatsappStudyUploadOutput> {
-  return whatsappStudyUploadFlow(input);
+export async function studyUploadFlow(input: StudyUploadFlowInput): Promise<StudyUploadFlowOutput> {
+  return studyUploadFlowFn(input);
 }
 
-const whatsappStudyUploadFlow = ai.defineFlow(
+const studyUploadFlowFn = ai.defineFlow(
   {
-    name: 'whatsappStudyUploadFlow',
-    inputSchema: WhatsappStudyUploadInputSchema,
-    outputSchema: WhatsappStudyUploadOutputSchema,
+    name: 'studyUploadFlow',
+    inputSchema: StudyUploadFlowInputSchema,
+    outputSchema: StudyUploadFlowOutputSchema,
   },
   async input => {
     

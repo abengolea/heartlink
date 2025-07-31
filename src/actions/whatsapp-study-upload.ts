@@ -1,22 +1,22 @@
 'use server';
 
 import { z } from 'zod';
-import { whatsappStudyUpload, WhatsappStudyUploadInput, WhatsappStudyUploadOutput } from '@/ai/flows/whatsapp-study-upload';
+import { studyUploadFlow, StudyUploadFlowInput, StudyUploadFlowOutput } from '@/ai/flows/study-upload-flow';
 
 const formSchema = z.object({
   patientName: z.string().min(1, 'El nombre del paciente es obligatorio.'),
   requestingDoctorName: z.string().min(1, 'El nombre del médico solicitante es obligatorio.'),
   videoDataUri: z.string().min(1, 'Faltan los datos del video.'),
+  description: z.string().optional(),
 });
 
 type State = {
   status: 'success' | 'error' | 'idle';
   message: string;
-  data?: WhatsappStudyUploadOutput;
+  data?: StudyUploadFlowOutput;
 };
 
-export async function submitWhatsappStudy(
-  prevState: State,
+export async function submitStudy(
   formData: FormData
 ): Promise<State> {
   try {
@@ -24,6 +24,7 @@ export async function submitWhatsappStudy(
       patientName: formData.get('patientName'),
       requestingDoctorName: formData.get('requestingDoctorName'),
       videoDataUri: formData.get('videoDataUri'),
+      description: formData.get('description'),
     });
 
     if (!validatedFields.success) {
@@ -33,13 +34,14 @@ export async function submitWhatsappStudy(
       };
     }
     
-    const input: WhatsappStudyUploadInput = {
+    const input: StudyUploadFlowInput = {
         videoDataUri: validatedFields.data.videoDataUri,
         patientName: validatedFields.data.patientName,
         requestingDoctorName: validatedFields.data.requestingDoctorName,
+        description: validatedFields.data.description,
     };
 
-    const result = await whatsappStudyUpload(input);
+    const result = await studyUploadFlow(input);
 
     return {
       status: 'success',
