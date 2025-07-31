@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -10,8 +11,9 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import { uploadVideoToStorage } from '@/services/firebase';
+import {z} from 'zod';
+// The uploadVideoToStorage function is no longer needed here as the upload is handled client-side
+// import { uploadVideoToStorage } from '@/services/firebase';
 
 const StudyUploadFlowInputSchema = z.object({
   videoDataUri: z

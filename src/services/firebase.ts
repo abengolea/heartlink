@@ -1,28 +1,30 @@
 
-'use server';
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { v4 as uuidv4 } from 'uuid';
 
-// Check if Firebase has already been initialized
-if (!getApps().length) {
+// This function initializes and returns the Firebase Admin App instance.
+// It ensures that initialization only happens once.
+function initializeFirebaseAdmin(): App {
+    if (getApps().length) {
+        return getApps()[0];
+    }
     console.log("Initializing Firebase Admin with Application Default Credentials...");
-    // In this environment, we rely on Application Default Credentials
-    // which are automatically available.
-    initializeApp();
+    return initializeApp();
 }
 
-const storage = getStorage();
+const firebaseApp = initializeFirebaseAdmin();
+const storage = getStorage(firebaseApp);
 const bucketName = 'heartlink-f4ftq.appspot.com';
 const bucket = storage.bucket(bucketName);
 
 
 export async function getSignedUploadUrl(fileType: string, fileName: string, fileSize: number) {
-  if (fileSize > 10 * 1024 * 1024) { // 10MB limit
-    throw new Error("El archivo es demasiado grande. El límite es 10MB.");
+  if (fileSize > 50 * 1024 * 1024) { // 50MB limit - Increased limit
+    throw new Error("El archivo es demasiado grande. El límite es 50MB.");
   }
 
-  const extension = fileName.split('.').pop();
+  const extension = fileName.split('.').pop() || 'mp4';
   const filePath = `studies/${uuidv4()}.${extension}`;
   const file = bucket.file(filePath);
 
@@ -33,13 +35,24 @@ export async function getSignedUploadUrl(fileType: string, fileName: string, fil
     contentType: fileType,
   };
 
-  const [uploadUrl] = await file.getSignedUrl(options);
-
-  return { uploadUrl, filePath };
+  try {
+    const [uploadUrl] = await file.getSignedUrl(options);
+    return { uploadUrl, filePath };
+  } catch(error) {
+    console.error("Error getting signed URL from Firebase:", error);
+    if (error instanceof Error && 'code' in error && (error as any).code === 403) {
+      console.error("Firebase Storage permission error: Ensure the service account has 'Storage Object Admin' or 'Storage Admin' role.");
+      throw new Error("No tienes permisos para generar URLs de subida. Por favor, verifica los permisos de la cuenta de servicio en la consola de Firebase.");
+    }
+    throw new Error("No se pudo generar la URL para la subida de archivos.");
+  }
 }
 
 export async function getPublicUrl(filePath: string): Promise<string> {
   const file = bucket.file(filePath);
+  // Making the file public is an explicit action.
+  // Ensure your bucket's security rules allow this if you intend for files to be public.
+  await file.makePublic();
   return file.publicUrl();
 }
 
@@ -50,8 +63,6 @@ export async function getPublicUrl(filePath: string): Promise<string> {
  */
 export async function uploadVideoToStorage(dataUri: string): Promise<string> {
   try {
-    // This function might be deprecated in favor of signed URLs,
-    // but keeping it for other potential uses.
     const match = dataUri.match(/^data:(.*);base64,(.*)$/);
     if (!match) {
         // If it's not a data URI, assume it's already a URL and return it.

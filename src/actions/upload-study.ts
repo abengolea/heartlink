@@ -6,9 +6,9 @@ import { getSignedUploadUrl, getPublicUrl } from '@/services/firebase';
 import { z } from 'zod';
 
 const generateUploadUrlSchema = z.object({
-  fileType: z.string(),
-  fileName: z.string(),
-  fileSize: z.number(),
+  fileType: z.string().min(1, "El tipo de archivo es obligatorio."),
+  fileName: z.string().min(1, "El nombre de archivo es obligatorio."),
+  fileSize: z.number().gt(0, "El tamaño del archivo debe ser mayor que cero."),
 });
 
 type GenerateUploadUrlState = {
@@ -30,6 +30,7 @@ export async function generateUploadUrlAction(
     });
 
     if (!validatedFields.success) {
+      console.error("Validation errors:", validatedFields.error.flatten().fieldErrors);
       return {
         status: 'error',
         message: 'Datos de archivo no válidos.',
@@ -38,11 +39,6 @@ export async function generateUploadUrlAction(
     
     const { fileType, fileName, fileSize } = validatedFields.data;
     
-    // Basic validation
-    if (!fileType || !fileName || !fileSize) {
-        return { status: 'error', message: "Faltan los detalles del archivo." };
-    }
-
     const { uploadUrl, filePath } = await getSignedUploadUrl(fileType, fileName, fileSize);
 
     return {
@@ -63,7 +59,7 @@ const formSchema = z.object({
   patientName: z.string().min(1, 'El nombre del paciente es obligatorio.'),
   requestingDoctorName: z.string().min(1, 'El nombre del médico solicitante es obligatorio.'),
   description: z.string().optional(),
-  filePath: z.string().min(1, 'La ruta del archivo es obligatoria.')
+  filePath: z.string().min(1, 'La ruta del archivo es obligatoria.') // This will be passed after upload
 });
 
 type State = {
@@ -86,6 +82,7 @@ export async function uploadStudy(
     });
 
     if (!validatedFields.success) {
+        console.error("Validation errors for uploadStudy:", validatedFields.error.flatten().fieldErrors);
         return {
             status: 'error',
             message: 'Datos de formulario no válidos. Por favor, comprueba tus entradas.',
@@ -94,7 +91,8 @@ export async function uploadStudy(
     
     const { patientName, requestingDoctorName, description, filePath } = validatedFields.data;
 
-    const videoUrl = getPublicUrl(filePath);
+    // The file is already uploaded, so we get its public URL
+    const videoUrl = await getPublicUrl(filePath);
 
     const input: StudyUploadFlowInput = {
         videoDataUri: videoUrl, // Passing URL instead of data URI now

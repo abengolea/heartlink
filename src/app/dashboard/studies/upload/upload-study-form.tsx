@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useRef, useState, useActionState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useActionState } from "react-dom";
 import { useFormStatus } from "react-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -46,10 +47,11 @@ const initialUploadState = {
 
 export function UploadStudyForm() {
     const formRef = useRef<HTMLFormElement>(null);
+    // This action state is for the final metadata submission
     const [state, formAction] = useActionState(uploadStudy, initialUploadState);
     
     const [videoFile, setVideoFile] = useState<File | null>(null);
-    const [filePath, setFilePath] = useState<string | null>(null);
+    const [filePath, setFilePath] = useState<string | null>(null); // To store the path after successful upload
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -81,8 +83,10 @@ export function UploadStudyForm() {
         const file = e.target.files?.[0];
         if (file) {
             setVideoFile(file);
-            setFilePath(null); // Reset file path if a new file is selected
+            // Reset states related to previous uploads
+            setFilePath(null); 
             setUploadProgress(0);
+            setIsUploading(false);
         } else {
             setVideoFile(null);
         }
@@ -141,24 +145,28 @@ export function UploadStudyForm() {
             return;
         }
 
+        // Prevent submitting metadata if upload is in progress or already done
+        if (isUploading) return;
+
         setIsUploading(true);
         setUploadProgress(0);
 
-        // 1. Get signed URL
+        // 1. Get signed URL by calling the server action
         const getUrlFormData = new FormData();
         getUrlFormData.append('fileType', videoFile.type);
         getUrlFormData.append('fileName', videoFile.name);
         getUrlFormData.append('fileSize', videoFile.size.toString());
-
-        const urlState = await generateUploadUrlAction(undefined as any, getUrlFormData);
+        
+        // We call the action directly, not using useActionState for this part
+        const urlState = await generateUploadUrlAction({status: 'idle', message: ''}, getUrlFormData);
 
         if (urlState.status !== 'success' || !urlState.uploadUrl || !urlState.filePath) {
-            toast({ variant: 'destructive', title: 'Error', description: `No se pudo obtener la URL de subida: ${urlState.message}` });
+            toast({ variant: 'destructive', title: 'Error de Preparación', description: `No se pudo obtener la URL de subida: ${urlState.message}` });
             setIsUploading(false);
             return;
         }
         
-        // 2. Upload file to signed URL
+        // 2. Upload file directly to the signed URL from the client
         const { uploadUrl, filePath: newFilePath } = urlState;
 
         const xhr = new XMLHttpRequest();
@@ -173,42 +181,46 @@ export function UploadStudyForm() {
         };
 
         xhr.onload = () => {
+            setIsUploading(false);
             if (xhr.status >= 200 && xhr.status < 300) {
-                setFilePath(newFilePath);
+                setFilePath(newFilePath); // Store the path for submission
                 setUploadProgress(100);
-                toast({ title: "Subida Completa", description: "El video se ha subido correctamente." });
+                toast({ title: "Subida Completa", description: "El video se ha subido correctamente. Ahora puedes guardar el estudio." });
                 
                 // 3. Submit form to save metadata
                 if(formRef.current) {
                     const formData = new FormData(formRef.current);
-                    formData.append('filePath', newFilePath);
+                    formData.append('filePath', newFilePath); // Add the returned file path
+                    // The 'action' attribute of the form will now be handled by useActionState
                     formAction(formData);
                 }
 
             } else {
-                toast({ variant: 'destructive', title: 'Error de Subida', description: `Error al subir el video: ${xhr.statusText}` });
+                toast({ variant: 'destructive', title: 'Error de Subida', description: `Error al subir el video. Código: ${xhr.status}.` });
             }
-             setIsUploading(false);
         };
 
         xhr.onerror = () => {
-            toast({ variant: 'destructive', title: 'Error de Red', description: 'No se pudo subir el video. Comprueba tu conexión.' });
             setIsUploading(false);
+            toast({ variant: 'destructive', title: 'Error de Red', description: 'No se pudo subir el video. Comprueba tu conexión.' });
         };
 
         xhr.send(videoFile);
     }
-
+    
+    // We bind the submit logic to the form's onSubmit event.
+    // The SubmitButton inside will trigger this event.
+    // The 'action' prop on the form is managed by useActionState
     return (
         <form ref={formRef} onSubmit={handleFormSubmit} className="grid gap-6">
             <div className="grid gap-2">
                 <Label htmlFor="video">Video del Estudio (MP4, WEBM)</Label>
                 <Input id="video" name="video" type="file" accept="video/mp4,video/webm" required onChange={handleVideoFileChange}/>
                 {isUploading && <Progress value={uploadProgress} className="w-full mt-2" />}
-                {filePath && !isUploading && (
+                {filePath && !isUploading && uploadProgress === 100 && (
                      <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
                         <CheckCircle className="h-4 w-4" />
-                        <span>Video subido exitosamente.</span>
+                        <span>Video subido exitosamente. Haz clic en "Guardar Estudio".</span>
                     </div>
                 )}
             </div>
@@ -255,8 +267,16 @@ export function UploadStudyForm() {
                     </Button>
                 </div>
             </div>
+            
+            <Button type="submit" disabled={isUploading} className="w-full">
+              {isUploading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <UploadCloud className="mr-2 h-4 w-4" />
+              )}
+              {isUploading ? "Subiendo Video..." : "Guardar Estudio"}
+            </Button>
 
-            <SubmitButton />
 
              {state.status !== 'idle' && state.status !== 'success' && (
                 <Alert variant={state.status === 'error' ? 'destructive' : 'default'} className={cn(state.status === 'success' && "bg-accent/50 border-accent")}>
@@ -270,4 +290,3 @@ export function UploadStudyForm() {
         </form>
     );
 }
-
