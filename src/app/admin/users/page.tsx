@@ -1,4 +1,8 @@
-import { File, PlusCircle } from "lucide-react";
+
+"use client";
+
+import { useState } from "react";
+import { File, PlusCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,8 +33,11 @@ import { users } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { User } from "@/lib/types";
+import { Input } from "@/components/ui/input";
 
 export default function AdminUsersPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+
   const getSubscriptionBadge = (status: User["subscriptionStatus"]) => {
     switch (status) {
       case "paid":
@@ -52,6 +59,10 @@ export default function AdminUsersPage() {
         default: return role;
       }
   }
+
+  const filteredUsers = users.filter((user) =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -81,11 +92,25 @@ export default function AdminUsersPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Directorio de Usuarios</CardTitle>
-          <CardDescription>
-            Un listado de todos los médicos operadores y solicitantes en el
-            sistema.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+                <CardTitle>Directorio de Usuarios</CardTitle>
+                <CardDescription>
+                    Un listado de todos los médicos operadores y solicitantes en el
+                    sistema.
+                </CardDescription>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Buscar por nombre..."
+                    className="w-full rounded-lg bg-background pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -103,7 +128,7 @@ export default function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>
