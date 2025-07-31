@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import { patients, studies } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
