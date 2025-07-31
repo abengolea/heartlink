@@ -3,14 +3,15 @@
 
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, StopCircle, Trash2, Send, Loader2, Wand2 } from 'lucide-react';
+import { Mic, StopCircle, Trash2, Wand2, Loader2 } from 'lucide-react';
 import { transcribeAudioAction } from '@/actions/transcribe-audio';
 
 interface AudioTranscriberProps {
   onTranscription: (text: string) => void;
+  disabled?: boolean;
 }
 
-export function AudioTranscriber({ onTranscription }: AudioTranscriberProps) {
+export function AudioTranscriber({ onTranscription, disabled = false }: AudioTranscriberProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -81,7 +82,7 @@ export function AudioTranscriber({ onTranscription }: AudioTranscriberProps) {
   return (
     <div className="flex items-center gap-2">
       {!isRecording && !audioBlob && (
-        <Button type="button" variant="outline" onClick={startRecording}>
+        <Button type="button" variant="outline" onClick={startRecording} disabled={disabled}>
           <Mic className="mr-2" />
           Grabar audio
         </Button>

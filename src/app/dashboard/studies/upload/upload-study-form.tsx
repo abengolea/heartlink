@@ -14,11 +14,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, UploadCloud, Loader2, CheckCircle } from "lucide-react";
+import { Terminal, UploadCloud, Loader2, CheckCircle, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AudioTranscriber } from "./audio-transcriber";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { users } from "@/lib/data";
+import { transcribeAudioAction } from "@/actions/transcribe-audio";
 
 
 const formSchema = z.object({
@@ -42,6 +42,7 @@ function SubmitButton() {
 
 export function UploadStudyForm() {
     const [videoDataUri, setVideoDataUri] = useState('');
+    const [isTranscribing, setIsTranscribing] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const requesters = users.filter(u => u.role === 'solicitante');
@@ -57,20 +58,47 @@ export function UploadStudyForm() {
 
     const videoFile = watch("video");
 
+    const handleTranscription = async (dataUri: string) => {
+        if (!dataUri) return;
+        setIsTranscribing(true);
+        setValue('description', 'Transcribiendo audio del video...');
+        try {
+            const result = await transcribeAudioAction(dataUri);
+            if (result.status === 'success' && result.transcription) {
+                setValue('description', result.transcription);
+            } else {
+                console.error("Error de transcripción:", result.message);
+                 setValue('description', `Error al transcribir: ${result.message}`);
+                // TODO: Mostrar un toast de error
+            }
+        } catch (error) {
+            console.error("Error al transcribir:", error);
+            const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+            setValue('description', `Error al transcribir: ${errorMessage}`);
+            // TODO: Mostrar un toast de error
+        } finally {
+            setIsTranscribing(false);
+        }
+    };
+
+
     useEffect(() => {
         if(videoFile && videoFile.length > 0) {
             const file = videoFile[0];
             const reader = new FileReader();
             reader.onload = (e) => {
                 if(e.target?.result) {
-                    setVideoDataUri(e.target.result as string);
+                    const dataUri = e.target.result as string;
+                    setVideoDataUri(dataUri);
+                    handleTranscription(dataUri);
                 }
             };
             reader.readAsDataURL(file);
         } else {
             setVideoDataUri('');
         }
-    }, [videoFile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [videoFile, setValue]);
     
     const onFormSubmit = (data: FormFields) => {
         if(!videoDataUri) {
@@ -95,10 +123,6 @@ export function UploadStudyForm() {
             }
         }
     }, [state.status, reset]);
-
-    const handleTranscription = (text: string) => {
-        setValue('description', text);
-    }
 
   return (
     <form ref={formRef} onSubmit={handleSubmit(onFormSubmit)} className="grid gap-6">
@@ -139,8 +163,15 @@ export function UploadStudyForm() {
       
         <div className="grid gap-2">
           <Label htmlFor="description">Descripción / Borrador de Informe</Label>
-          <Textarea id="description" placeholder="Describa los hallazgos del estudio o dicte el informe..." {...register('description')} rows={5} />
-          <AudioTranscriber onTranscription={handleTranscription} />
+          <div className="relative">
+             <Textarea id="description" placeholder="Seleccione un video para transcribir automáticamente el audio..." {...register('description')} rows={5} readOnly={isTranscribing} />
+             {isTranscribing && (
+                <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md">
+                    <Loader2 className="mr-2 h-6 w-6 animate-spin text-primary" />
+                    <span className="text-muted-foreground">Transcribiendo...</span>
+                </div>
+             )}
+          </div>
         </div>
       
         <SubmitButton />
