@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { submitWhatsappStudy } from "@/actions/whatsapp-study-upload";
+import { createStudy } from "@/actions/create-study";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,10 +93,11 @@ export function UploadStudyForm() {
         const formData = new FormData();
         formData.append('patientName', data.patientName);
         formData.append('requestingDoctorName', data.requestingDoctorName);
+        formData.append('description', data.description || '');
         formData.append('videoDataUri', videoDataUri);
         
         startTransition(async () => {
-            const result = await submitWhatsappStudy({ status: 'idle', message: '' }, formData);
+            const result = await createStudy(formData);
             setState(result);
             if (result.status === 'success') {
                 reset();
@@ -175,7 +176,7 @@ export function UploadStudyForm() {
           </div>
         </div>
       
-        <Button type="submit" disabled={isPending} className="w-full">
+        <Button type="submit" disabled={isPending || isTranscribing} className="w-full">
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             {isPending ? "Subiendo..." : "Subir Estudio"}
         </Button>
