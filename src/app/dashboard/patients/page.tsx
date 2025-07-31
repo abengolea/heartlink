@@ -21,10 +21,12 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 
 import { patients, users } from "@/lib/data";
+import { Badge } from "@/components/ui/badge";
 
 export default function PatientsPage() {
 
@@ -64,7 +66,7 @@ export default function PatientsPage() {
               <TableRow>
                 <TableHead>Nombre</TableHead>
                 <TableHead>DNI</TableHead>
-                <TableHead className="hidden md:table-cell">Fecha de Nacimiento</TableHead>
+                <TableHead className="hidden md:table-cell">Estado</TableHead>
                 <TableHead className="hidden md:table-cell">Médico Solicitante</TableHead>
                 <TableHead>
                   <span className="sr-only">Acciones</span>
@@ -76,7 +78,11 @@ export default function PatientsPage() {
                 <TableRow key={patient.id}>
                   <TableCell className="font-medium">{patient.name}</TableCell>
                   <TableCell className="font-mono font-code">{patient.dni}</TableCell>
-                  <TableCell className="hidden md:table-cell">{patient.dob}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                     <Badge variant={patient.status === 'active' ? 'outline' : 'secondary'}>
+                        {patient.status === 'active' ? 'Activo' : 'Archivado'}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="hidden md:table-cell">{getDoctorName(patient.requesterId)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -94,7 +100,9 @@ export default function PatientsPage() {
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem>Ver Detalles</DropdownMenuItem>
                         <DropdownMenuItem>Editar</DropdownMenuItem>
-                        <DropdownMenuItem>Eliminar</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>Archivar</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

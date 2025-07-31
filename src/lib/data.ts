@@ -9,10 +9,10 @@ export const users: User[] = [
 ];
 
 export const patients: Patient[] = [
-  { id: 'patient1', name: 'John Doe', dni: '12345678A', dob: '1980-05-15', operatorId: 'user1', requesterId: 'user2' },
-  { id: 'patient2', name: 'Jane Smith', dni: '87654321B', dob: '1992-11-20', operatorId: 'user1', requesterId: 'user3' },
-  { id: 'patient3', name: 'Peter Jones', dni: '56781234C', dob: '1975-02-10', operatorId: 'user1', requesterId: 'user2' },
-  { id: 'patient4', name: 'Mary Williams', dni: '43218765D', dob: '2001-08-30', operatorId: 'user4', requesterId: 'user3' },
+  { id: 'patient1', name: 'John Doe', dni: '12345678A', dob: '1980-05-15', operatorId: 'user1', requesterId: 'user2', status: 'active' },
+  { id: 'patient2', name: 'Jane Smith', dni: '87654321B', dob: '1992-11-20', operatorId: 'user1', requesterId: 'user3', status: 'active' },
+  { id: 'patient3', name: 'Peter Jones', dni: '56781234C', dob: '1975-02-10', operatorId: 'user1', requesterId: 'user2', status: 'archived' },
+  { id: 'patient4', name: 'Mary Williams', dni: '43218765D', dob: '2001-08-30', operatorId: 'user4', requesterId: 'user3', status: 'active' },
 ];
 
 export const studies: Study[] = [

@@ -5,6 +5,7 @@ export interface Patient {
   dob: string;
   operatorId: string;
   requesterId: string;
+  status: 'active' | 'archived';
 }
 
 export interface Comment {
