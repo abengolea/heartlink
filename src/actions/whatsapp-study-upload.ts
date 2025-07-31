@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -17,6 +18,7 @@ type State = {
 };
 
 export async function submitStudy(
+  prevState: State,
   formData: FormData
 ): Promise<State> {
   try {
