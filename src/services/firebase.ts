@@ -1,6 +1,6 @@
 
 'use server';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { initializeApp, getApps } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,9 +13,35 @@ if (!getApps().length) {
 }
 
 const storage = getStorage();
-// The bucket name is derived from the Firebase project configuration.
-const bucketName = 'heartlink-f4ftq.appspot.com'; 
+const bucketName = 'heartlink-f4ftq.appspot.com';
 const bucket = storage.bucket(bucketName);
+
+
+export async function getSignedUploadUrl(fileType: string, fileName: string, fileSize: number) {
+  if (fileSize > 10 * 1024 * 1024) { // 10MB limit
+    throw new Error("El archivo es demasiado grande. El límite es 10MB.");
+  }
+
+  const extension = fileName.split('.').pop();
+  const filePath = `studies/${uuidv4()}.${extension}`;
+  const file = bucket.file(filePath);
+
+  const options = {
+    version: 'v4' as const,
+    action: 'write' as const,
+    expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    contentType: fileType,
+  };
+
+  const [uploadUrl] = await file.getSignedUrl(options);
+
+  return { uploadUrl, filePath };
+}
+
+export function getPublicUrl(filePath: string): string {
+  const file = bucket.file(filePath);
+  return file.publicUrl();
+}
 
 /**
  * Uploads a video from a data URI to Firebase Storage.
@@ -24,35 +50,34 @@ const bucket = storage.bucket(bucketName);
  */
 export async function uploadVideoToStorage(dataUri: string): Promise<string> {
   try {
-    // Extract mime type and base64 data from data URI
+    // This function might be deprecated in favor of signed URLs,
+    // but keeping it for other potential uses.
     const match = dataUri.match(/^data:(.*);base64,(.*)$/);
     if (!match) {
-      throw new Error('Invalid data URI format.');
+        // If it's not a data URI, assume it's already a URL and return it.
+        if (dataUri.startsWith('http')) {
+            return dataUri;
+        }
+      throw new Error('Invalid data URI or URL format.');
     }
     
     const mimeType = match[1];
     const base64Data = match[2];
     
-    // Create a buffer from the base64 data
     const buffer = Buffer.from(base64Data, 'base64');
     
-    // Generate a unique filename
     const filename = `studies/${uuidv4()}.${mimeType.split('/')[1] || 'mp4'}`;
     
-    // Get a reference to the file in Firebase Storage
     const file = bucket.file(filename);
     
-    // Upload the file
     await file.save(buffer, {
       metadata: {
         contentType: mimeType,
       },
     });
     
-    // Make the file public (or get a signed URL if you want it to be private)
     await file.makePublic();
     
-    // Return the public URL
     const publicUrl = file.publicUrl();
     console.log(`File uploaded successfully: ${publicUrl}`);
     return publicUrl;

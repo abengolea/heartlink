@@ -17,7 +17,7 @@ const StudyUploadFlowInputSchema = z.object({
   videoDataUri: z
     .string()
     .describe(
-      "A video of a heart study, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A video of a heart study, as a public URL to the file in storage."
     ),
   patientName: z.string().describe('The full name of the patient.'),
   requestingDoctorName: z.string().describe('The full name of the requesting doctor.'),
@@ -46,8 +46,8 @@ const studyUploadFlowFn = ai.defineFlow(
   },
   async input => {
     
-    // Upload the video to Firebase Storage
-    const videoUrl = await uploadVideoToStorage(input.videoDataUri);
+    // The video is already uploaded, the input.videoDataUri is the public URL
+    const videoUrl = input.videoDataUri;
     
     // TODO: Implement the logic to identify the patient and doctor using AI.
     // TODO: Implement the logic to create the study in Firestore.
