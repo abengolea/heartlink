@@ -1,32 +1,22 @@
+
 'use server';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { v4 as uuidv4 } from 'uuid';
 
-// Check if the service account key is provided
-if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-  if (process.env.NODE_ENV === 'production') {
-    // In production, we can rely on Application Default Credentials
+// Check if Firebase has already been initialized
+if (!getApps().length) {
     console.log("Initializing Firebase Admin with Application Default Credentials...");
+    // In this environment, we rely on Application Default Credentials
+    // which are automatically available.
     initializeApp();
-  } else {
-    // In development, we need the service account key
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Please provide your Firebase service account key as a JSON string in your .env.local file.');
-  }
-} else {
-    // Initialize Firebase Admin SDK
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    if (!getApps().length) {
-      initializeApp({
-        credential: cert(serviceAccount),
-      });
-    }
 }
 
-
 const storage = getStorage();
+// The bucket name should be dynamically retrieved or configured, 
+// but for now we'll use the one provided by the user.
 const bucketName = 'notificas-f9953.firebasestorage.app'; 
-const bucket = storage.bucket(bucketName);
+const bucket = storage.bucket(`gs://${bucketName}`);
 
 /**
  * Uploads a video from a data URI to Firebase Storage.
@@ -70,7 +60,10 @@ export async function uploadVideoToStorage(dataUri: string): Promise<string> {
 
   } catch (error) {
     console.error('Error uploading to Firebase Storage:', error);
+    if (error instanceof Error && 'code' in error && (error as any).code === 403) {
+        console.error("Firebase Storage permission error: Ensure the service account has 'Storage Admin' role.");
+        throw new Error("No tienes permisos para subir archivos. Por favor, verifica los permisos de la cuenta de servicio en la consola de Firebase.");
+    }
     throw new Error('Failed to upload video to storage.');
   }
 }
-
