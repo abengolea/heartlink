@@ -1,6 +1,8 @@
+
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -42,7 +44,7 @@ export function WhatsappUploadForm() {
         resolver: zodResolver(formSchema),
     });
     
-    const [state, formAction] = useFormState(submitWhatsappStudy, {
+    const [state, formAction] = useActionState(submitWhatsappStudy, {
         status: "idle",
         message: "",
     });
