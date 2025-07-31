@@ -4,7 +4,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 
 import { submitWhatsappStudy } from "@/actions/whatsapp-study-upload";
@@ -17,6 +17,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, UploadCloud, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AudioTranscriber } from "./audio-transcriber";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { users } from "@/lib/data";
 
 
 const formSchema = z.object({
@@ -42,8 +44,9 @@ export function UploadStudyForm() {
     const [videoDataUri, setVideoDataUri] = useState('');
     const formRef = useRef<HTMLFormElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
+    const requesters = users.filter(u => u.role === 'solicitante');
 
-    const { register, handleSubmit, formState: { errors }, watch, reset, setValue } = useForm<FormFields>({
+    const { register, handleSubmit, formState: { errors }, watch, reset, setValue, control } = useForm<FormFields>({
         resolver: zodResolver(formSchema),
     });
     
@@ -113,7 +116,24 @@ export function UploadStudyForm() {
 
         <div className="grid gap-2">
             <Label htmlFor="requestingDoctorName">Nombre del Médico Solicitante</Label>
-            <Input id="requestingDoctorName" placeholder="Ej., Dra. Ellie Sattler" {...register('requestingDoctorName')} />
+             <Controller
+                control={control}
+                name="requestingDoctorName"
+                render={({ field }) => (
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <SelectTrigger id="requestingDoctorName">
+                            <SelectValue placeholder="Seleccionar médico solicitante" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {requesters.map(requester => (
+                                <SelectItem key={requester.id} value={requester.name}>
+                                    {requester.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            />
             {errors.requestingDoctorName && <p className="text-sm text-destructive">{errors.requestingDoctorName.message}</p>}
         </div>
       
