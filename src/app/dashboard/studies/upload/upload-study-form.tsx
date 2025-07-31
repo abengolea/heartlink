@@ -1,25 +1,22 @@
 
 "use client";
 
-import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-
 import { submitWhatsappStudy } from "@/actions/whatsapp-study-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, UploadCloud, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { users, patients } from "@/lib/data";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
-
 
 const formSchema = z.object({
   video: z.any().optional(),
@@ -30,32 +27,26 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full">
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-      {pending ? "Subiendo..." : "Subir Estudio"}
-    </Button>
-  );
+type State = {
+    status: 'success' | 'error' | 'idle';
+    message: string;
+    data?: any;
 }
 
 export function UploadStudyForm() {
     const [videoDataUri, setVideoDataUri] = useState('');
     const [isTranscribing, setIsTranscribing] = useState(false);
-    const formRef = useRef<HTMLFormElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const requesters = users.filter(u => u.role === 'solicitante');
+    const [isPending, startTransition] = useTransition();
+
+    const [state, setState] = useState<State>({ status: 'idle', message: '' });
+
 
     const { register, handleSubmit, formState: { errors }, watch, reset, setValue, control } = useForm<FormFields>({
         resolver: zodResolver(formSchema),
     });
     
-    const [state, formAction] = useActionState(submitWhatsappStudy, {
-        status: "idle",
-        message: "",
-    });
-
     const videoFile = watch("video");
 
     const handleTranscription = async (dataUri: string) => {
@@ -104,21 +95,21 @@ export function UploadStudyForm() {
         formData.append('requestingDoctorName', data.requestingDoctorName);
         formData.append('videoDataUri', videoDataUri);
         
-        formAction(formData);
+        startTransition(async () => {
+            const result = await submitWhatsappStudy({ status: 'idle', message: '' }, formData);
+            setState(result);
+            if (result.status === 'success') {
+                reset();
+                setVideoDataUri('');
+                if(videoInputRef.current) {
+                    videoInputRef.current.value = "";
+                }
+            }
+        });
     };
 
-    useEffect(() => {
-        if (state.status === 'success') {
-            reset();
-            setVideoDataUri('');
-            if(videoInputRef.current) {
-                videoInputRef.current.value = "";
-            }
-        }
-    }, [state.status, reset]);
-
   return (
-    <form ref={formRef} onSubmit={handleSubmit(onFormSubmit)} className="grid gap-6">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="grid gap-6">
         <div className="grid gap-2">
             <Label htmlFor="video">Video del Estudio (MP4)</Label>
             <Input id="video" type="file" accept="video/mp4" {...register('video')} ref={videoInputRef}/>
@@ -131,7 +122,7 @@ export function UploadStudyForm() {
                 control={control}
                 name="patientName"
                 render={({ field }) => (
-                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                     <Select onValueChange={field.onChange} value={field.value ?? ''} >
                         <SelectTrigger id="patientName">
                             <SelectValue placeholder="Seleccionar paciente" />
                         </SelectTrigger>
@@ -154,7 +145,7 @@ export function UploadStudyForm() {
                 control={control}
                 name="requestingDoctorName"
                 render={({ field }) => (
-                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                     <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <SelectTrigger id="requestingDoctorName">
                             <SelectValue placeholder="Seleccionar médico solicitante" />
                         </SelectTrigger>
@@ -184,7 +175,10 @@ export function UploadStudyForm() {
           </div>
         </div>
       
-        <SubmitButton />
+        <Button type="submit" disabled={isPending} className="w-full">
+            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+            {isPending ? "Subiendo..." : "Subir Estudio"}
+        </Button>
 
         {state.status !== 'idle' && (
              <Alert variant={state.status === 'error' ? 'destructive' : 'default'} className={cn(state.status === 'success' && "bg-accent/50 border-accent")}>
