@@ -22,7 +22,7 @@ import { transcribeAudioAction } from "@/actions/transcribe-audio";
 
 
 const formSchema = z.object({
-  video: z.any().optional(), // No es obligatorio, la lógica se basa en videoDataUri
+  video: z.any().optional(),
   patientName: z.string().min(1, "El nombre del paciente es obligatorio."),
   requestingDoctorName: z.string().min(1, "El nombre del médico solicitante es obligatorio."),
   description: z.string().optional(),
@@ -69,13 +69,11 @@ export function UploadStudyForm() {
             } else {
                 console.error("Error de transcripción:", result.message);
                  setValue('description', `Error al transcribir: ${result.message}`);
-                // TODO: Mostrar un toast de error
             }
         } catch (error) {
             console.error("Error al transcribir:", error);
             const errorMessage = error instanceof Error ? error.message : "Error desconocido";
             setValue('description', `Error al transcribir: ${errorMessage}`);
-            // TODO: Mostrar un toast de error
         } finally {
             setIsTranscribing(false);
         }
@@ -101,14 +99,6 @@ export function UploadStudyForm() {
     }, [videoFile, setValue]);
     
     const onFormSubmit = (data: FormFields) => {
-        if(!videoDataUri) {
-            // Re-añadimos una validación para asegurar que el video esté presente antes de enviar.
-            // Esto debería mostrarse al usuario de una forma más amigable, como un toast.
-            alert("Por favor, selecciona un archivo de video antes de subir.");
-            console.error("No hay datos de URI de video disponibles");
-            return;
-        }
-
         const formData = new FormData();
         formData.append('patientName', data.patientName);
         formData.append('requestingDoctorName', data.requestingDoctorName);
