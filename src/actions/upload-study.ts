@@ -18,6 +18,7 @@ type State = {
 };
 
 export async function uploadStudy(
+  prevState: State,
   formData: FormData
 ): Promise<State> {
   try {
@@ -34,12 +35,12 @@ export async function uploadStudy(
         return {
             status: 'error',
             message: 'Datos de formulario no válidos. Por favor, comprueba tus entradas.',
+            data: null,
         };
     }
     
     const { video, patientName, requestingDoctorName, description } = validatedFields.data;
 
-    // Convert File to a Buffer and then to a data URI
     const buffer = Buffer.from(await video.arrayBuffer());
     const videoDataUri = `data:${video.type};base64,${buffer.toString('base64')}`;
 
@@ -63,6 +64,7 @@ export async function uploadStudy(
     return {
       status: 'error',
       message: `Error al subir el estudio: ${errorMessage}`,
+      data: null
     };
   }
 }

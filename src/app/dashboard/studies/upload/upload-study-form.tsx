@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,10 @@ import { useToast } from "@/hooks/use-toast";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
 
 
-function SubmitButton({ disabled }: { disabled: boolean }) {
+function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={disabled || pending} className="w-full">
+    <Button type="submit" disabled={pending} className="w-full">
       {pending ? (
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
       ) : (
@@ -37,14 +37,30 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
+const initialState = {
+  status: 'idle' as 'idle' | 'success' | 'error',
+  message: '',
+  data: null as any,
+};
+
 export function UploadStudyForm() {
     const formRef = useRef<HTMLFormElement>(null);
-    const [state, setState] = useState<{ status: 'idle' | 'success' | 'error', message: string, data?: any }>({ status: 'idle', message: '' });
+    const [state, formAction] = useActionState(uploadStudy, initialState);
+    
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [description, setDescription] = useState('');
     const requesters = users.filter(u => u.role === 'solicitante');
     const { toast } = useToast();
+
+    useEffect(() => {
+        if (state.status === 'success') {
+            formRef.current?.reset();
+            setVideoFile(null);
+            setDescription('');
+        }
+    }, [state.status]);
+
 
     const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -100,20 +116,9 @@ export function UploadStudyForm() {
         reader.readAsDataURL(videoFile);
     };
 
-    const handleFormSubmit = async (formData: FormData) => {
-        setState({ status: 'idle', message: '' });
-        const result = await uploadStudy(formData);
-        setState(result);
-
-        if (result.status === 'success') {
-            formRef.current?.reset();
-            setVideoFile(null);
-            setDescription('');
-        }
-    };
 
     return (
-        <form ref={formRef} action={handleFormSubmit} className="grid gap-6">
+        <form ref={formRef} action={formAction} className="grid gap-6">
             <div className="grid gap-2">
                 <Label htmlFor="video">Video del Estudio (MP4, WEBM)</Label>
                 <Input id="video" name="video" type="file" accept="video/mp4,video/webm" required onChange={handleVideoFileChange}/>
@@ -162,7 +167,7 @@ export function UploadStudyForm() {
                 </div>
             </div>
 
-            <SubmitButton disabled={!videoFile} />
+            <SubmitButton />
 
             {state.status !== 'idle' && (
                 <Alert variant={state.status === 'error' ? 'destructive' : 'default'} className={cn(state.status === 'success' && "bg-accent/50 border-accent")}>
@@ -179,4 +184,3 @@ export function UploadStudyForm() {
         </form>
     );
 }
-
