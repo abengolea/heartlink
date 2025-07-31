@@ -95,7 +95,10 @@ export function WhatsappUploadForm() {
     }, [state.status, reset]);
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit(onFormSubmit)} className="grid gap-6">
+    <form ref={formRef} action={formAction} onSubmit={(evt) => {
+        evt.preventDefault();
+        handleSubmit(onFormSubmit)();
+    }} className="grid gap-6">
         <div className="grid gap-2">
             <Label htmlFor="video">Video del Estudio (MP4)</Label>
             <Input id="video" type="file" accept="video/mp4" {...register('video')} ref={videoInputRef}/>
