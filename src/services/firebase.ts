@@ -38,7 +38,7 @@ export async function getSignedUploadUrl(fileType: string, fileName: string, fil
   return { uploadUrl, filePath };
 }
 
-export function getPublicUrl(filePath: string): string {
+export async function getPublicUrl(filePath: string): Promise<string> {
   const file = bucket.file(filePath);
   return file.publicUrl();
 }
