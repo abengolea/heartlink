@@ -14,15 +14,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, UploadCloud, Loader2, CheckCircle, Wand2 } from "lucide-react";
+import { Terminal, UploadCloud, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { users } from "@/lib/data";
+import { users, patients } from "@/lib/data";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
 
 
 const formSchema = z.object({
-  video: z.any().refine((files) => files?.length > 0, "Se requiere un archivo de video."),
+  video: z.any().optional(), // No es obligatorio, la lógica se basa en videoDataUri
   patientName: z.string().min(1, "El nombre del paciente es obligatorio."),
   requestingDoctorName: z.string().min(1, "El nombre del médico solicitante es obligatorio."),
   description: z.string().optional(),
@@ -102,6 +102,9 @@ export function UploadStudyForm() {
     
     const onFormSubmit = (data: FormFields) => {
         if(!videoDataUri) {
+            // Re-añadimos una validación para asegurar que el video esté presente antes de enviar.
+            // Esto debería mostrarse al usuario de una forma más amigable, como un toast.
+            alert("Por favor, selecciona un archivo de video antes de subir.");
             console.error("No hay datos de URI de video disponibles");
             return;
         }
@@ -134,7 +137,24 @@ export function UploadStudyForm() {
        
         <div className="grid gap-2">
             <Label htmlFor="patientName">Nombre Completo del Paciente</Label>
-            <Input id="patientName" placeholder="Ej., Juan Pérez" {...register('patientName')} />
+            <Controller
+                control={control}
+                name="patientName"
+                render={({ field }) => (
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <SelectTrigger id="patientName">
+                            <SelectValue placeholder="Seleccionar paciente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {patients.map(patient => (
+                                <SelectItem key={patient.id} value={patient.name}>
+                                    {patient.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            />
             {errors.patientName && <p className="text-sm text-destructive">{errors.patientName.message}</p>}
         </div>
 
