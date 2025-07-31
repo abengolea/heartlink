@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CircleUser, Menu, Package2, Shield } from "lucide-react";
+import { CircleUser, Menu, Package2, Shield, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
     { href: "/dashboard", label: "Panel de control" },
     { href: "/dashboard/patients", label: "Pacientes" },
+    { href: "/dashboard/requesters", label: "Médicos Solicitantes" },
     { href: "/dashboard/studies", label: "Estudios" },
     { href: "/dashboard/whatsapp-upload", label: "Subir por WhatsApp" },
     { href: "/admin", label: "Admin", icon: <Shield className="h-5 w-5" /> },
