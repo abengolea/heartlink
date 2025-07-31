@@ -12,6 +12,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { uploadVideoToStorage } from '@/services/firebase';
 
 const WhatsappStudyUploadInputSchema = z.object({
   videoDataUri: z
@@ -29,6 +30,7 @@ const WhatsappStudyUploadOutputSchema = z.object({
   requestingDoctorId: z.string().describe('The ID of the requesting doctor in the system.'),
   studyId: z.string().describe('The ID of the uploaded study in the system.'),
   confirmationMessage: z.string().describe('A message confirming the successful upload and notification.'),
+  videoUrl: z.string().describe("The public URL of the uploaded video file.")
 });
 export type WhatsappStudyUploadOutput = z.infer<typeof WhatsappStudyUploadOutputSchema>;
 
@@ -43,8 +45,11 @@ const whatsappStudyUploadFlow = ai.defineFlow(
     outputSchema: WhatsappStudyUploadOutputSchema,
   },
   async input => {
+    
+    // Upload the video to Firebase Storage
+    const videoUrl = await uploadVideoToStorage(input.videoDataUri);
+    
     // TODO: Implement the logic to identify the patient and doctor using AI.
-    // TODO: Implement the logic to upload the study to Firebase Storage.
     // TODO: Implement the logic to create the study in Firestore.
     // TODO: Implement the logic to send a confirmation message to the requesting doctor.
 
@@ -52,13 +57,14 @@ const whatsappStudyUploadFlow = ai.defineFlow(
     const patientId = 'patient123'; // Replace with actual patient ID
     const requestingDoctorId = 'doctor456'; // Replace with actual doctor ID
     const studyId = 'study789'; // Replace with actual study ID
-    const confirmationMessage = `El estudio para ${input.patientName} ha sido subido y el médico solicitante, ${input.requestingDoctorName}, ha sido notificado.`;
+    const confirmationMessage = `El estudio para ${input.patientName} ha sido subido y el médico solicitante, ${input.requestingDoctorName}, ha sido notificado. El video está disponible en: ${videoUrl}`;
 
     return {
       patientId,
       requestingDoctorId,
       studyId,
       confirmationMessage,
+      videoUrl
     };
   }
 );

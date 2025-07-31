@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { whatsappStudyUpload, WhatsappStudyUploadInput } from '@/ai/flows/whatsapp-study-upload';
+import { whatsappStudyUpload, WhatsappStudyUploadInput, WhatsappStudyUploadOutput } from '@/ai/flows/whatsapp-study-upload';
 
 const formSchema = z.object({
   // The 'video' field is handled on the client-side to generate a data URI
@@ -14,9 +14,7 @@ const formSchema = z.object({
 type State = {
   status: 'success' | 'error' | 'idle';
   message: string;
-  data?: {
-    studyId: string;
-  };
+  data?: WhatsappStudyUploadOutput;
 };
 
 export async function submitWhatsappStudy(
@@ -49,7 +47,7 @@ export async function submitWhatsappStudy(
     return {
       status: 'success',
       message: result.confirmationMessage,
-      data: { studyId: result.studyId },
+      data: result,
     };
   } catch (error) {
     console.error(error);
