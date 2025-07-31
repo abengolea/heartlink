@@ -13,9 +13,8 @@ if (!getApps().length) {
 }
 
 const storage = getStorage();
-// The bucket name should be dynamically retrieved or configured, 
-// but for now we'll use the one provided by the user.
-const bucketName = 'notificas-f9953.appspot.com'; 
+// The bucket name is derived from the Firebase project configuration.
+const bucketName = 'heartlink-f4ftq.appspot.com'; 
 const bucket = storage.bucket(bucketName);
 
 /**
