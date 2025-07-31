@@ -11,7 +11,7 @@ export interface Comment {
   id: string;
   userId: string;
   userName: string;
-  role: 'operator' | 'requester';
+  role: 'operator' | 'solicitante';
   text: string;
   timestamp: string;
 }
@@ -36,7 +36,7 @@ export interface Study {
 export interface User {
   id: string;
   name: string;
-  role: 'admin' | 'operator' | 'requester';
+  role: 'admin' | 'operator' | 'solicitante';
   status: 'active' | 'suspended';
   subscriptionStatus: 'paid' | 'pending' | 'overdue';
 }

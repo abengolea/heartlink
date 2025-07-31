@@ -2,8 +2,8 @@ import type { Patient, Study, User, Backup } from './types';
 
 export const users: User[] = [
   { id: 'user1', name: 'Dr. Alan Grant', role: 'operator', status: 'active', subscriptionStatus: 'paid' },
-  { id: 'user2', name: 'Dr. Ellie Sattler', role: 'requester', status: 'active', subscriptionStatus: 'paid' },
-  { id: 'user3', name: 'Dr. Ian Malcolm', role: 'requester', status: 'active', subscriptionStatus: 'paid' },
+  { id: 'user2', name: 'Dr. Ellie Sattler', role: 'solicitante', status: 'active', subscriptionStatus: 'paid' },
+  { id: 'user3', name: 'Dr. Ian Malcolm', role: 'solicitante', status: 'active', subscriptionStatus: 'paid' },
   { id: 'user4', name: 'Dr. John Hammond', role: 'operator', status: 'suspended', subscriptionStatus: 'overdue'},
   { id: 'user5', name: 'Dennis Nedry', role: 'admin', status: 'active', subscriptionStatus: 'paid'}
 ];
@@ -27,7 +27,7 @@ export const studies: Study[] = [
     diagnosis: 'Insuficiencia mitral leve.',
     comments: [
       { id: 'c1', userId: 'user1', userName: 'Dr. Alan Grant', role: 'operator', text: 'Dr. Sattler, he subido el ecocardiograma del paciente. La fracción de eyección es del 55%. Quedo atento a sus comentarios.', timestamp: '2024-05-20T10:05:00Z' },
-      { id: 'c2', userId: 'user2', userName: 'Dr. Ellie Sattler', role: 'requester', text: 'Gracias, Dr. Grant. Lo reviso y le doy una devolución. ¿Podría verificar la presión arterial registrada durante el estudio?', timestamp: '2024-05-20T11:30:00Z' },
+      { id: 'c2', userId: 'user2', userName: 'Dr. Ellie Sattler', role: 'solicitante', text: 'Gracias, Dr. Grant. Lo reviso y le doy una devolución. ¿Podría verificar la presión arterial registrada durante el estudio?', timestamp: '2024-05-20T11:30:00Z' },
     ]
   },
   {

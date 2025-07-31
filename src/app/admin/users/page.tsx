@@ -44,6 +44,15 @@ export default function AdminUsersPage() {
     }
   };
 
+  const getRoleName = (role: User["role"]) => {
+      switch (role) {
+        case "admin": return "Admin";
+        case "operator": return "Operador";
+        case "solicitante": return "Solicitante";
+        default: return role;
+      }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center">
@@ -104,7 +113,7 @@ export default function AdminUsersPage() {
                         user.role === "admin" && "bg-destructive/80"
                       )}
                     >
-                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      {getRoleName(user.role)}
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
