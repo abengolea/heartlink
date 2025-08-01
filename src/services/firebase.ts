@@ -22,11 +22,12 @@ function initializeFirebaseAdmin(): App {
     }
 
     try {
+        const serviceAccount = JSON.parse(serviceAccountKey);
         console.log("Initializing Firebase Admin with service account...");
         return initializeApp({
-            credential: cert(JSON.parse(serviceAccountKey)),
-            // The storage bucket URL is now retrieved from the service account key.
-            storageBucket: JSON.parse(serviceAccountKey).project_id + '.appspot.com'
+            credential: cert(serviceAccount),
+            // Explicitly set the storage bucket from the service account or a known value.
+            storageBucket: serviceAccount.project_id + '.appspot.com'
         });
     } catch (e) {
         console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY or initializing Firebase Admin:", e);
@@ -36,7 +37,7 @@ function initializeFirebaseAdmin(): App {
 
 const firebaseApp = initializeFirebaseAdmin();
 const storage = getStorage(firebaseApp);
-const bucket = storage.bucket(); // The bucket is inferred from the initialized app
+const bucket = storage.bucket(); // The bucket is now correctly inferred from the initialized app
 
 
 export async function getSignedUploadUrl(fileType: string, fileName: string, fileSize: number) {
