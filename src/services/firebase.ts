@@ -1,19 +1,12 @@
-
-'use server';
-
 import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { v4 as uuidv4 } from 'uuid';
 
-// This function initializes and returns the Firebase Admin App instance.
-// It ensures that initialization only happens once.
 function initializeFirebaseAdmin(): App {
     if (getApps().length) {
         return getApps()[0];
     }
     
-    // The service account key is now expected in an environment variable.
-    // This is a more secure and standard way to handle credentials.
     const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
     if (!serviceAccountKey) {
@@ -26,8 +19,7 @@ function initializeFirebaseAdmin(): App {
         console.log("Initializing Firebase Admin with service account...");
         return initializeApp({
             credential: cert(serviceAccount),
-            // Explicitly set the storage bucket from the service account or a known value.
-            storageBucket: serviceAccount.project_id + '.appspot.com'
+            storageBucket: 'heartlink-f4ftq.appspot.com' 
         });
     } catch (e) {
         console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY or initializing Firebase Admin:", e);
@@ -37,7 +29,7 @@ function initializeFirebaseAdmin(): App {
 
 const firebaseApp = initializeFirebaseAdmin();
 const storage = getStorage(firebaseApp);
-const bucket = storage.bucket(); // The bucket is now correctly inferred from the initialized app
+const bucket = storage.bucket();
 
 
 export async function getSignedUploadUrl(fileType: string, fileName: string, fileSize: number) {
@@ -71,8 +63,6 @@ export async function getSignedUploadUrl(fileType: string, fileName: string, fil
 
 export async function getPublicUrl(filePath: string): Promise<string> {
   const file = bucket.file(filePath);
-  // Making the file public is an explicit action.
-  // Ensure your bucket's security rules allow this if you intend for files to be public.
   await file.makePublic();
   return file.publicUrl();
 }
@@ -86,7 +76,6 @@ export async function uploadVideoToStorage(dataUri: string): Promise<string> {
   try {
     const match = dataUri.match(/^data:(.*);base64,(.*)$/);
     if (!match) {
-        // If it's not a data URI, assume it's already a URL and return it.
         if (dataUri.startsWith('http')) {
             return dataUri;
         }
