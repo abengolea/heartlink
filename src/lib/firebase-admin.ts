@@ -27,7 +27,8 @@ const initAdmin = () => {
   
   return initializeApp({
     credential: cert(serviceAccount),
-    storageBucket: 'heartlink-f4ftq.appspot.com' // Sin gs://
+    // Apuntar al bucket correcto especificado por el usuario
+    storageBucket: 'videos_heartlink' 
   });
 };
 
@@ -35,5 +36,6 @@ const initAdmin = () => {
 export const getStorageBucket = () => {
   const app = initAdmin();
   const storage = getStorage(app);
-  return storage.bucket(); // Usar el bucket por defecto configurado en initializeApp
+  // Usar el bucket por defecto configurado en initializeApp
+  return storage.bucket(); 
 };
