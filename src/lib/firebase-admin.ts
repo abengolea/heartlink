@@ -15,7 +15,7 @@ const firebaseAdminConfig = (): ServiceAccount => {
   }
 };
 
-// Inicializar Firebase Admin solo una vez
+// Initialize Firebase Admin only once
 const initAdmin = () => {
   const apps = getApps();
   
@@ -27,15 +27,15 @@ const initAdmin = () => {
   
   return initializeApp({
     credential: cert(serviceAccount),
-    // Apuntar al bucket correcto especificado por el usuario
+    // Point to the correct bucket specified by the user
     storageBucket: 'videos_heartlink' 
   });
 };
 
-// Obtener instancia del bucket
+// Get the bucket instance
 export const getStorageBucket = () => {
   const app = initAdmin();
   const storage = getStorage(app);
-  // Usar el bucket por defecto configurado en initializeApp
+  // Use the default bucket configured in initializeApp
   return storage.bucket(); 
 };

@@ -6,7 +6,7 @@ export async function getSignedUploadUrl(
   fileName: string, 
   fileSize: number
 ): Promise<{ uploadUrl: string; filePath: string }> {
-  // Validación del tamaño
+  // File size validation
   if (fileSize > 50 * 1024 * 1024) {
     throw new Error("El archivo es demasiado grande. El límite es 50MB.");
   }
@@ -18,11 +18,11 @@ export async function getSignedUploadUrl(
     
     const file = bucket.file(filePath);
 
-    // Generar URL firmada
+    // Generate signed URL
     const [uploadUrl] = await file.getSignedUrl({
       version: 'v4',
       action: 'write',
-      expires: Date.now() + 15 * 60 * 1000, // 15 minutos
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
       contentType: fileType,
     });
 
