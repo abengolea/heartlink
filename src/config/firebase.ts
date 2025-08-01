@@ -28,4 +28,4 @@ if (!getApps().length) {
 }
 
 const storage = getStorage(app);
-export const bucket = storage.bucket();
+export const bucket = storage.bucket('heartlink-f4ftq.appspot.com');
