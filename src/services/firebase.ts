@@ -1,33 +1,35 @@
-
 import { v4 as uuidv4 } from 'uuid';
-import { getStorageBucket } from '@/config/firebase-admin';
+import { getStorageBucket } from '@/lib/firebase-admin';
 
-export async function getSignedUploadUrl(fileType: string, fileName: string, fileSize: number) {
-  if (fileSize > 50 * 1024 * 1024) { // 50MB limit
+export async function getSignedUploadUrl(
+  fileType: string, 
+  fileName: string, 
+  fileSize: number
+): Promise<{ uploadUrl: string; filePath: string }> {
+  // Validación del tamaño
+  if (fileSize > 50 * 1024 * 1024) {
     throw new Error("El archivo es demasiado grande. El límite es 50MB.");
   }
 
   try {
-    // Obtener el bucket dentro de la función para evitar problemas de inicialización
     const bucket = getStorageBucket();
-    
-    const extension = fileName.split('.').pop() || 'mp4';
+    const extension = fileName.split('.').pop()?.toLowerCase() || 'mp4';
     const filePath = `studies/${uuidv4()}.${extension}`;
+    
     const file = bucket.file(filePath);
 
-    const options = {
-      version: 'v4' as const,
-      action: 'write' as const,
-      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    // Generar URL firmada
+    const [uploadUrl] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'write',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutos
       contentType: fileType,
-    };
+    });
 
-    const [uploadUrl] = await file.getSignedUrl(options);
     return { uploadUrl, filePath };
-    
-  } catch(error: any) {
-    console.error("Error in getSignedUploadUrl:", error);
-    throw new Error(`No se pudo generar la URL para la subida de archivos: ${error.message}`);
+  } catch (error) {
+    console.error('Error generating signed URL:', error);
+    throw new Error('No se pudo generar la URL de subida. Por favor, intente nuevamente.');
   }
 }
 

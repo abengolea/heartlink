@@ -5,52 +5,30 @@ import { studyUploadFlow, StudyUploadFlowInput } from '@/ai/flows/study-upload-f
 import { getSignedUploadUrl, getPublicUrl } from '@/services/firebase';
 import { z } from 'zod';
 
-const generateUploadUrlSchema = z.object({
-  fileType: z.string().min(1, "El tipo de archivo es obligatorio."),
-  fileName: z.string().min(1, "El nombre de archivo es obligatorio."),
-  fileSize: z.number().gt(0, "El tamaño del archivo debe ser mayor que cero."),
-});
-
 type GenerateUploadUrlState = {
-  status: 'success' | 'error' | 'idle';
-  message: string;
+  success: boolean;
   uploadUrl?: string;
   filePath?: string;
+  error?: string;
 };
 
 export async function generateUploadUrlAction(
-  prevState: GenerateUploadUrlState,
-  formData: FormData
+  fileType: string,
+  fileName: string,
+  fileSize: number
 ): Promise<GenerateUploadUrlState> {
   try {
-    const validatedFields = generateUploadUrlSchema.safeParse({
-      fileType: formData.get('fileType'),
-      fileName: formData.get('fileName'),
-      fileSize: Number(formData.get('fileSize')),
-    });
-
-    if (!validatedFields.success) {
-      console.error("Validation errors:", validatedFields.error.flatten().fieldErrors);
-      return {
-        status: 'error',
-        message: 'Datos de archivo no válidos.',
-      };
+    if (!fileType || !fileName || !fileSize) {
+      throw new Error("Información de archivo incompleta.");
     }
-    
-    const { fileType, fileName, fileSize } = validatedFields.data;
-    
-    const { uploadUrl, filePath } = await getSignedUploadUrl(fileType, fileName, fileSize);
-
-    return {
-      status: 'success',
-      message: 'URL de subida generada.',
-      uploadUrl,
-      filePath,
-    };
+    const result = await getSignedUploadUrl(fileType, fileName, fileSize);
+    return { success: true, ...result };
   } catch (error) {
-    console.error('Error generating signed URL:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
-    return { status: 'error', message: `Error al generar la URL de subida: ${errorMessage}` };
+    console.error('Server action error in generateUploadUrlAction:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Error desconocido al generar URL de subida.' 
+    };
   }
 }
 
