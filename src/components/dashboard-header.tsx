@@ -23,7 +23,6 @@ const navItems = [
     { href: "/dashboard/requesters", label: "Médicos Solicitantes" },
     { href: "/dashboard/studies", label: "Estudios" },
     { href: "/dashboard/whatsapp-upload", label: "Subir por WhatsApp" },
-    { href: "/admin", label: "Admin", icon: <Shield className="h-5 w-5" /> },
 ];
 
 export function DashboardHeader() {
@@ -59,10 +58,19 @@ export function DashboardHeader() {
                 )}
                 prefetch={false}
                 >
-                {item.icon}
                 {item.label}
                 </Link>
             ))}
+             {isAdminSection && (
+              <Link
+                href="/admin"
+                className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground bg-muted text-foreground"
+                prefetch={false}
+              >
+                <Shield className="h-5 w-5" />
+                Admin
+              </Link>
+            )}
           </nav>
         </SheetContent>
       </Sheet>

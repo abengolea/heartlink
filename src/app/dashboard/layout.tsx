@@ -71,14 +71,6 @@ export default function DashboardLayout({
                 <CreditCard className="h-4 w-4" />
                 Suscripción
               </Link>
-               <Link
-                href="/admin"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                prefetch={false}
-              >
-                <Shield className="h-4 w-4" />
-                Admin
-              </Link>
             </nav>
           </div>
         </div>
