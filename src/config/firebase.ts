@@ -17,7 +17,7 @@ if (!getApps().length) {
         console.log("Initializing Firebase Admin with service account...");
         app = initializeApp({
             credential: cert(serviceAccount),
-            storageBucket: 'heartlink-f4ftq.appspot.com'
+            storageBucket: 'gs://heartlink-f4ftq.appspot.com' // IMPORTANTE: Añadir prefijo gs://
         });
     } catch (e) {
         console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY or initializing Firebase Admin:", e);
@@ -28,4 +28,5 @@ if (!getApps().length) {
 }
 
 const storage = getStorage(app);
-export const bucket = storage.bucket('heartlink-f4ftq.appspot.com');
+// Se usa el bucket por defecto configurado en initializeApp
+export const bucket = storage.bucket();
