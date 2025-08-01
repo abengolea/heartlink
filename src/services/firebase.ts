@@ -1,5 +1,7 @@
 
-import { initializeApp, getApps, App } from 'firebase-admin/app';
+'use server';
+
+import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,18 +11,36 @@ function initializeFirebaseAdmin(): App {
     if (getApps().length) {
         return getApps()[0];
     }
-    console.log("Initializing Firebase Admin with Application Default Credentials...");
-    return initializeApp();
+    
+    // The service account key is now expected in an environment variable.
+    // This is a more secure and standard way to handle credentials.
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+    if (!serviceAccountKey) {
+        console.error("FIREBASE_SERVICE_ACCOUNT_KEY not set. Please set this environment variable with your service account key JSON.");
+        throw new Error("La configuración del servidor de Firebase está incompleta. La clave de la cuenta de servicio no se ha encontrado.");
+    }
+
+    try {
+        console.log("Initializing Firebase Admin with service account...");
+        return initializeApp({
+            credential: cert(JSON.parse(serviceAccountKey)),
+            // The storage bucket URL is now retrieved from the service account key.
+            storageBucket: JSON.parse(serviceAccountKey).project_id + '.appspot.com'
+        });
+    } catch (e) {
+        console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY or initializing Firebase Admin:", e);
+        throw new Error("La clave de la cuenta de servicio de Firebase no es un JSON válido.");
+    }
 }
 
 const firebaseApp = initializeFirebaseAdmin();
 const storage = getStorage(firebaseApp);
-const bucketName = 'heartlink-f4ftq.appspot.com';
-const bucket = storage.bucket(bucketName);
+const bucket = storage.bucket(); // The bucket is inferred from the initialized app
 
 
 export async function getSignedUploadUrl(fileType: string, fileName: string, fileSize: number) {
-  if (fileSize > 50 * 1024 * 1024) { // 50MB limit - Increased limit
+  if (fileSize > 50 * 1024 * 1024) { // 50MB limit
     throw new Error("El archivo es demasiado grande. El límite es 50MB.");
   }
 
@@ -44,7 +64,7 @@ export async function getSignedUploadUrl(fileType: string, fileName: string, fil
       console.error("Firebase Storage permission error: Ensure the service account has 'Storage Object Admin' or 'Storage Admin' role.");
       throw new Error("No tienes permisos para generar URLs de subida. Por favor, verifica los permisos de la cuenta de servicio en la consola de Firebase.");
     }
-    throw new Error("No se pudo generar la URL para la subida de archivos.");
+    throw new Error("No se pudo generar la URL para la subida de archivos. Verifica la configuración de Firebase.");
   }
 }
 
