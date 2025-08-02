@@ -1,0 +1,12 @@
+
+[
+  {
+    "origin": [
+      "http://localhost:9002",
+      "https://heartlink--heartlink-f4ftq.us-central1.hosted.app"
+    ],
+    "method": ["PUT"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]
