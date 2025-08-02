@@ -25,7 +25,7 @@ const initAdmin = () => {
   }
   
   const serviceAccount = firebaseAdminConfig();
-  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || 'videos_heartlink';
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || 'heartlink-f4ftq.firebasestorage.app';
   
   console.log(`Initializing Firebase Admin with bucket: ${storageBucket}`);
   
