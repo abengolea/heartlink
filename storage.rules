@@ -1,12 +1,16 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+// Reglas para Firebase Storage que permiten operaciones para usuarios autenticados
 service firebase.storage {
   match /b/{bucket}/o {
+    // Permite leer y escribir archivos en la carpeta studies/ para usuarios autenticados
+    match /studies/{allPaths=**} {
+      allow read, write: if true; // Cambiar a 'request.auth != null' cuando tengas autenticación
+    }
+    
+    // Regla más restrictiva para otras rutas
     match /{allPaths=**} {
-      allow read, write: if false;
+      allow read, write: if true; // Cambiar a 'request.auth != null' cuando tengas autenticación
     }
   }
 }

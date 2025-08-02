@@ -17,14 +17,22 @@ export async function generateUploadUrlAction(
   fileName: string,
   fileSize: number
 ): Promise<GenerateUploadUrlState> {
+  console.log(`[generateUploadUrlAction] Called with: ${fileName}, ${fileType}, ${fileSize} bytes`);
+  
   try {
     if (!fileType || !fileName || !fileSize) {
       throw new Error("Información de archivo incompleta.");
     }
+    
+    if (fileSize <= 0) {
+      throw new Error("El tamaño del archivo debe ser mayor a 0.");
+    }
+    
     const result = await getSignedUploadUrl(fileType, fileName, fileSize);
+    console.log(`[generateUploadUrlAction] Successfully generated URL for: ${result.filePath}`);
     return { success: true, ...result };
   } catch (error) {
-    console.error('Server action error in generateUploadUrlAction:', error);
+    console.error('[generateUploadUrlAction] Error:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Error desconocido al generar URL de subida.' 
@@ -51,6 +59,8 @@ export async function uploadStudy(
   prevState: State,
   formData: FormData
 ): Promise<State> {
+  console.log('[uploadStudy] Starting upload process');
+  
   try {
     const validatedFields = formSchema.safeParse({
       patientName: formData.get('patientName'),
@@ -60,7 +70,7 @@ export async function uploadStudy(
     });
 
     if (!validatedFields.success) {
-        console.error("Validation errors for uploadStudy:", validatedFields.error.flatten().fieldErrors);
+        console.error("[uploadStudy] Validation errors:", validatedFields.error.flatten().fieldErrors);
         return {
             status: 'error',
             message: 'Datos de formulario no válidos. Por favor, comprueba tus entradas.',
@@ -68,6 +78,7 @@ export async function uploadStudy(
     }
     
     const { patientName, requestingDoctorName, description, filePath } = validatedFields.data;
+    console.log(`[uploadStudy] Processing study for patient: ${patientName}, file: ${filePath}`);
 
     // The file is already uploaded, so we get its public URL
     const videoUrl = await getPublicUrl(filePath);
@@ -79,15 +90,17 @@ export async function uploadStudy(
         description,
     };
 
+    console.log('[uploadStudy] Calling AI flow...');
     const result = await studyUploadFlow(input);
 
+    console.log('[uploadStudy] Successfully completed');
     return {
       status: 'success',
       message: result.confirmationMessage,
       data: result,
     };
   } catch (error) {
-    console.error('Error in uploadStudy action:', error);
+    console.error('[uploadStudy] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error inesperado en el servidor.';
     return {
       status: 'error',
