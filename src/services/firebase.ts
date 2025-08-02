@@ -6,9 +6,17 @@ export async function getSignedUploadUrl(
   fileName: string, 
   fileSize: number
 ): Promise<{ uploadUrl: string; filePath: string }> {
+  console.log(`Generating signed URL for file: ${fileName}, type: ${fileType}, size: ${fileSize}`);
+  
   // File size validation
   if (fileSize > 50 * 1024 * 1024) {
     throw new Error("El archivo es demasiado grande. El límite es 50MB.");
+  }
+
+  // File type validation
+  const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/quicktime', 'video/x-msvideo'];
+  if (!allowedTypes.includes(fileType)) {
+    throw new Error("Tipo de archivo no permitido. Solo se permiten videos MP4, AVI, MOV.");
   }
 
   try {
@@ -16,6 +24,7 @@ export async function getSignedUploadUrl(
     const extension = fileName.split('.').pop()?.toLowerCase() || 'mp4';
     const filePath = `studies/${uuidv4()}.${extension}`;
     
+    console.log(`Creating file reference: ${filePath}`);
     const file = bucket.file(filePath);
 
     // Generate signed URL
@@ -26,18 +35,44 @@ export async function getSignedUploadUrl(
       contentType: fileType,
     });
 
+    console.log(`Successfully generated signed URL for: ${filePath}`);
     return { uploadUrl, filePath };
   } catch (error) {
     console.error('Error generating signed URL:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('credentials')) {
+        throw new Error('Error de credenciales de Firebase. Verifica tu configuración.');
+      }
+      if (error.message.includes('bucket')) {
+        throw new Error('Error de configuración del bucket. Verifica que el bucket existe.');
+      }
+    }
     throw new Error('No se pudo generar la URL de subida. Por favor, intente nuevamente.');
   }
 }
 
 export async function getPublicUrl(filePath: string): Promise<string> {
-  const bucket = getStorageBucket();
-  const file = bucket.file(filePath);
-  await file.makePublic();
-  return file.publicUrl();
+  console.log(`Getting public URL for file: ${filePath}`);
+  
+  try {
+    const bucket = getStorageBucket();
+    const file = bucket.file(filePath);
+    
+    // Check if file exists
+    const [exists] = await file.exists();
+    if (!exists) {
+      throw new Error(`File does not exist: ${filePath}`);
+    }
+    
+    await file.makePublic();
+    const publicUrl = file.publicUrl();
+    
+    console.log(`Public URL generated: ${publicUrl}`);
+    return publicUrl;
+  } catch (error) {
+    console.error('Error getting public URL:', error);
+    throw new Error('No se pudo obtener la URL pública del archivo.');
+  }
 }
 
 /**

@@ -11,7 +11,8 @@ const firebaseAdminConfig = (): ServiceAccount => {
   try {
     return JSON.parse(serviceAccountKey) as ServiceAccount;
   } catch (error) {
-    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY format');
+    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
+    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY format - must be valid JSON');
   }
 };
 
@@ -24,18 +25,24 @@ const initAdmin = () => {
   }
   
   const serviceAccount = firebaseAdminConfig();
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || 'videos_heartlink';
+  
+  console.log(`Initializing Firebase Admin with bucket: ${storageBucket}`);
   
   return initializeApp({
     credential: cert(serviceAccount),
-    // Point to the correct bucket specified by the user
-    storageBucket: 'videos_heartlink' 
+    storageBucket: storageBucket 
   });
 };
 
 // Get the bucket instance
 export const getStorageBucket = () => {
-  const app = initAdmin();
-  const storage = getStorage(app);
-  // Use the default bucket configured in initializeApp
-  return storage.bucket(); 
+  try {
+    const app = initAdmin();
+    const storage = getStorage(app);
+    return storage.bucket(); 
+  } catch (error) {
+    console.error('Error getting storage bucket:', error);
+    throw new Error('Failed to initialize Firebase Storage. Check your credentials and bucket configuration.');
+  }
 };
