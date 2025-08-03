@@ -2,17 +2,17 @@ import { cert, getApps, initializeApp, ServiceAccount } from 'firebase-admin/app
 import { getStorage } from 'firebase-admin/storage';
 
 const firebaseAdminConfig = (): ServiceAccount => {
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  const serviceAccountKey = process.env.SERVICE_ACCOUNT_KEY;
   
   if (!serviceAccountKey) {
-    throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_KEY environment variable');
+    throw new Error('Missing SERVICE_ACCOUNT_KEY environment variable');
   }
   
   try {
     return JSON.parse(serviceAccountKey) as ServiceAccount;
   } catch (error) {
-    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
-    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY format - must be valid JSON');
+    console.error('Error parsing SERVICE_ACCOUNT_KEY:', error);
+    throw new Error('Invalid SERVICE_ACCOUNT_KEY format - must be valid JSON');
   }
 };
 
