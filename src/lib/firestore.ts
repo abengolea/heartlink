@@ -195,6 +195,8 @@ export async function createUser(userData: Omit<User, 'id'>): Promise<string> {
     
     const docRef = await usersRef.add({
       ...userData,
+      status: 'active',
+      subscriptionStatus: 'paid',
       createdAt: new Date(),
       updatedAt: new Date()
     });

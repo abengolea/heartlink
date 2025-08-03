@@ -37,9 +37,11 @@ export interface Study {
 export interface User {
   id: string;
   name: string;
-  role: 'admin' | 'operator' | 'solicitante';
-  status: 'active' | 'suspended';
-  subscriptionStatus: 'paid' | 'pending' | 'overdue';
+  email?: string;
+  phone?: string;
+  role: 'admin' | 'operator' | 'solicitante' | 'Cardiólogo' | 'Cardióloga' | 'Cardiólogo Intervencionista' | 'Cardiólogo Pediatra' | 'Electrofisiólogo';
+  status?: 'active' | 'suspended';
+  subscriptionStatus?: 'paid' | 'pending' | 'overdue';
 }
 
 export interface Backup {

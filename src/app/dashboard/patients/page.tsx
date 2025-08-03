@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { File, PlusCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -30,12 +30,38 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 
-import { patients, users } from "@/lib/data";
+// Remove hardcoded data imports - using API instead
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
 export default function PatientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [patients, setPatients] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [patientsResponse, usersResponse] = await Promise.all([
+          fetch('/api/patients'),
+          fetch('/api/users')
+        ]);
+        
+        if (patientsResponse.ok && usersResponse.ok) {
+          const patientsData = await patientsResponse.json();
+          const usersData = await usersResponse.json();
+          setPatients(patientsData);
+          setUsers(usersData);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const getDoctorName = (id: string) =>
     users.find((u) => u.id === id)?.name || "Desconocido";
