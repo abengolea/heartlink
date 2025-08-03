@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
-import { getStorageBucket } from '@/lib/firebase-admin-v3';
+import { getStorageBucket } from '@/lib/firebase-admin-v4';
 
 export async function getSignedUploadUrl(
   fileType: string, 
   fileName: string, 
   fileSize: number
 ): Promise<{ uploadUrl: string; filePath: string }> {
-  console.log(`🔍 [Upload v3] Generating signed URL for: ${fileName} (${fileType}, ${fileSize} bytes)`);
+  console.log(`🔍 [Upload v4] Generating signed URL with ADC for: ${fileName} (${fileType}, ${fileSize} bytes)`);
   
   // File size validation
   if (fileSize > 50 * 1024 * 1024) {
@@ -20,17 +20,17 @@ export async function getSignedUploadUrl(
   }
 
   try {
-    console.log('🔍 [Upload v3] Getting storage bucket...');
+    console.log('🔍 [Upload v4] Getting storage bucket with ADC credentials...');
     const bucket = getStorageBucket();
     
     const extension = fileName.split('.').pop()?.toLowerCase() || 'mp4';
     const filePath = `studies/${uuidv4()}.${extension}`;
     
-    console.log(`🔍 [Upload v3] Creating file reference: ${filePath}`);
+    console.log(`🔍 [Upload v4] Creating file reference: ${filePath}`);
     const file = bucket.file(filePath);
 
-    // Generate signed URL
-    console.log('🔍 [Upload v3] Generating signed URL...');
+    // Generate signed URL - should work with ADC
+    console.log('🔍 [Upload v4] Generating signed URL with Application Default Credentials...');
     const [uploadUrl] = await file.getSignedUrl({
       version: 'v4',
       action: 'write',
@@ -38,40 +38,43 @@ export async function getSignedUploadUrl(
       contentType: fileType,
     });
 
-    console.log(`✅ [Upload v3] Successfully generated signed URL for: ${filePath}`);
+    console.log(`✅ [Upload v4] Successfully generated signed URL with ADC: ${filePath}`);
     return { uploadUrl, filePath };
   } catch (error) {
-    console.error('❌ [Upload v3] Error generating signed URL:', error);
+    console.error('❌ [Upload v4] Error generating signed URL with ADC:', error);
     
-    // Enhanced error handling for App Hosting
+    // Enhanced error handling for App Hosting with ADC
     if (error instanceof Error) {
       if (error.message.includes('credentials') || error.message.includes('authentication')) {
-        throw new Error('Error de credenciales de Firebase. App Hosting no puede autenticar.');
+        throw new Error('Error de credenciales ADC en App Hosting. Verifica permisos IAM.');
+      }
+      if (error.message.includes('token') || error.message.includes('access')) {
+        throw new Error('Error de token ADC. El service account necesita roles adicionales.');
       }
       if (error.message.includes('bucket') || error.message.includes('storage')) {
-        throw new Error('Error de configuración del bucket en App Hosting.');
+        throw new Error('Error de bucket con ADC. Verifica configuración de Storage.');
       }
-      if (error.message.includes('permission') || error.message.includes('access')) {
-        throw new Error('Error de permisos en App Hosting. Verifica IAM roles.');
+      if (error.message.includes('permission') || error.message.includes('forbidden')) {
+        throw new Error('Error de permisos ADC. Service account necesita Storage Object Admin + Token Creator.');
       }
       
       // Log the actual error for debugging
-      console.error('📊 [Upload v3] Full error details:', {
+      console.error('📊 [Upload v4] Full ADC error details:', {
         name: error.name,
         message: error.message,
         stack: error.stack,
         environment: process.env.NODE_ENV
       });
       
-      throw new Error(`Error de Firebase en App Hosting: ${error.message}`);
+      throw new Error(`Error de Firebase ADC en App Hosting: ${error.message}`);
     }
     
-    throw new Error('No se pudo generar la URL de subida en App Hosting. Verifica la configuración.');
+    throw new Error('No se pudo generar la URL de subida con ADC. Verifica permisos IAM.');
   }
 }
 
 export async function getPublicUrl(filePath: string): Promise<string> {
-  console.log(`🔍 [Public URL v3] Getting public URL for: ${filePath}`);
+  console.log(`🔍 [Public URL v4] Getting public URL with ADC for: ${filePath}`);
   
   try {
     const bucket = getStorageBucket();
@@ -86,11 +89,11 @@ export async function getPublicUrl(filePath: string): Promise<string> {
     await file.makePublic();
     const publicUrl = file.publicUrl();
     
-    console.log(`✅ [Public URL v3] Generated: ${publicUrl}`);
+    console.log(`✅ [Public URL v4] Generated with ADC: ${publicUrl}`);
     return publicUrl;
   } catch (error) {
-    console.error('❌ [Public URL v3] Error getting public URL:', error);
-    throw new Error('No se pudo obtener la URL pública del archivo.');
+    console.error('❌ [Public URL v4] Error getting public URL with ADC:', error);
+    throw new Error('No se pudo obtener la URL pública del archivo con ADC.');
   }
 }
 
@@ -101,7 +104,7 @@ export async function getPublicUrl(filePath: string): Promise<string> {
  */
 export async function uploadVideoToStorage(dataUri: string): Promise<string> {
   try {
-    console.log('🔍 [Direct Upload v3] Starting video upload to storage...');
+    console.log('🔍 [Direct Upload v4] Starting video upload with ADC...');
     
     const bucket = getStorageBucket();
     const match = dataUri.match(/^data:(.*);base64,(.*)$/);
@@ -119,7 +122,7 @@ export async function uploadVideoToStorage(dataUri: string): Promise<string> {
     
     const filename = `studies/${uuidv4()}.${mimeType.split('/')[1] || 'mp4'}`;
     
-    console.log(`🔍 [Direct Upload v3] Creating file: ${filename}`);
+    console.log(`🔍 [Direct Upload v4] Creating file with ADC: ${filename}`);
     const file = bucket.file(filename);
     
     await file.save(buffer, {
@@ -131,15 +134,15 @@ export async function uploadVideoToStorage(dataUri: string): Promise<string> {
     await file.makePublic();
     
     const publicUrl = file.publicUrl();
-    console.log(`✅ [Direct Upload v3] File uploaded successfully: ${publicUrl}`);
+    console.log(`✅ [Direct Upload v4] File uploaded successfully with ADC: ${publicUrl}`);
     return publicUrl;
 
   } catch (error: any) {
-    console.error('❌ [Direct Upload v3] Error uploading to Firebase Storage:', error);
+    console.error('❌ [Direct Upload v4] Error uploading with ADC:', error);
     if (error instanceof Error && 'code' in error && (error as any).code === 403) {
-        console.error("Firebase Storage permission error: Ensure the service account has 'Storage Admin' role.");
-        throw new Error("No tienes permisos para subir archivos. Por favor, verifica los permisos de la cuenta de servicio en la consola de Firebase.");
+        console.error("Firebase Storage permission error with ADC: Service account needs Storage Admin + Token Creator roles.");
+        throw new Error("No tienes permisos para subir archivos con ADC. Verifica roles IAM del service account.");
     }
-    throw new Error('Failed to upload video to storage.');
+    throw new Error('Failed to upload video to storage with ADC.');
   }
 }

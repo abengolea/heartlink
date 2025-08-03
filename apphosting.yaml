@@ -2,18 +2,16 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
+  # Performance configuration
   cpu: 1
   memoryMiB: 512
+  maxInstances: 2
   concurrency: 100
   
   # Environment variables for the application
+  # No secrets needed - App Hosting provides Application Default Credentials
   env:
     - variable: "FIREBASE_STORAGE_BUCKET"
       value: "heartlink-f4ftq.firebasestorage.app"
     - variable: "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
       value: "heartlink-f4ftq"
-    - variable: "FIREBASE_SERVICE_ACCOUNT_KEY"
-      secret: "SERVICE_ACCOUNT_KEY"
