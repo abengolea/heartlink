@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
-import { getStorageBucket } from '@/lib/firebase-admin-v2';
+import { getStorageBucket } from '@/lib/firebase-admin-v3';
 
 export async function getSignedUploadUrl(
   fileType: string, 
   fileName: string, 
   fileSize: number
 ): Promise<{ uploadUrl: string; filePath: string }> {
-  console.log(`🔍 [Upload] Generating signed URL for: ${fileName} (${fileType}, ${fileSize} bytes)`);
+  console.log(`🔍 [Upload v3] Generating signed URL for: ${fileName} (${fileType}, ${fileSize} bytes)`);
   
   // File size validation
   if (fileSize > 50 * 1024 * 1024) {
@@ -20,17 +20,17 @@ export async function getSignedUploadUrl(
   }
 
   try {
-    console.log('🔍 [Upload] Getting storage bucket...');
+    console.log('🔍 [Upload v3] Getting storage bucket...');
     const bucket = getStorageBucket();
     
     const extension = fileName.split('.').pop()?.toLowerCase() || 'mp4';
     const filePath = `studies/${uuidv4()}.${extension}`;
     
-    console.log(`🔍 [Upload] Creating file reference: ${filePath}`);
+    console.log(`🔍 [Upload v3] Creating file reference: ${filePath}`);
     const file = bucket.file(filePath);
 
     // Generate signed URL
-    console.log('🔍 [Upload] Generating signed URL...');
+    console.log('🔍 [Upload v3] Generating signed URL...');
     const [uploadUrl] = await file.getSignedUrl({
       version: 'v4',
       action: 'write',
@@ -38,39 +38,40 @@ export async function getSignedUploadUrl(
       contentType: fileType,
     });
 
-    console.log(`✅ [Upload] Successfully generated signed URL for: ${filePath}`);
+    console.log(`✅ [Upload v3] Successfully generated signed URL for: ${filePath}`);
     return { uploadUrl, filePath };
   } catch (error) {
-    console.error('❌ [Upload] Error generating signed URL:', error);
+    console.error('❌ [Upload v3] Error generating signed URL:', error);
     
-    // Enhanced error handling
+    // Enhanced error handling for App Hosting
     if (error instanceof Error) {
       if (error.message.includes('credentials') || error.message.includes('authentication')) {
-        throw new Error('Error de credenciales de Firebase. Verifica tu configuración.');
+        throw new Error('Error de credenciales de Firebase. App Hosting no puede autenticar.');
       }
       if (error.message.includes('bucket') || error.message.includes('storage')) {
-        throw new Error('Error de configuración del bucket. Verifica que el bucket existe.');
+        throw new Error('Error de configuración del bucket en App Hosting.');
       }
       if (error.message.includes('permission') || error.message.includes('access')) {
-        throw new Error('Error de permisos. Verifica los permisos de la cuenta de servicio.');
+        throw new Error('Error de permisos en App Hosting. Verifica IAM roles.');
       }
       
       // Log the actual error for debugging
-      console.error('📊 [Upload] Full error details:', {
+      console.error('📊 [Upload v3] Full error details:', {
         name: error.name,
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
+        environment: process.env.NODE_ENV
       });
       
-      throw new Error(`Error de Firebase: ${error.message}`);
+      throw new Error(`Error de Firebase en App Hosting: ${error.message}`);
     }
     
-    throw new Error('No se pudo generar la URL de subida. Por favor, intente nuevamente.');
+    throw new Error('No se pudo generar la URL de subida en App Hosting. Verifica la configuración.');
   }
 }
 
 export async function getPublicUrl(filePath: string): Promise<string> {
-  console.log(`🔍 [Public URL] Getting public URL for: ${filePath}`);
+  console.log(`🔍 [Public URL v3] Getting public URL for: ${filePath}`);
   
   try {
     const bucket = getStorageBucket();
@@ -85,10 +86,10 @@ export async function getPublicUrl(filePath: string): Promise<string> {
     await file.makePublic();
     const publicUrl = file.publicUrl();
     
-    console.log(`✅ [Public URL] Generated: ${publicUrl}`);
+    console.log(`✅ [Public URL v3] Generated: ${publicUrl}`);
     return publicUrl;
   } catch (error) {
-    console.error('❌ [Public URL] Error getting public URL:', error);
+    console.error('❌ [Public URL v3] Error getting public URL:', error);
     throw new Error('No se pudo obtener la URL pública del archivo.');
   }
 }
@@ -100,7 +101,7 @@ export async function getPublicUrl(filePath: string): Promise<string> {
  */
 export async function uploadVideoToStorage(dataUri: string): Promise<string> {
   try {
-    console.log('🔍 [Direct Upload] Starting video upload to storage...');
+    console.log('🔍 [Direct Upload v3] Starting video upload to storage...');
     
     const bucket = getStorageBucket();
     const match = dataUri.match(/^data:(.*);base64,(.*)$/);
@@ -118,7 +119,7 @@ export async function uploadVideoToStorage(dataUri: string): Promise<string> {
     
     const filename = `studies/${uuidv4()}.${mimeType.split('/')[1] || 'mp4'}`;
     
-    console.log(`🔍 [Direct Upload] Creating file: ${filename}`);
+    console.log(`🔍 [Direct Upload v3] Creating file: ${filename}`);
     const file = bucket.file(filename);
     
     await file.save(buffer, {
@@ -130,11 +131,11 @@ export async function uploadVideoToStorage(dataUri: string): Promise<string> {
     await file.makePublic();
     
     const publicUrl = file.publicUrl();
-    console.log(`✅ [Direct Upload] File uploaded successfully: ${publicUrl}`);
+    console.log(`✅ [Direct Upload v3] File uploaded successfully: ${publicUrl}`);
     return publicUrl;
 
   } catch (error: any) {
-    console.error('❌ [Direct Upload] Error uploading to Firebase Storage:', error);
+    console.error('❌ [Direct Upload v3] Error uploading to Firebase Storage:', error);
     if (error instanceof Error && 'code' in error && (error as any).code === 403) {
         console.error("Firebase Storage permission error: Ensure the service account has 'Storage Admin' role.");
         throw new Error("No tienes permisos para subir archivos. Por favor, verifica los permisos de la cuenta de servicio en la consola de Firebase.");
