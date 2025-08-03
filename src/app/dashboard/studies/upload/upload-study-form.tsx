@@ -61,7 +61,8 @@ export function UploadStudyForm() {
                     const patientsData = await patientsResponse.json();
                     console.log('✅ Upload form loaded data:', { 
                         doctors: usersData.length, 
-                        patients: patientsData.length 
+                        patients: patientsData.length,
+                        doctorRoles: usersData.map(u => u.role)
                     });
                     setUsers(usersData);
                     setPatients(patientsData);
@@ -95,7 +96,15 @@ export function UploadStudyForm() {
         loadData();
     }, [toast]);
 
-    const requesters = users.filter(u => u.role === 'solicitante');
+    // Filter doctors by medical specialties instead of 'solicitante'
+    const requesters = users.filter(u => 
+        u.role === 'solicitante' || 
+        u.role === 'Cardiólogo' || 
+        u.role === 'Cardióloga' || 
+        u.role === 'Cardiólogo Intervencionista' ||
+        u.role === 'Cardiólogo Pediatra' ||
+        u.role === 'Electrofisiólogo'
+    );
 
     useEffect(() => {
         if (state.status === 'success') {
