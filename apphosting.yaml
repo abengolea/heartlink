@@ -5,6 +5,9 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 100
   
   # Environment variables for the application
   env:
@@ -12,5 +15,5 @@ runConfig:
       value: "heartlink-f4ftq.firebasestorage.app"
     - variable: "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
       value: "heartlink-f4ftq"
-    - variable: "SERVICE_ACCOUNT_KEY"
+    - variable: "FIREBASE_SERVICE_ACCOUNT_KEY"
       secret: "SERVICE_ACCOUNT_KEY"
