@@ -203,13 +203,19 @@ export function UploadStudyForm() {
                 }
             };
 
-            xhr.onerror = () => {
+            xhr.onerror = (event) => {
                 setIsUploading(false);
-                console.error('Network error during upload');
+                console.error('Network error during upload:', {
+                    event,
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    readyState: xhr.readyState
+                });
                 toast({ 
                     variant: 'destructive', 
                     title: "Error de Red", 
-                    description: "Error de conexión durante la subida. Verifica tu conexión a internet." 
+                    description: `Error de conexión durante la subida. Status: ${xhr.status}, State: ${xhr.readyState}` 
                 });
             };
 
