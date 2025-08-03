@@ -1,12 +1,35 @@
-import { getAllUsers } from "@/lib/firestore";
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit, User } from "lucide-react";
 import Link from "next/link";
 
-export default async function DoctorsPage() {
-    const users = await getAllUsers();
+export default function DoctorsPage() {
+    const [users, setUsers] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/users');
+                if (response.ok) {
+                    const data = await response.json();
+                    setUsers(data);
+                } else {
+                    setUsers([]);
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                setUsers([]);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadUsers();
+    }, []);
     
     const getRoleColor = (role: string) => {
         switch (role) {

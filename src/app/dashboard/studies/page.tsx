@@ -1,7 +1,9 @@
 
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { patients } from "@/lib/data";
-import { getAllStudies } from "@/lib/firestore";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
@@ -9,8 +11,30 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight, PlusCircle } from "lucide-react";
 import Link from "next/link";
 
-export default async function StudiesPage() {
-    const studies = await getAllStudies();
+export default function StudiesPage() {
+    const [studies, setStudies] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        async function loadStudies() {
+            try {
+                const response = await fetch('/api/studies');
+                if (response.ok) {
+                    const data = await response.json();
+                    setStudies(data);
+                } else {
+                    // Fallback to empty array if API fails
+                    setStudies([]);
+                }
+            } catch (error) {
+                console.error('Error loading studies:', error);
+                setStudies([]);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadStudies();
+    }, []);
     
     const getPatientName = (patientId: string) => {
         return patients.find(p => p.id === patientId)?.name || "Paciente Desconocido";
