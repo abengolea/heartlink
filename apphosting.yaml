@@ -13,5 +13,5 @@ env:
 
 # Secrets for sensitive data like service account keys
 secrets:
-  - variable: "FIREBASE_SERVICE_ACCOUNT_KEY"
-    secret: "firebase-service-account-key"
+  - variable: "SERVICE_ACCOUNT_KEY"
+    secret: "SERVICE_ACCOUNT_KEY"
