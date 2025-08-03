@@ -43,4 +43,4 @@ service-account.json
 next-env.d.ts
 
 # IDX
-.idx/
+.idx/.env.local
