@@ -33,13 +33,17 @@ export function NewDoctorForm() {
             });
 
             if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Doctor created successfully:', result);
                 toast({
                     title: 'Médico creado',
                     description: 'El médico ha sido agregado exitosamente.',
                 });
                 router.push('/dashboard/doctors');
             } else {
-                throw new Error('Failed to create doctor');
+                const errorData = await response.text();
+                console.error('❌ API Error:', response.status, errorData);
+                throw new Error(`Error ${response.status}: ${errorData}`);
             }
         } catch (error) {
             console.error('Error creating doctor:', error);

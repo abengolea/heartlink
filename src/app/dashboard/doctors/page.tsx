@@ -65,8 +65,13 @@ export default function DoctorsPage() {
                 </Link>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {users.map((user) => (
+            {isLoading ? (
+                <div className="text-center py-8">
+                    <p>Cargando médicos...</p>
+                </div>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {users.map((user) => (
                     <Card key={user.id} className="relative">
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
@@ -108,25 +113,26 @@ export default function DoctorsPage() {
                             </div>
                         </CardContent>
                     </Card>
-                ))}
-            </div>
+                    ))}
+                </div>
 
-            {users.length === 0 && (
-                <Card>
-                    <CardContent className="py-8 text-center">
-                        <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No hay médicos registrados</h3>
-                        <p className="text-muted-foreground mb-4">
-                            Comienza agregando el primer médico al sistema
-                        </p>
-                        <Link href="/dashboard/doctors/new">
-                            <Button>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Agregar Primer Médico
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
+                {users.length === 0 && (
+                    <Card>
+                        <CardContent className="py-8 text-center">
+                            <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No hay médicos registrados</h3>
+                            <p className="text-muted-foreground mb-4">
+                                Comienza agregando el primer médico al sistema
+                            </p>
+                            <Link href="/dashboard/doctors/new">
+                                <Button>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Agregar Primer Médico
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                )}
             )}
         </div>
     );

@@ -59,9 +59,17 @@ export function UploadStudyForm() {
                 if (usersResponse.ok && patientsResponse.ok) {
                     const usersData = await usersResponse.json();
                     const patientsData = await patientsResponse.json();
+                    console.log('✅ Upload form loaded data:', { 
+                        doctors: usersData.length, 
+                        patients: patientsData.length 
+                    });
                     setUsers(usersData);
                     setPatients(patientsData);
                 } else {
+                    console.error('❌ API failed:', { 
+                        usersStatus: usersResponse.status, 
+                        patientsStatus: patientsResponse.status 
+                    });
                     throw new Error('Failed to load data from API');
                 }
             } catch (error) {
