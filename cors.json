@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://heartlink--heartlink-f4ftq.us-central1.hosted.app", "https://localhost:3000", "http://localhost:3000"],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "x-goog-resumable"]
+  }
+]
