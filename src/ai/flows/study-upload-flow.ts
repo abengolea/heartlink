@@ -14,6 +14,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 // The uploadVideoToStorage function is no longer needed here as the upload is handled client-side
 // import { uploadVideoToStorage } from '@/services/firebase';
+import { saveDynamicStudy } from '@/lib/dynamic-data';
+import type { Study } from '@/lib/types';
 
 const StudyUploadFlowInputSchema = z.object({
   videoDataUri: z
@@ -66,6 +68,24 @@ const studyUploadFlowFn = ai.defineFlow(
     const confirmationMessage = `✅ Estudio guardado exitosamente!\n\n📋 Paciente: ${input.patientName}\n👨‍⚕️ Médico solicitante: ${input.requestingDoctorName}\n🎥 Video: ${videoUrl}\n📝 ID del estudio: ${studyId}`;
 
     console.log(`[StudyUploadFlow] Generated study with ID: ${studyId}`);
+
+    // Create the study object and save it dynamically
+    const newStudy: Study = {
+      id: studyId,
+      patientId: patientId,
+      videoUrl: videoUrl,
+      reportUrl: '',
+      date: new Date().toISOString(),
+      isUrgent: false,
+      description: input.description || 'Estudio cardiológico subido automáticamente',
+      diagnosis: 'Pendiente de análisis',
+      comments: []
+    };
+
+    // Save the study (client-side in localStorage for now)
+    if (typeof window !== 'undefined') {
+      saveDynamicStudy(newStudy);
+    }
 
     return {
       patientId,

@@ -1,6 +1,7 @@
 
 import Image from "next/image";
-import { patients, studies } from "@/lib/data";
+import { patients } from "@/lib/data";
+import { getAllStudies } from "@/lib/dynamic-data";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
@@ -9,6 +10,8 @@ import { ArrowUpRight, PlusCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function StudiesPage() {
+    const studies = getAllStudies();
+    
     const getPatientName = (patientId: string) => {
         return patients.find(p => p.id === patientId)?.name || "Paciente Desconocido";
     }
