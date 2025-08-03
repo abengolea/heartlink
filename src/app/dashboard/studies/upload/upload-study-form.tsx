@@ -110,7 +110,7 @@ export function UploadStudyForm() {
                     console.log('Starting transcription...');
                     const result = await transcribeAudioAction(dataUri);
                     
-                    if (result.success && result.transcription) {
+                    if (result.status === 'success' && result.transcription) {
                         setDescription(result.transcription);
                         toast({
                             title: 'Transcripción Completa',
@@ -293,10 +293,10 @@ export function UploadStudyForm() {
               {isUploading ? "Subiendo Video..." : "Guardar Estudio"}
             </Button>
 
-             {state.status !== 'idle' && state.status !== 'success' && (
+             {state.status !== 'idle' && (
                 <Alert variant={state.status === 'error' ? 'destructive' : 'default'} className={cn(state.status === 'success' && "bg-accent/50 border-accent")}>
                     <Terminal className="h-4 w-4" />
-                    <AlertTitle>{state.status === 'error' ? 'Fallo al Guardar' : 'Información'}</AlertTitle>
+                    <AlertTitle>{state.status === 'error' ? 'Fallo al Guardar' : state.status === 'success' ? 'Éxito' : 'Información'}</AlertTitle>
                     <AlertDescription>
                         {state.message}
                     </AlertDescription>

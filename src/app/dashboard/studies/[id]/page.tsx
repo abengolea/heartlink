@@ -11,8 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-export default function StudyDetailPage({ params }: { params: { id: string } }) {
-    const study = studies.find(s => s.id === params.id);
+export default async function StudyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const study = studies.find(s => s.id === id);
     
     if (!study) {
         notFound();
