@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { patients, users } from "@/lib/data";
+import { getAllUsers, getAllPatients } from "@/lib/firestore";
 import { cn } from "@/lib/utils";
 import { CheckCircle, Loader2, Terminal, UploadCloud, Wand2 } from "lucide-react";
 import { generateUploadUrlAction, uploadStudy } from "@/actions/upload-study";
@@ -41,8 +41,33 @@ export function UploadStudyForm() {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [description, setDescription] = useState('');
-    const requesters = users.filter(u => u.role === 'solicitante');
+    const [users, setUsers] = useState<any[]>([]);
+    const [patients, setPatients] = useState<any[]>([]);
     const { toast } = useToast();
+
+    // Load users and patients from Firestore
+    useEffect(() => {
+        async function loadData() {
+            try {
+                const [usersData, patientsData] = await Promise.all([
+                    getAllUsers(),
+                    getAllPatients()
+                ]);
+                setUsers(usersData);
+                setPatients(patientsData);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Error al cargar datos. Usando modo manual.'
+                });
+            }
+        }
+        loadData();
+    }, [toast]);
+
+    const requesters = users.filter(u => u.role === 'solicitante');
 
     useEffect(() => {
         if (state.status === 'success') {

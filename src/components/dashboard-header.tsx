@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
     { href: "/dashboard", label: "Panel de control" },
     { href: "/dashboard/patients", label: "Pacientes" },
-    { href: "/dashboard/requesters", label: "Médicos Solicitantes" },
+    { href: "/dashboard/doctors", label: "Médicos" },
     { href: "/dashboard/studies", label: "Estudios" },
     { href: "/dashboard/whatsapp-upload", label: "Subir por WhatsApp" },
 ];
