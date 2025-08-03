@@ -5,3 +5,13 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+# Environment variables for the application
+env:
+  FIREBASE_STORAGE_BUCKET: "heartlink-f4ftq.firebasestorage.app"
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: "heartlink-f4ftq"
+
+# Secrets for sensitive data like service account keys
+secrets:
+  - variable: "FIREBASE_SERVICE_ACCOUNT_KEY"
+    secret: "firebase-service-account-key"
