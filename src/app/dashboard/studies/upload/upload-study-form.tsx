@@ -165,61 +165,52 @@ export function UploadStudyForm() {
             const { uploadUrl, filePath } = urlState;
             console.log(`Got upload URL for file path: ${filePath}`);
 
-            // 2. Upload file directly to Firebase Storage
-            console.log('Uploading file to Firebase Storage...');
-            const xhr = new XMLHttpRequest();
-            xhr.open('PUT', uploadUrl, true);
-            xhr.setRequestHeader('Content-Type', videoFile.type);
+            // 2. Upload file directly to Firebase Storage using fetch (more reliable than XMLHttpRequest)
+            console.log('Uploading file to Firebase Storage with fetch...');
             
-            xhr.upload.onprogress = (event) => {
-                if (event.lengthComputable) {
-                    const percentComplete = (event.loaded / event.total) * 100;
-                    setUploadProgress(percentComplete);
-                    console.log(`Upload progress: ${percentComplete.toFixed(1)}%`);
-                }
-            };
-
-            xhr.onload = () => {
-                setIsUploading(false);
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    console.log('File uploaded successfully to Firebase Storage');
-                    toast({ title: "Subida Completa", description: "El video se ha subido correctamente. Guardando detalles..." });
-                    
-                    if(formRef.current) {
-                        // Add the filePath to the form data
-                        const hiddenInput = document.createElement('input');
-                        hiddenInput.type = 'hidden';
-                        hiddenInput.name = 'filePath';
-                        hiddenInput.value = filePath;
-                        formRef.current.appendChild(hiddenInput);
-                        
-                        // Submit the form to save study details
-                        console.log('Submitting form with file path:', filePath);
-                        formRef.current.requestSubmit();
-                    }
-                } else {
-                    console.error('Upload failed with status:', xhr.status, xhr.statusText);
-                    throw new Error(`Error de subida: ${xhr.status} - ${xhr.statusText}`);
-                }
-            };
-
-            xhr.onerror = (event) => {
-                setIsUploading(false);
-                console.error('Network error during upload:', {
-                    event,
-                    status: xhr.status,
-                    statusText: xhr.statusText,
-                    responseText: xhr.responseText,
-                    readyState: xhr.readyState
+            try {
+                const response = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    body: videoFile,
+                    headers: {
+                        'Content-Type': videoFile.type,
+                    },
                 });
+
+                setIsUploading(false);
+
+                if (!response.ok) {
+                    console.error('Upload failed with status:', response.status, response.statusText);
+                    const errorText = await response.text();
+                    throw new Error(`Error de subida: ${response.status} - ${response.statusText}. ${errorText}`);
+                }
+
+                console.log('File uploaded successfully to Firebase Storage');
+                toast({ title: "Subida Completa", description: "El video se ha subido correctamente. Guardando detalles..." });
+                
+                if(formRef.current) {
+                    // Add the filePath to the form data
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'filePath';
+                    hiddenInput.value = filePath;
+                    formRef.current.appendChild(hiddenInput);
+                    
+                    // Submit the form to save study details
+                    console.log('Submitting form with file path:', filePath);
+                    formRef.current.requestSubmit();
+                }
+
+            } catch (fetchError) {
+                setIsUploading(false);
+                console.error('Fetch upload error:', fetchError);
                 toast({ 
                     variant: 'destructive', 
-                    title: "Error de Red", 
-                    description: `Error de conexión durante la subida. Status: ${xhr.status}, State: ${xhr.readyState}` 
+                    title: "Error de Subida", 
+                    description: fetchError instanceof Error ? fetchError.message : 'Error desconocido durante la subida'
                 });
-            };
-
-            xhr.send(videoFile);
+                return;
+            }
 
         } catch (error) {
             setIsUploading(false);
