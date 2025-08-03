@@ -1,6 +1,5 @@
 
-import { patients, users } from "@/lib/data";
-import { getStudyById } from "@/lib/dynamic-data";
+import { studies, patients, users } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 export default async function StudyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const study = getStudyById(id);
+    const study = studies.find(s => s.id === id);
     
     if (!study) {
         notFound();

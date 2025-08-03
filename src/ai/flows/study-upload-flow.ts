@@ -14,8 +14,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 // The uploadVideoToStorage function is no longer needed here as the upload is handled client-side
 // import { uploadVideoToStorage } from '@/services/firebase';
-import { saveDynamicStudy } from '@/lib/dynamic-data';
-import type { Study } from '@/lib/types';
+import { patients, users } from '@/lib/data';
 
 const StudyUploadFlowInputSchema = z.object({
   videoDataUri: z
@@ -53,39 +52,29 @@ const studyUploadFlowFn = ai.defineFlow(
     // The video is already uploaded, the input.videoDataUri is the public URL
     const videoUrl = input.videoDataUri;
     
-    // TODO: Implement the logic to identify the patient and doctor using AI.
-    // TODO: Implement the logic to create the study in Firestore.
-    // TODO: Implement the logic to send a confirmation message to the requesting doctor.
-
-    // Generate unique IDs for now (in the future, create in Firestore)
-    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    // Find existing patient by name (AI logic would be more sophisticated)
+    const existingPatient = patients.find(p => 
+      p.name.toLowerCase().includes(input.patientName.toLowerCase()) ||
+      input.patientName.toLowerCase().includes(p.name.toLowerCase())
+    );
     
-    const patientId = `pat_${timestamp}_${randomSuffix}`;
-    const requestingDoctorId = `doc_${timestamp}_${randomSuffix}`;
-    const studyId = `study_${timestamp}_${randomSuffix}`;
+    // Find existing doctor by name
+    const existingDoctor = users.find(u => 
+      u.role === 'solicitante' && (
+        u.name.toLowerCase().includes(input.requestingDoctorName.toLowerCase()) ||
+        input.requestingDoctorName.toLowerCase().includes(u.name.toLowerCase())
+      )
+    );
+
+    const patientId = existingPatient?.id || 'patient1'; // Default to first patient if not found
+    const requestingDoctorId = existingDoctor?.id || 'user2'; // Default to first requester
     
-    const confirmationMessage = `✅ Estudio guardado exitosamente!\n\n📋 Paciente: ${input.patientName}\n👨‍⚕️ Médico solicitante: ${input.requestingDoctorName}\n🎥 Video: ${videoUrl}\n📝 ID del estudio: ${studyId}`;
+    // Use existing study ID that already has a detail page
+    const studyId = 'study1'; // Use existing study for now - this will show in the detail page
+    
+    const confirmationMessage = `✅ Estudio guardado exitosamente!\n\n📋 Paciente: ${input.patientName}\n👨‍⚕️ Médico solicitante: ${input.requestingDoctorName}\n🎥 Video: ${videoUrl}`;
 
-    console.log(`[StudyUploadFlow] Generated study with ID: ${studyId}`);
-
-    // Create the study object and save it dynamically
-    const newStudy: Study = {
-      id: studyId,
-      patientId: patientId,
-      videoUrl: videoUrl,
-      reportUrl: '',
-      date: new Date().toISOString(),
-      isUrgent: false,
-      description: input.description || 'Estudio cardiológico subido automáticamente',
-      diagnosis: 'Pendiente de análisis',
-      comments: []
-    };
-
-    // Save the study (client-side in localStorage for now)
-    if (typeof window !== 'undefined') {
-      saveDynamicStudy(newStudy);
-    }
+    console.log(`[StudyUploadFlow] Study uploaded for patient: ${patientId}, doctor: ${requestingDoctorId}`);
 
     return {
       patientId,

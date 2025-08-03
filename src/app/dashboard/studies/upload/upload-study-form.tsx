@@ -24,8 +24,6 @@ import { generateUploadUrlAction, uploadStudy } from "@/actions/upload-study";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
 import { Progress } from "@/components/ui/progress";
-import { saveDynamicStudy } from "@/lib/dynamic-data";
-import type { Study } from "@/lib/types";
 
 const initialUploadState = {
   status: 'idle' as 'idle' | 'success' | 'error',
