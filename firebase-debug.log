@@ -1,0 +1,10 @@
+[debug] [2025-08-03T14:50:33.261Z] ----------------------------------------------------------------------
+[debug] [2025-08-03T14:50:33.263Z] Command:       /home/ubuntu/.nvm/versions/node/v22.16.0/bin/node /home/ubuntu/.nvm/versions/node/v22.16.0/bin/firebase login --no-localhost
+[debug] [2025-08-03T14:50:33.263Z] CLI Version:   14.11.2
+[debug] [2025-08-03T14:50:33.263Z] Platform:      linux
+[debug] [2025-08-03T14:50:33.263Z] Node Version:  v22.16.0
+[debug] [2025-08-03T14:50:33.263Z] Time:          Sun Aug 03 2025 14:50:33 GMT+0000 (Coordinated Universal Time)
+[debug] [2025-08-03T14:50:33.263Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-03T14:50:33.383Z] Object "/extensions" in "firebase.json" has unknown property: {"additionalProperty":"firestore-send-email"}
+[info] i  The Firebase CLI’s MCP server feature can optionally make use of Gemini in Firebase. Learn more about Gemini in Firebase and how it uses your data: https://firebase.google.com/docs/gemini-in-firebase#how-gemini-in-firebase-uses-your-data 
