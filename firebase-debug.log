@@ -1,0 +1,22 @@
+[debug] [2025-08-03T19:18:58.360Z] ----------------------------------------------------------------------
+[debug] [2025-08-03T19:18:58.365Z] Command:       /home/ubuntu/.nvm/versions/node/v22.16.0/bin/node /home/ubuntu/.nvm/versions/node/v22.16.0/bin/firebase functions:log --project heartlink-f4ftq
+[debug] [2025-08-03T19:18:58.365Z] CLI Version:   14.11.2
+[debug] [2025-08-03T19:18:58.365Z] Platform:      linux
+[debug] [2025-08-03T19:18:58.365Z] Node Version:  v22.16.0
+[debug] [2025-08-03T19:18:58.366Z] Time:          Sun Aug 03 2025 19:18:58 GMT+0000 (Coordinated Universal Time)
+[debug] [2025-08-03T19:18:58.366Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-03T19:18:58.486Z] Object "/extensions" in "firebase.json" has unknown property: {"additionalProperty":"firestore-send-email"}
+[debug] [2025-08-03T19:18:58.487Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-03T19:18:58.503Z] Error: Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.
+    at GoogleAuth.getApplicationDefaultAsync (/home/ubuntu/.nvm/versions/node/v22.16.0/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:287:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async GoogleAuth._GoogleAuth_determineClient (/home/ubuntu/.nvm/versions/node/v22.16.0/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:834:32)
+    at async GoogleAuth.getClient (/home/ubuntu/.nvm/versions/node/v22.16.0/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:698:20)
+    at async GoogleAuth.getAccessToken (/home/ubuntu/.nvm/versions/node/v22.16.0/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:722:24)
+    at async autoAuth (/home/ubuntu/.nvm/versions/node/v22.16.0/lib/node_modules/firebase-tools/lib/requireAuth.js:28:19)
+    at async requireAuth (/home/ubuntu/.nvm/versions/node/v22.16.0/lib/node_modules/firebase-tools/lib/requireAuth.js:87:20)
+    at async Object.requirePermissions [as fn] (/home/ubuntu/.nvm/versions/node/v22.16.0/lib/node_modules/firebase-tools/lib/requirePermissions.js:17:5)
+    at async /home/ubuntu/.nvm/versions/node/v22.16.0/lib/node_modules/firebase-tools/lib/command.js:242:17
+[error] 
+[error] Error: Failed to authenticate, have you run firebase login?
