@@ -14,7 +14,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 // The uploadVideoToStorage function is no longer needed here as the upload is handled client-side
 // import { uploadVideoToStorage } from '@/services/firebase';
-import { patients, users } from '@/lib/data';
+import { users } from '@/lib/data';
+import { createStudy, findOrCreatePatient } from '@/lib/firestore';
 
 const StudyUploadFlowInputSchema = z.object({
   videoDataUri: z
@@ -52,12 +53,6 @@ const studyUploadFlowFn = ai.defineFlow(
     // The video is already uploaded, the input.videoDataUri is the public URL
     const videoUrl = input.videoDataUri;
     
-    // Find existing patient by name (AI logic would be more sophisticated)
-    const existingPatient = patients.find(p => 
-      p.name.toLowerCase().includes(input.patientName.toLowerCase()) ||
-      input.patientName.toLowerCase().includes(p.name.toLowerCase())
-    );
-    
     // Find existing doctor by name
     const existingDoctor = users.find(u => 
       u.role === 'solicitante' && (
@@ -66,15 +61,31 @@ const studyUploadFlowFn = ai.defineFlow(
       )
     );
 
-    const patientId = existingPatient?.id || 'patient1'; // Default to first patient if not found
     const requestingDoctorId = existingDoctor?.id || 'user2'; // Default to first requester
+    const operatorId = 'user1'; // Default operator
     
-    // Use existing study ID that already has a detail page
-    const studyId = 'study1'; // Use existing study for now - this will show in the detail page
+    // Find or create patient in Firestore
+    const patientId = await findOrCreatePatient(
+      input.patientName, 
+      operatorId, 
+      requestingDoctorId
+    );
     
-    const confirmationMessage = `✅ Estudio guardado exitosamente!\n\n📋 Paciente: ${input.patientName}\n👨‍⚕️ Médico solicitante: ${input.requestingDoctorName}\n🎥 Video: ${videoUrl}`;
+    // Create the study in Firestore
+    const studyId = await createStudy({
+      patientId,
+      videoUrl,
+      reportUrl: '',
+      date: new Date().toISOString(),
+      isUrgent: false,
+      description: input.description || 'Estudio cardiológico subido automáticamente',
+      diagnosis: 'Pendiente de análisis',
+      comments: []
+    });
+    
+    const confirmationMessage = `✅ Estudio guardado en Firestore!\n\n📋 Paciente: ${input.patientName}\n👨‍⚕️ Médico solicitante: ${input.requestingDoctorName}\n🎥 Video: ${videoUrl}\n📝 ID: ${studyId}`;
 
-    console.log(`[StudyUploadFlow] Study uploaded for patient: ${patientId}, doctor: ${requestingDoctorId}`);
+    console.log(`[StudyUploadFlow] Study created in Firestore - ID: ${studyId}, Patient: ${patientId}`);
 
     return {
       patientId,

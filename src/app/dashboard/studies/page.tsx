@@ -1,6 +1,7 @@
 
 import Image from "next/image";
-import { patients, studies } from "@/lib/data";
+import { patients } from "@/lib/data";
+import { getAllStudies } from "@/lib/firestore";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
@@ -8,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight, PlusCircle } from "lucide-react";
 import Link from "next/link";
 
-export default function StudiesPage() {
+export default async function StudiesPage() {
+    const studies = await getAllStudies();
+    
     const getPatientName = (patientId: string) => {
         return patients.find(p => p.id === patientId)?.name || "Paciente Desconocido";
     }
