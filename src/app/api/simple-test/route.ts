@@ -8,8 +8,8 @@ export async function GET() {
     const { getSignedUploadUrl } = await import('@/services/firebase');
     
     const result = await getSignedUploadUrl(
-      'text/plain',
-      'simple-test.txt',
+      'video/mp4',
+      'simple-test.mp4',
       100
     );
     
@@ -42,8 +42,8 @@ export async function POST() {
     const { getSignedUploadUrl } = await import('@/services/firebase');
     
     const result = await getSignedUploadUrl(
-      'text/plain',
-      'simple-test.txt',
+      'video/mp4',
+      'simple-test.mp4',
       20
     );
     
@@ -56,7 +56,7 @@ export async function POST() {
       method: 'PUT',
       body: testData,
       headers: {
-        'Content-Type': 'text/plain',
+        'Content-Type': 'video/mp4',
       },
     });
     
