@@ -69,11 +69,19 @@ export function UploadStudyForm() {
                 toast({
                     variant: 'destructive',
                     title: 'Error',
-                    description: 'Error al cargar datos. Usando modo manual.'
+                    description: 'Error al cargar datos. Usando datos predeterminados.'
                 });
                 // Fallback to hardcoded data
-                setUsers([]);
-                setPatients([]);
+                setUsers([
+                    { id: '1', name: 'Dr. Juan Carlos Martínez', email: 'jmartinez@hospital.com', role: 'Cardiólogo', phone: '+54 9 11 1234-5678' },
+                    { id: '2', name: 'Dra. María Elena Rodríguez', email: 'mrodriguez@clinica.com', role: 'Cardióloga', phone: '+54 9 11 8765-4321' },
+                    { id: '3', name: 'Dr. Carlos Alberto González', email: 'cgonzalez@hospital.com', role: 'Cardiólogo Intervencionista', phone: '+54 9 11 5555-1234' }
+                ]);
+                setPatients([
+                    { id: '1', name: 'Ana María López', age: 45, gender: 'Femenino', phone: '+54 9 11 9999-1111' },
+                    { id: '2', name: 'Roberto Carlos Fernández', age: 62, gender: 'Masculino', phone: '+54 9 11 8888-2222' },
+                    { id: '3', name: 'Carmen Beatriz Silva', age: 38, gender: 'Femenino', phone: '+54 9 11 7777-3333' }
+                ]);
             }
         }
         loadData();

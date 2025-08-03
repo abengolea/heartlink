@@ -57,11 +57,13 @@ export default function PatientsPage() {
               Exportar
             </span>
           </Button>
-          <Button size="sm" className="h-8 gap-1">
-            <PlusCircle className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Añadir Paciente
-            </span>
+          <Button size="sm" className="h-8 gap-1" asChild>
+            <Link href="/dashboard/patients/new">
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                Añadir Paciente
+              </span>
+            </Link>
           </Button>
         </div>
       </div>
