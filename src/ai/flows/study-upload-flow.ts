@@ -55,11 +55,17 @@ const studyUploadFlowFn = ai.defineFlow(
     // TODO: Implement the logic to create the study in Firestore.
     // TODO: Implement the logic to send a confirmation message to the requesting doctor.
 
-    // Placeholder implementation
-    const patientId = 'patient123'; // Replace with actual patient ID
-    const requestingDoctorId = 'doctor456'; // Replace with actual doctor ID
-    const studyId = 'study789'; // Replace with actual study ID
-    const confirmationMessage = `El estudio para ${input.patientName} ha sido subido y el médico solicitante, ${input.requestingDoctorName}, ha sido notificado. El video está disponible en: ${videoUrl}`;
+    // Generate unique IDs for now (in the future, create in Firestore)
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    
+    const patientId = `pat_${timestamp}_${randomSuffix}`;
+    const requestingDoctorId = `doc_${timestamp}_${randomSuffix}`;
+    const studyId = `study_${timestamp}_${randomSuffix}`;
+    
+    const confirmationMessage = `✅ Estudio guardado exitosamente!\n\n📋 Paciente: ${input.patientName}\n👨‍⚕️ Médico solicitante: ${input.requestingDoctorName}\n🎥 Video: ${videoUrl}\n📝 ID del estudio: ${studyId}`;
+
+    console.log(`[StudyUploadFlow] Generated study with ID: ${studyId}`);
 
     return {
       patientId,

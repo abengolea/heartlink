@@ -4,6 +4,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ const initialUploadState = {
 export function UploadStudyForm() {
     const formRef = useRef<HTMLFormElement>(null);
     const [state, formAction] = useActionState(uploadStudy, initialUploadState);
+    const router = useRouter();
     
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [isTranscribing, setIsTranscribing] = useState(false);
@@ -48,6 +50,20 @@ export function UploadStudyForm() {
                 title: 'Estudio Guardado',
                 description: state.message,
             });
+            
+            // Redirect to study detail page if we have studyId
+            if (state.data?.studyId) {
+                console.log('Redirecting to study detail:', state.data.studyId);
+                setTimeout(() => {
+                    router.push(`/dashboard/studies/${state.data.studyId}`);
+                }, 1500); // Wait 1.5s to show the success toast
+            } else {
+                // Fallback: redirect to studies list
+                setTimeout(() => {
+                    router.push('/dashboard/studies');
+                }, 1500);
+            }
+            
             // Reset form
             setVideoFile(null);
             setDescription('');
@@ -61,7 +77,7 @@ export function UploadStudyForm() {
                 description: state.message,
             });
         }
-    }, [state, toast]);
+    }, [state, toast, router]);
 
     const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
