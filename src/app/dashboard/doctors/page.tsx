@@ -2,7 +2,7 @@ import { getAllUsers } from "@/lib/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, UserStethoscope } from "lucide-react";
+import { PlusCircle, Edit, User } from "lucide-react";
 import Link from "next/link";
 
 export default async function DoctorsPage() {
@@ -48,7 +48,7 @@ export default async function DoctorsPage() {
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-base flex items-center gap-2">
-                                    <UserStethoscope className="h-4 w-4" />
+                                    <User className="h-4 w-4" />
                                     {user.name}
                                 </CardTitle>
                                 <Link href={`/dashboard/doctors/${user.id}/edit`}>
@@ -91,7 +91,7 @@ export default async function DoctorsPage() {
             {users.length === 0 && (
                 <Card>
                     <CardContent className="py-8 text-center">
-                        <UserStethoscope className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                        <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                         <h3 className="text-lg font-semibold mb-2">No hay médicos registrados</h3>
                         <p className="text-muted-foreground mb-4">
                             Comienza agregando el primer médico al sistema

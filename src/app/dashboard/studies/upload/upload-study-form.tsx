@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getAllUsers, getAllPatients } from "@/lib/firestore";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+// Remove server-side Firestore imports from client component
 import { cn } from "@/lib/utils";
 import { CheckCircle, Loader2, Terminal, UploadCloud, Wand2 } from "lucide-react";
 import { generateUploadUrlAction, uploadStudy } from "@/actions/upload-study";
@@ -45,16 +46,24 @@ export function UploadStudyForm() {
     const [patients, setPatients] = useState<any[]>([]);
     const { toast } = useToast();
 
-    // Load users and patients from Firestore
+    // Load users and patients from API endpoints
     useEffect(() => {
         async function loadData() {
             try {
-                const [usersData, patientsData] = await Promise.all([
-                    getAllUsers(),
-                    getAllPatients()
+                // Load data from API endpoints instead of direct Firestore
+                const [usersResponse, patientsResponse] = await Promise.all([
+                    fetch('/api/users'),
+                    fetch('/api/patients')
                 ]);
-                setUsers(usersData);
-                setPatients(patientsData);
+                
+                if (usersResponse.ok && patientsResponse.ok) {
+                    const usersData = await usersResponse.json();
+                    const patientsData = await patientsResponse.json();
+                    setUsers(usersData);
+                    setPatients(patientsData);
+                } else {
+                    throw new Error('Failed to load data from API');
+                }
             } catch (error) {
                 console.error('Error loading data:', error);
                 toast({
@@ -62,6 +71,9 @@ export function UploadStudyForm() {
                     title: 'Error',
                     description: 'Error al cargar datos. Usando modo manual.'
                 });
+                // Fallback to hardcoded data
+                setUsers([]);
+                setPatients([]);
             }
         }
         loadData();
@@ -266,6 +278,18 @@ export function UploadStudyForm() {
     };
     
     return (
+        <div className="mx-auto grid w-full max-w-4xl gap-4">
+            <div className="flex-1">
+                <h1 className="font-semibold text-lg md:text-2xl">Subir Nuevo Estudio</h1>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Detalles del Estudio</CardTitle>
+                    <CardDescription>
+                        Completa el formulario para subir un nuevo estudio al sistema.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
         <form ref={formRef} onSubmit={handleFormSubmit} className="grid gap-6">
             <div className="grid gap-2">
                 <Label htmlFor="video">Video del Estudio (MP4, WEBM)</Label>
@@ -341,5 +365,8 @@ export function UploadStudyForm() {
                 </Alert>
             )}
         </form>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
