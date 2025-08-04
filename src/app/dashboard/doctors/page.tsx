@@ -33,24 +33,31 @@ export default function DoctorsPage() {
     
     const getRoleColor = (role: string) => {
         switch (role) {
-            case 'solicitante': return 'bg-blue-100 text-blue-800';
-            case 'operator': return 'bg-green-100 text-green-800';
-            case 'admin': return 'bg-purple-100 text-purple-800';
+            case 'solicitante': 
+                return 'bg-blue-100 text-blue-800';
+            case 'operator': 
+                return 'bg-green-100 text-green-800';
+            case 'admin': 
+                return 'bg-purple-100 text-purple-800';
             case 'Cardiólogo':
             case 'Cardióloga':
             case 'Cardiólogo Intervencionista':
             case 'Cardiólogo Pediatra':
             case 'Electrofisiólogo':
                 return 'bg-emerald-100 text-emerald-800';
-            default: return 'bg-gray-100 text-gray-800';
+            default: 
+                return 'bg-gray-100 text-gray-800';
         }
     };
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'active': return 'bg-green-100 text-green-800';
-            case 'suspended': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'active': 
+                return 'bg-green-100 text-green-800';
+            case 'suspended': 
+                return 'bg-red-100 text-red-800';
+            default: 
+                return 'bg-gray-100 text-gray-800';
         }
     };
 
@@ -76,71 +83,73 @@ export default function DoctorsPage() {
                     <p>Cargando médicos...</p>
                 </div>
             ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {users.map((user) => (
-                    <Card key={user.id} className="relative">
-                        <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <User className="h-4 w-4" />
-                                    {user.name}
-                                </CardTitle>
-                                <Link href={`/dashboard/doctors/${user.id}/edit`}>
-                                    <Button variant="ghost" size="sm">
-                                        <Edit className="h-4 w-4" />
+                <>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {users.map((user) => (
+                            <Card key={user.id} className="relative">
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <User className="h-4 w-4" />
+                                            {user.name}
+                                        </CardTitle>
+                                        <Link href={`/dashboard/doctors/${user.id}/edit`}>
+                                            <Button variant="ghost" size="sm">
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                    <CardDescription>
+                                        ID: {user.id}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium">Rol:</span>
+                                            <Badge className={getRoleColor(user.role)}>
+                                                {user.role === 'solicitante' ? 'Médico Solicitante' : 
+                                                 user.role === 'operator' ? 'Operador' : 
+                                                 user.role === 'admin' ? 'Administrador' : 
+                                                 user.role}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium">Estado:</span>
+                                            <Badge className={getStatusColor(user.status || 'active')}>
+                                                {(user.status || 'active') === 'active' ? 'Activo' : 'Suspendido'}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium">Suscripción:</span>
+                                            <Badge variant={user.subscriptionStatus === 'paid' ? 'default' : 'destructive'}>
+                                                {user.subscriptionStatus === 'paid' ? 'Pagada' : 'Vencida'}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {users.length === 0 && (
+                        <Card>
+                            <CardContent className="py-8 text-center">
+                                <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No hay médicos registrados</h3>
+                                <p className="text-muted-foreground mb-4">
+                                    Comienza agregando el primer médico al sistema
+                                </p>
+                                <Link href="/dashboard/doctors/new">
+                                    <Button>
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Agregar Primer Médico
                                     </Button>
                                 </Link>
-                            </div>
-                            <CardDescription>
-                                ID: {user.id}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium">Rol:</span>
-                                    <Badge className={getRoleColor(user.role)}>
-                                        {user.role === 'solicitante' ? 'Médico Solicitante' : 
-                                         user.role === 'operator' ? 'Operador' : 
-                                         user.role === 'admin' ? 'Administrador' : 
-                                         user.role}
-                                    </Badge>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium">Estado:</span>
-                                    <Badge className={getStatusColor(user.status || 'active')}>
-                                        {(user.status || 'active') === 'active' ? 'Activo' : 'Suspendido'}
-                                    </Badge>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium">Suscripción:</span>
-                                    <Badge variant={user.subscriptionStatus === 'paid' ? 'default' : 'destructive'}>
-                                        {user.subscriptionStatus === 'paid' ? 'Pagada' : 'Vencida'}
-                                    </Badge>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    ))}
-                </div>
-
-                {users.length === 0 && (
-                    <Card>
-                        <CardContent className="py-8 text-center">
-                            <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">No hay médicos registrados</h3>
-                            <p className="text-muted-foreground mb-4">
-                                Comienza agregando el primer médico al sistema
-                            </p>
-                            <Link href="/dashboard/doctors/new">
-                                <Button>
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Agregar Primer Médico
-                                </Button>
-                            </Link>
-                        </CardContent>
-                    </Card>
-                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </>
             )}
         </div>
     );
