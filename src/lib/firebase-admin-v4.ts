@@ -16,6 +16,12 @@ export function initializeFirebaseAdmin() {
   const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || 'heartlink-f4ftq.firebasestorage.app';
 
   console.log(`🔍 [Firebase Admin v4] Project: ${projectId}, Bucket: ${storageBucket}`);
+  console.log(`🔍 [Firebase Admin v4] Environment check:`, {
+    nodeEnv: process.env.NODE_ENV,
+    hasFirebaseConfig: !!process.env.FIREBASE_CONFIG,
+    hasServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
+    isAppHosting: !!process.env.K_SERVICE || !!process.env.FUNCTION_TARGET
+  });
 
   try {
     console.log('🔍 [Firebase Admin v4] Using Application Default Credentials (ADC)...');
