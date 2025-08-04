@@ -9,9 +9,12 @@ runConfig:
   concurrency: 100
   
   # Environment variables for the application
-  # No secrets needed - App Hosting provides Application Default Credentials
   env:
     - variable: "FIREBASE_STORAGE_BUCKET"
       value: "heartlink-f4ftq.firebasestorage.app"
     - variable: "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
       value: "heartlink-f4ftq"
+    # Optional: SERVICE_ACCOUNT_KEY secret for additional authentication if needed
+    # Uncomment the following lines if you need explicit service account credentials
+    # - variable: SERVICE_ACCOUNT_KEY
+    #   secret: SERVICE_ACCOUNT_KEY
