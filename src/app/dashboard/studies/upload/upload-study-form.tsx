@@ -36,6 +36,20 @@ export function UploadStudyForm() {
     const formRef = useRef<HTMLFormElement>(null);
     const [state, formAction] = useActionState(uploadStudy, initialUploadState);
     const router = useRouter();
+
+    // Handle successful upload - redirect to studies page
+    useEffect(() => {
+        if (state.status === 'success') {
+            console.log('✅ [UploadForm] Study uploaded successfully, redirecting to studies page...');
+            toast({
+                title: 'Estudio subido',
+                description: 'El estudio ha sido procesado exitosamente.',
+            });
+            setTimeout(() => {
+                router.push('/dashboard/studies');
+            }, 2000); // Redirect after 2 seconds to show success message
+        }
+    }, [state.status, router, toast]);
     
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [isTranscribing, setIsTranscribing] = useState(false);

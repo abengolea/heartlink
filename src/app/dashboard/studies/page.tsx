@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, PlusCircle } from "lucide-react";
+import { ArrowUpRight, PlusCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 export default function StudiesPage() {
@@ -18,16 +18,23 @@ export default function StudiesPage() {
     useEffect(() => {
         async function loadStudies() {
             try {
+                console.log('🔍 [StudiesPage] Loading studies from API...');
                 const response = await fetch('/api/studies');
+                console.log('🔍 [StudiesPage] API response status:', response.status);
+                
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('✅ [StudiesPage] Studies loaded:', data.length, 'studies');
+                    console.log('🔍 [StudiesPage] Studies data:', data);
                     setStudies(data);
                 } else {
-                    // Fallback to empty array if API fails
+                    console.error('❌ [StudiesPage] API failed with status:', response.status);
+                    const errorText = await response.text();
+                    console.error('❌ [StudiesPage] Error response:', errorText);
                     setStudies([]);
                 }
             } catch (error) {
-                console.error('Error loading studies:', error);
+                console.error('❌ [StudiesPage] Error loading studies:', error);
                 setStudies([]);
             } finally {
                 setIsLoading(false);
@@ -35,6 +42,29 @@ export default function StudiesPage() {
         }
         loadStudies();
     }, []);
+
+    const refreshStudies = () => {
+        setIsLoading(true);
+        const loadStudies = async () => {
+            try {
+                console.log('🔍 [StudiesPage] Refreshing studies...');
+                const response = await fetch('/api/studies');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ [StudiesPage] Studies refreshed:', data.length, 'studies');
+                    setStudies(data);
+                } else {
+                    setStudies([]);
+                }
+            } catch (error) {
+                console.error('❌ [StudiesPage] Error refreshing studies:', error);
+                setStudies([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadStudies();
+    };
     
     const getPatientName = (patientId: string) => {
         return patients.find(p => p.id === patientId)?.name || "Paciente Desconocido";
@@ -45,16 +75,41 @@ export default function StudiesPage() {
             <div className="flex items-center">
                 <div className="flex-1">
                     <h1 className="font-semibold text-lg md:text-2xl">Estudios</h1>
+                    <p className="text-muted-foreground text-sm">
+                        {isLoading ? 'Cargando estudios...' : `${studies.length} estudios encontrados`}
+                    </p>
                 </div>
-                 <Button asChild>
-                    <Link href="/dashboard/studies/upload">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Subir Estudio
-                    </Link>
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={refreshStudies} disabled={isLoading}>
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        Actualizar
+                    </Button>
+                    <Button asChild>
+                        <Link href="/dashboard/studies/upload">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Subir Estudio
+                        </Link>
+                    </Button>
+                </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
-                {studies.map(study => (
+            {studies.length === 0 && !isLoading ? (
+                <Card className="col-span-full">
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                        <h3 className="text-lg font-semibold mb-2">No hay estudios</h3>
+                        <p className="text-muted-foreground mb-4 text-center">
+                            No se encontraron estudios médicos. Sube tu primer estudio para comenzar.
+                        </p>
+                        <Button asChild>
+                            <Link href="/dashboard/studies/upload">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Subir Primer Estudio
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
+                    {studies.map(study => (
                     <Card key={study.id}>
                         <CardHeader className="p-0">
                            <Image
@@ -88,9 +143,10 @@ export default function StudiesPage() {
                                 </Link>
                             </Button>
                         </CardFooter>
-                    </Card>
-                ))}
-            </div>
+                        </Card>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
