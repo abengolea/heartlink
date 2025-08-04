@@ -25,6 +25,7 @@ import { generateUploadUrlAction, uploadStudy } from "@/actions/upload-study";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
 import { Progress } from "@/components/ui/progress";
+import { ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE, getUploadErrorMessage } from "@/lib/upload-constants";
 
 const initialUploadState = {
   status: 'idle' as 'idle' | 'success' | 'error',
@@ -161,23 +162,22 @@ export function UploadStudyForm() {
             console.log(`Selected video file: ${file.name}, size: ${file.size}, type: ${file.type}`);
             
             // Validate file type
-            const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/quicktime', 'video/x-msvideo'];
-            if (!allowedTypes.includes(file.type)) {
+            if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
                 toast({
                     variant: 'destructive',
                     title: 'Tipo de archivo no válido',
-                    description: 'Solo se permiten archivos de video (MP4, AVI, MOV).',
+                    description: 'Solo se permiten archivos de video (MP4, WEBM, AVI, MOV).',
                 });
                 event.target.value = '';
                 return;
             }
             
-            // Validate file size (50MB limit)
-            if (file.size > 50 * 1024 * 1024) {
+            // Validate file size
+            if (file.size > MAX_FILE_SIZE) {
                 toast({
                     variant: 'destructive',
                     title: 'Archivo demasiado grande',
-                    description: 'El tamaño máximo permitido es 50MB.',
+                    description: 'El tamaño máximo permitido es 100MB.',
                 });
                 event.target.value = '';
                 return;
@@ -274,7 +274,8 @@ export function UploadStudyForm() {
                 if (!response.ok) {
                     console.error('Upload failed with status:', response.status, response.statusText);
                     const errorText = await response.text();
-                    throw new Error(`Error de subida: ${response.status} - ${response.statusText}. ${errorText}`);
+                    const userFriendlyError = getUploadErrorMessage(response.status, errorText);
+                    throw new Error(userFriendlyError);
                 }
 
                 console.log('File uploaded successfully to Firebase Storage');
@@ -332,7 +333,7 @@ export function UploadStudyForm() {
         <form ref={formRef} onSubmit={handleFormSubmit} className="grid gap-6">
             <div className="grid gap-2">
                 <Label htmlFor="video">Video del Estudio (MP4, WEBM)</Label>
-                <Input id="video" name="video" type="file" accept="video/mp4,video/webm" required onChange={handleVideoChange}/>
+                <Input id="video" name="video" type="file" accept="video/mp4,video/webm,video/avi,video/mov" required onChange={handleVideoChange}/>
                 {isUploading && <Progress value={uploadProgress} className="w-full mt-2" />}
                 {uploadProgress === 100 && !isUploading && (
                      <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
