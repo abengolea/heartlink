@@ -291,6 +291,12 @@ export function UploadStudyForm() {
                     
                     // Submit the form to save study details
                     console.log('Submitting form with file path:', filePath);
+                    console.log('Form data before submit:', {
+                        patientName: formRef.current.querySelector('[name="patientName"]')?.value,
+                        requestingDoctorName: formRef.current.querySelector('[name="requestingDoctorName"]')?.value,
+                        description: formRef.current.querySelector('[name="description"]')?.value,
+                        filePath: filePath
+                    });
                     formRef.current.requestSubmit();
                 }
 
