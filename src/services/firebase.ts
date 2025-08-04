@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { getStorageBucket } from '@/lib/firebase-admin-v4';
+import { ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE } from '@/lib/upload-constants';
 
 export async function getSignedUploadUrl(
   fileType: string, 
@@ -9,14 +10,13 @@ export async function getSignedUploadUrl(
   console.log(`🔍 [Upload v4] Generating signed URL with ADC for: ${fileName} (${fileType}, ${fileSize} bytes)`);
   
   // File size validation
-  if (fileSize > 50 * 1024 * 1024) {
-    throw new Error("El archivo es demasiado grande. El límite es 50MB.");
+  if (fileSize > MAX_FILE_SIZE) {
+    throw new Error("El archivo es demasiado grande. El límite es 100MB.");
   }
 
   // File type validation
-  const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/quicktime', 'video/x-msvideo'];
-  if (!allowedTypes.includes(fileType)) {
-    throw new Error("Tipo de archivo no permitido. Solo se permiten videos MP4, AVI, MOV.");
+  if (!ALLOWED_VIDEO_TYPES.includes(fileType)) {
+    throw new Error("Tipo de archivo no permitido. Solo se permiten videos MP4, WEBM, AVI, MOV.");
   }
 
   try {
