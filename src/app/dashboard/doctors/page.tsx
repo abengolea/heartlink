@@ -36,6 +36,12 @@ export default function DoctorsPage() {
             case 'solicitante': return 'bg-blue-100 text-blue-800';
             case 'operator': return 'bg-green-100 text-green-800';
             case 'admin': return 'bg-purple-100 text-purple-800';
+            case 'Cardiólogo':
+            case 'Cardióloga':
+            case 'Cardiólogo Intervencionista':
+            case 'Cardiólogo Pediatra':
+            case 'Electrofisiólogo':
+                return 'bg-emerald-100 text-emerald-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -95,13 +101,15 @@ export default function DoctorsPage() {
                                     <span className="text-sm font-medium">Rol:</span>
                                     <Badge className={getRoleColor(user.role)}>
                                         {user.role === 'solicitante' ? 'Médico Solicitante' : 
-                                         user.role === 'operator' ? 'Operador' : 'Administrador'}
+                                         user.role === 'operator' ? 'Operador' : 
+                                         user.role === 'admin' ? 'Administrador' : 
+                                         user.role}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium">Estado:</span>
-                                    <Badge className={getStatusColor(user.status)}>
-                                        {user.status === 'active' ? 'Activo' : 'Suspendido'}
+                                    <Badge className={getStatusColor(user.status || 'active')}>
+                                        {(user.status || 'active') === 'active' ? 'Activo' : 'Suspendido'}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center gap-2">
