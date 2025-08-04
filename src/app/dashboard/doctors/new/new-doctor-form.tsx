@@ -18,6 +18,8 @@ export function NewDoctorForm() {
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true);
+        console.log('🔍 [NewDoctorForm] Starting form submission...');
+        
         try {
             const doctorData = {
                 name: formData.get('name') as string,
@@ -26,33 +28,45 @@ export function NewDoctorForm() {
                 role: formData.get('role') as string,
             };
 
+            console.log('🔍 [NewDoctorForm] Form data extracted:', doctorData);
+
+            // Validate required fields
+            if (!doctorData.name || !doctorData.email || !doctorData.phone || !doctorData.role) {
+                throw new Error('Todos los campos son requeridos');
+            }
+
+            console.log('🔍 [NewDoctorForm] Making API call...');
             const response = await fetch('/api/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(doctorData),
             });
 
+            console.log('🔍 [NewDoctorForm] API response status:', response.status);
+
             if (response.ok) {
                 const result = await response.json();
-                console.log('✅ Doctor created successfully:', result);
+                console.log('✅ [NewDoctorForm] Doctor created successfully:', result);
                 toast({
                     title: 'Médico creado',
                     description: 'El médico ha sido agregado exitosamente.',
                 });
+                console.log('🔍 [NewDoctorForm] Redirecting to doctors list...');
                 router.push('/dashboard/doctors');
             } else {
                 const errorData = await response.text();
-                console.error('❌ API Error:', response.status, errorData);
+                console.error('❌ [NewDoctorForm] API Error:', response.status, errorData);
                 throw new Error(`Error ${response.status}: ${errorData}`);
             }
         } catch (error) {
-            console.error('Error creating doctor:', error);
+            console.error('❌ [NewDoctorForm] Error creating doctor:', error);
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: 'No se pudo crear el médico. Intenta nuevamente.',
+                description: error instanceof Error ? error.message : 'No se pudo crear el médico. Intenta nuevamente.',
             });
         } finally {
+            console.log('🔍 [NewDoctorForm] Form submission completed');
             setIsLoading(false);
         }
     }
