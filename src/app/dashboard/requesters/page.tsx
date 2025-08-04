@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { File, PlusCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { User } from "@/lib/types";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 
 export default function RequestersPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -63,11 +64,13 @@ export default function RequestersPage() {
               Exportar
             </span>
           </Button>
-          <Button size="sm" className="h-8 gap-1">
-            <PlusCircle className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Crear Solicitante
-            </span>
+          <Button size="sm" className="h-8 gap-1" asChild>
+            <Link href="/dashboard/requesters/new">
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                Crear Solicitante
+              </span>
+            </Link>
           </Button>
         </div>
       </div>
