@@ -36,6 +36,15 @@ export function UploadStudyForm() {
     const formRef = useRef<HTMLFormElement>(null);
     const [state, formAction] = useActionState(uploadStudy, initialUploadState);
     const router = useRouter();
+    const { toast } = useToast();
+    
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [description, setDescription] = useState('');
+    const [users, setUsers] = useState<any[]>([]);
+    const [patients, setPatients] = useState<any[]>([]);
 
     // Handle successful upload - redirect to studies page
     useEffect(() => {
@@ -50,15 +59,6 @@ export function UploadStudyForm() {
             }, 2000); // Redirect after 2 seconds to show success message
         }
     }, [state.status, router, toast]);
-    
-    const [videoFile, setVideoFile] = useState<File | null>(null);
-    const [isTranscribing, setIsTranscribing] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [description, setDescription] = useState('');
-    const [users, setUsers] = useState<any[]>([]);
-    const [patients, setPatients] = useState<any[]>([]);
-    const { toast } = useToast();
 
     // Load users and patients from API endpoints
     useEffect(() => {

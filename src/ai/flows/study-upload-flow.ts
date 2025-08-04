@@ -55,7 +55,12 @@ const studyUploadFlowFn = ai.defineFlow(
     
     // Find existing doctor by name
     const existingDoctor = users.find(u => 
-      u.role === 'solicitante' && (
+      (u.role === 'solicitante' || 
+       u.role === 'Cardiólogo' || 
+       u.role === 'Cardióloga' || 
+       u.role === 'Cardiólogo Intervencionista' ||
+       u.role === 'Cardiólogo Pediatra' ||
+       u.role === 'Electrofisiólogo') && (
         u.name.toLowerCase().includes(input.requestingDoctorName.toLowerCase()) ||
         input.requestingDoctorName.toLowerCase().includes(u.name.toLowerCase())
       )
