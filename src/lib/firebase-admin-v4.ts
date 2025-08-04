@@ -1,4 +1,4 @@
-import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
+import { initializeApp, getApps, applicationDefault, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 
 // Firebase Admin v4 - DEFINITIVE solution for App Hosting with Signed URLs
@@ -17,39 +17,47 @@ export function initializeFirebaseAdmin() {
 
   console.log(`🔍 [Firebase Admin v4] Project: ${projectId}, Bucket: ${storageBucket}`);
 
-  try {
-    console.log('🔍 [Firebase Admin v4] Using Application Default Credentials (ADC)...');
-    
-    // CLAVE: applicationDefault() explícito para Signed URLs
-    const app = initializeApp({
-      credential: applicationDefault(), // ← ESTO ES CRÍTICO PARA SIGNED URLs
-      projectId: projectId,
-      storageBucket: storageBucket
-    });
-    
-    console.log('✅ [Firebase Admin v4] Successfully initialized with ADC - Signed URLs should work!');
-    return app;
-    
-  } catch (adcError) {
-    console.error('❌ [Firebase Admin v4] ADC failed:', adcError);
-    
-    // Fallback sin credenciales (NO funcionará para Signed URLs pero puede funcionar para otros casos)
-    console.log('🔍 [Firebase Admin v4] Trying fallback without explicit credentials...');
+  // Try service account credentials first (if available)
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  
+  if (serviceAccountKey && serviceAccountKey !== '{"type":"service_account","project_id":"heartlink-f4ftq","private_key_id":"YOUR_PRIVATE_KEY_ID"' /* incomplete fake key */) {
     try {
-      const fallbackApp = initializeApp({
+      console.log('🔍 [Firebase Admin v4] Using Service Account credentials...');
+      
+      const serviceAccount = JSON.parse(serviceAccountKey);
+      const app = initializeApp({
+        credential: cert(serviceAccount),
         projectId: projectId,
         storageBucket: storageBucket
       });
       
-      console.log('⚠️ [Firebase Admin v4] Fallback initialized - Signed URLs may NOT work');
-      return fallbackApp;
+      console.log('✅ [Firebase Admin v4] Successfully initialized with Service Account!');
+      return app;
       
-    } catch (fallbackError) {
-      console.error('❌ [Firebase Admin v4] All initialization methods failed');
-      console.error('ADC Error:', adcError);
-      console.error('Fallback Error:', fallbackError);
-      throw new Error('Cannot initialize Firebase Admin in App Hosting environment');
+    } catch (serviceAccountError) {
+      console.error('❌ [Firebase Admin v4] Service Account failed:', serviceAccountError);
+      console.log('🔍 [Firebase Admin v4] Falling back to ADC...');
     }
+  } else {
+    console.log('🔍 [Firebase Admin v4] No valid service account found, using ADC...');
+  }
+
+  try {
+    console.log('🔍 [Firebase Admin v4] Using Application Default Credentials (ADC)...');
+    
+    // Fallback to ADC for App Hosting environment
+    const app = initializeApp({
+      credential: applicationDefault(),
+      projectId: projectId,
+      storageBucket: storageBucket
+    });
+    
+    console.log('✅ [Firebase Admin v4] Successfully initialized with ADC!');
+    return app;
+    
+  } catch (adcError) {
+    console.error('❌ [Firebase Admin v4] ADC failed:', adcError);
+    throw new Error('Cannot initialize Firebase Admin - both Service Account and ADC failed');
   }
 }
 

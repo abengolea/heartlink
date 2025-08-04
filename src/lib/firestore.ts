@@ -1,10 +1,10 @@
-import { initializeFirebaseAdminADCOnly } from '@/lib/firebase-admin-adc-only';
+import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
 import { getFirestore } from 'firebase-admin/firestore';
 import type { Study, Patient, User } from './types';
 
-// Initialize Firestore with Firebase Admin (ADC-only)
+// Initialize Firestore with Firebase Admin
 function getFirestoreAdmin() {
-  const app = initializeFirebaseAdminADCOnly();
+  const app = initializeFirebaseAdmin();
   return getFirestore(app);
 }
 
