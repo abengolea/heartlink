@@ -169,7 +169,9 @@ export default function PatientsPage() {
                         <DropdownMenuItem asChild>
                            <Link href={`/dashboard/patients/${patient.id}`} prefetch={false}>Ver Detalles</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                           <Link href={`/dashboard/patients/${patient.id}/edit`}>Editar</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem>Archivar</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
