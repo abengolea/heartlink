@@ -70,13 +70,22 @@ export async function getAllStudies(): Promise<Study[]> {
     
     const studies: Study[] = [];
     studiesSnapshot.forEach(doc => {
-      studies.push({
+      const data = doc.data();
+      
+      // Convert Firestore Timestamps to ISO strings
+      const study = {
         id: doc.id,
-        ...doc.data()
-      } as Study);
+        ...data,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+        date: data.date || data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+      } as Study;
+      
+      studies.push(study);
     });
     
     console.log('✅ [Firestore] Retrieved studies:', studies.length);
+    console.log('🔍 [Firestore] First study sample:', studies[0]);
     return studies;
     
   } catch (error) {
