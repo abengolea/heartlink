@@ -1,4 +1,4 @@
-# Firebase App Hosting Configuration
+# Firebase App Hosting Configuration - Updated for GEMINI API
 runConfig:
   cpu: 2
   memoryMiB: 1024
