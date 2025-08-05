@@ -1,20 +1,61 @@
-# Settings to manage and configure a Firebase App Hosting backend.
-# https://firebase.google.com/docs/app-hosting/configure
-
+# Firebase App Hosting Configuration
 runConfig:
-  # Performance configuration
-  cpu: 1
-  memoryMiB: 512
-  maxInstances: 2
+  cpu: 2
+  memoryMiB: 1024
+  maxInstances: 10
+  minInstances: 1
   concurrency: 100
-  
-  # Environment variables for the application
-  env:
-    - variable: "FIREBASE_STORAGE_BUCKET"
-      value: "heartlink-f4ftq.firebasestorage.app"
-    - variable: "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
-      value: "heartlink-f4ftq"
-    # Optional: SERVICE_ACCOUNT_KEY secret for additional authentication if needed
-    # Uncomment the following lines if you need explicit service account credentials
-    # - variable: SERVICE_ACCOUNT_KEY
-    #   secret: SERVICE_ACCOUNT_KEY
+
+env:
+  # Firebase Configuration
+  - variable: FIREBASE_STORAGE_BUCKET
+    value: heartlink-f4ftq.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: heartlink-f4ftq
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Firebase Service Account Key (Secret)
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    secret: firebase-service-account-key
+    availability:
+      - RUNTIME
+
+  - variable: SERVICE_ACCOUNT_KEY
+    secret: SERVICE_ACCOUNT_KEY
+    availability:
+      - RUNTIME
+
+  # Google Gemini AI API Key (Secret)
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+    availability:
+      - RUNTIME
+
+  # WhatsApp Business API Configuration
+  - variable: WHATSAPP_PHONE_NUMBER_ID
+    value: "693302653873170"
+    availability:
+      - RUNTIME
+
+  - variable: WHATSAPP_WEBHOOK_VERIFY_TOKEN
+    value: heartlink_webhook_2025
+    availability:
+      - RUNTIME
+
+  - variable: WHATSAPP_ACCESS_TOKEN
+    secret: WHATSAPP_ACCESS_TOKEN
+    availability:
+      - RUNTIME
+
+  # Application URL
+  - variable: NEXT_PUBLIC_APP_URL
+    value: https://heartlink--heartlink-f4ftq.us-central1.hosted.app
+    availability:
+      - BUILD
+      - RUNTIME
