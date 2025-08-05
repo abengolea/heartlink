@@ -18,7 +18,7 @@ export function initializeFirebaseAdmin() {
   console.log(`🔍 [Firebase Admin v4] Project: ${projectId}, Bucket: ${storageBucket}`);
 
   // Try service account credentials first (if available)
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.SERVICE_ACCOUNT_KEY;
   
   if (serviceAccountKey && serviceAccountKey !== '{"type":"service_account","project_id":"heartlink-f4ftq","private_key_id":"YOUR_PRIVATE_KEY_ID"' /* incomplete fake key */) {
     try {

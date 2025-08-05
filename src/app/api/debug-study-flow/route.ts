@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { studyUploadFlow } from '@/ai/flows/study-upload-flow';
 
+export async function GET() {
+  return POST();
+}
+
 export async function POST() {
   try {
     console.log('🔍 [Debug Study Flow] Testing complete study creation flow...');
