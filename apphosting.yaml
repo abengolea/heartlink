@@ -37,6 +37,11 @@ env:
     availability:
       - RUNTIME
 
+  - variable: GOOGLE_API_KEY
+    secret: GOOGLE_API_KEY
+    availability:
+      - RUNTIME
+
   # WhatsApp Business API Configuration
   - variable: WHATSAPP_PHONE_NUMBER_ID
     value: "693302653873170"
