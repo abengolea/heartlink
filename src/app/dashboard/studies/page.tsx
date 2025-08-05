@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { patients } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
@@ -13,57 +12,82 @@ import Link from "next/link";
 
 export default function StudiesPage() {
     const [studies, setStudies] = useState<any[]>([]);
+    const [patients, setPatients] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        async function loadStudies() {
+        async function loadData() {
             try {
-                console.log('🔍 [StudiesPage] Loading studies from API...');
-                const response = await fetch('/api/studies');
-                console.log('🔍 [StudiesPage] API response status:', response.status);
+                console.log('🔍 [StudiesPage] Loading studies and patients from API...');
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ [StudiesPage] Studies loaded:', data.length, 'studies');
-                    console.log('🔍 [StudiesPage] Studies data:', data);
-                    setStudies(data);
+                // Load studies and patients in parallel
+                const [studiesResponse, patientsResponse] = await Promise.all([
+                    fetch('/api/studies'),
+                    fetch('/api/patients')
+                ]);
+                
+                console.log('🔍 [StudiesPage] API response status:', studiesResponse.status, patientsResponse.status);
+                
+                if (studiesResponse.ok && patientsResponse.ok) {
+                    const [studiesData, patientsData] = await Promise.all([
+                        studiesResponse.json(),
+                        patientsResponse.json()
+                    ]);
+                    
+                    console.log('✅ [StudiesPage] Studies loaded:', studiesData.length, 'studies');
+                    console.log('✅ [StudiesPage] Patients loaded:', patientsData.length, 'patients');
+                    console.log('🔍 [StudiesPage] Studies data:', studiesData);
+                    console.log('🔍 [StudiesPage] Patients data:', patientsData);
+                    
+                    setStudies(studiesData);
+                    setPatients(patientsData);
                 } else {
-                    console.error('❌ [StudiesPage] API failed with status:', response.status);
-                    const errorText = await response.text();
-                    console.error('❌ [StudiesPage] Error response:', errorText);
+                    console.error('❌ [StudiesPage] API failed with status:', studiesResponse.status, patientsResponse.status);
                     setStudies([]);
+                    setPatients([]);
                 }
             } catch (error) {
-                console.error('❌ [StudiesPage] Error loading studies:', error);
+                console.error('❌ [StudiesPage] Error loading data:', error);
                 setStudies([]);
+                setPatients([]);
             } finally {
                 setIsLoading(false);
             }
         }
-        loadStudies();
+        loadData();
     }, []);
 
     const refreshStudies = () => {
         setIsLoading(true);
-        const loadStudies = async () => {
+        const loadData = async () => {
             try {
-                console.log('🔍 [StudiesPage] Refreshing studies...');
-                const response = await fetch('/api/studies');
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ [StudiesPage] Studies refreshed:', data.length, 'studies');
-                    setStudies(data);
+                console.log('🔍 [StudiesPage] Refreshing data...');
+                const [studiesResponse, patientsResponse] = await Promise.all([
+                    fetch('/api/studies'),
+                    fetch('/api/patients')
+                ]);
+                
+                if (studiesResponse.ok && patientsResponse.ok) {
+                    const [studiesData, patientsData] = await Promise.all([
+                        studiesResponse.json(),
+                        patientsResponse.json()
+                    ]);
+                    console.log('✅ [StudiesPage] Data refreshed:', studiesData.length, 'studies,', patientsData.length, 'patients');
+                    setStudies(studiesData);
+                    setPatients(patientsData);
                 } else {
                     setStudies([]);
+                    setPatients([]);
                 }
             } catch (error) {
-                console.error('❌ [StudiesPage] Error refreshing studies:', error);
+                console.error('❌ [StudiesPage] Error refreshing data:', error);
                 setStudies([]);
+                setPatients([]);
             } finally {
                 setIsLoading(false);
             }
         };
-        loadStudies();
+        loadData();
     };
     
     const getPatientName = (patientId: string) => {
