@@ -336,7 +336,7 @@ export function UploadStudyForm() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-        <form ref={formRef} onSubmit={handleFormSubmit} className="grid gap-6">
+        <form ref={formRef} action={uploadStudy} onSubmit={handleFormSubmit} className="grid gap-6">
             <div className="grid gap-2">
                 <Label htmlFor="video">Video del Estudio (MP4, WEBM)</Label>
                 <Input id="video" name="video" type="file" accept="video/mp4,video/webm,video/avi,video/mov" required onChange={handleVideoChange}/>
