@@ -2,10 +2,9 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+// Removed useActionState and useFormStatus imports since we call server action directly
 import { useRouter } from "next/navigation";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+// Removed Alert imports since we use toast notifications instead
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,19 +18,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Remove server-side Firestore imports from client component
-import { cn } from "@/lib/utils";
-import { CheckCircle, Loader2, Terminal, UploadCloud, Wand2 } from "lucide-react";
+import { CheckCircle, Loader2, UploadCloud, Wand2 } from "lucide-react";
 import { generateUploadUrlAction, uploadStudy } from "@/actions/upload-study";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
 import { Progress } from "@/components/ui/progress";
 import { ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE, getUploadErrorMessage } from "@/lib/upload-constants";
 
-const initialUploadState = {
-  status: 'idle' as 'idle' | 'success' | 'error',
-  message: '',
-  data: null as any,
-};
+// Removed initialUploadState since we don't use useActionState anymore
 
 export function UploadStudyForm() {
     const formRef = useRef<HTMLFormElement>(null);
@@ -109,40 +103,7 @@ export function UploadStudyForm() {
         u.role === 'Electrofisiólogo'
     );
 
-    useEffect(() => {
-        if (state.status === 'success') {
-            toast({
-                title: 'Estudio Guardado',
-                description: state.message,
-            });
-            
-            // Redirect to study detail page if we have studyId
-            if (state.data?.studyId) {
-                console.log('Redirecting to study detail:', state.data.studyId);
-                setTimeout(() => {
-                    router.push(`/dashboard/studies/${state.data.studyId}`);
-                }, 1500); // Wait 1.5s to show the success toast
-            } else {
-                // Fallback: redirect to studies list
-                setTimeout(() => {
-                    router.push('/dashboard/studies');
-                }, 1500);
-            }
-            
-            // Reset form
-            setVideoFile(null);
-            setDescription('');
-            setUploadProgress(0);
-            formRef.current?.reset();
-        } else if (state.status === 'error') {
-            console.error('Upload error:', state.message);
-            toast({
-                variant: 'destructive',
-                title: 'Error al Guardar',
-                description: state.message,
-            });
-        }
-    }, [state, toast, router]);
+    // Removed useEffect for state since we handle success/error directly in server action call
 
     const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -432,15 +393,7 @@ export function UploadStudyForm() {
               {isUploading ? "Subiendo Video..." : "Guardar Estudio"}
             </Button>
 
-             {state.status !== 'idle' && (
-                <Alert variant={state.status === 'error' ? 'destructive' : 'default'} className={cn(state.status === 'success' && "bg-accent/50 border-accent")}>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>{state.status === 'error' ? 'Fallo al Guardar' : state.status === 'success' ? 'Éxito' : 'Información'}</AlertTitle>
-                    <AlertDescription>
-                        {state.message}
-                    </AlertDescription>
-                </Alert>
-            )}
+            {/* Removed Alert since we handle success/error with toast notifications */}
         </form>
                 </CardContent>
             </Card>
