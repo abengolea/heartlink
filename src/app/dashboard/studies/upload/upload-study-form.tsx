@@ -254,6 +254,8 @@ export function UploadStudyForm() {
                     try {
                         const result = await uploadStudy(null, formData);
                         console.log('✅ Server action result:', result);
+                        console.log('🔍 Result type:', typeof result);
+                        console.log('🔍 Result keys:', Object.keys(result || {}));
                         
                                                  if (result.status === 'success') {
                              toast({
