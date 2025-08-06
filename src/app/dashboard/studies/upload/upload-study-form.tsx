@@ -35,7 +35,7 @@ const initialUploadState = {
 
 export function UploadStudyForm() {
     const formRef = useRef<HTMLFormElement>(null);
-    const [state, formAction] = useActionState(uploadStudy, initialUploadState);
+    // Calling uploadStudy directly instead of using useActionState
     const router = useRouter();
     const { toast } = useToast();
     
@@ -47,19 +47,7 @@ export function UploadStudyForm() {
     const [users, setUsers] = useState<any[]>([]);
     const [patients, setPatients] = useState<any[]>([]);
 
-    // Handle successful upload - redirect to studies page
-    useEffect(() => {
-        if (state.status === 'success') {
-            console.log('✅ [UploadForm] Study uploaded successfully, redirecting to studies page...');
-            toast({
-                title: 'Estudio subido',
-                description: 'El estudio ha sido procesado exitosamente.',
-            });
-            setTimeout(() => {
-                router.push('/dashboard/studies');
-            }, 2000); // Redirect after 2 seconds to show success message
-        }
-    }, [state.status, router, toast]);
+    // Removed useEffect since we handle success/error in direct server action call
 
     // Load users and patients from API endpoints
     useEffect(() => {
@@ -297,7 +285,50 @@ export function UploadStudyForm() {
                         description: formRef.current.querySelector('[name="description"]')?.value,
                         filePath: filePath
                     });
-                    formRef.current.requestSubmit();
+                    
+                    // Create FormData and call server action directly
+                    const formData = new FormData(formRef.current);
+                    console.log('🔍 Calling uploadStudy server action directly...');
+                    
+                    try {
+                        const result = await uploadStudy(null, formData);
+                        console.log('✅ Server action result:', result);
+                        
+                                                 if (result.status === 'success') {
+                             toast({
+                                 title: 'Estudio Guardado',
+                                 description: result.message,
+                             });
+                             
+                             // Reset form
+                             setVideoFile(null);
+                             setUploadProgress(0);
+                             setIsUploading(false);
+                             
+                             // Redirect to study detail page if we have studyId
+                             if (result.data?.studyId) {
+                                 console.log('Redirecting to study detail:', result.data.studyId);
+                                 setTimeout(() => {
+                                     router.push(`/dashboard/studies/${result.data.studyId}`);
+                                 }, 1500);
+                             } else {
+                                 // Fallback: redirect to studies list
+                                 setTimeout(() => {
+                                     router.push('/dashboard/studies');
+                                 }, 1500);
+                             }
+                         } else {
+                             throw new Error(result.message);
+                         }
+                                         } catch (serverActionError) {
+                         console.error('❌ Server action error:', serverActionError);
+                         setIsUploading(false);
+                         toast({
+                             variant: 'destructive',
+                             title: 'Error',
+                             description: `Error al guardar el estudio: ${serverActionError instanceof Error ? serverActionError.message : 'Error desconocido'}`
+                         });
+                     }
                 }
 
             } catch (fetchError) {
