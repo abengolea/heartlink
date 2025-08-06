@@ -251,47 +251,56 @@ export function UploadStudyForm() {
                     const formData = new FormData(formRef.current);
                     console.log('🔍 Calling uploadStudy server action directly...');
                     
-                    try {
+                                        try {
+                        console.log('🔍 About to call uploadStudy with formData...');
                         const result = await uploadStudy(null, formData);
-                        console.log('✅ Server action result:', result);
+                        console.log('✅ Server action completed successfully!');
+                        console.log('🔍 Result:', result);
                         console.log('🔍 Result type:', typeof result);
                         console.log('🔍 Result keys:', Object.keys(result || {}));
                         
-                                                 if (result.status === 'success') {
-                             toast({
-                                 title: 'Estudio Guardado',
-                                 description: result.message,
-                             });
-                             
-                             // Reset form
-                             setVideoFile(null);
-                             setUploadProgress(0);
-                             setIsUploading(false);
-                             
-                             // Redirect to study detail page if we have studyId
-                             if (result.data?.studyId) {
-                                 console.log('Redirecting to study detail:', result.data.studyId);
-                                 setTimeout(() => {
-                                     router.push(`/dashboard/studies/${result.data.studyId}`);
-                                 }, 1500);
-                             } else {
-                                 // Fallback: redirect to studies list
-                                 setTimeout(() => {
-                                     router.push('/dashboard/studies');
-                                 }, 1500);
-                             }
-                         } else {
-                             throw new Error(result.message);
-                         }
-                                         } catch (serverActionError) {
-                         console.error('❌ Server action error:', serverActionError);
-                         setIsUploading(false);
-                         toast({
-                             variant: 'destructive',
-                             title: 'Error',
-                             description: `Error al guardar el estudio: ${serverActionError instanceof Error ? serverActionError.message : 'Error desconocido'}`
-                         });
-                     }
+                        if (result && result.status === 'success') {
+                            console.log('🎉 Success! Showing toast and redirecting...');
+                            toast({
+                                title: 'Estudio Guardado',
+                                description: result.message,
+                            });
+                            
+                            // Reset form
+                            setVideoFile(null);
+                            setUploadProgress(0);
+                            setIsUploading(false);
+                            
+                            // Redirect to study detail page if we have studyId
+                            if (result.data?.studyId) {
+                                console.log('Redirecting to study detail:', result.data.studyId);
+                                setTimeout(() => {
+                                    router.push(`/dashboard/studies/${result.data.studyId}`);
+                                }, 1500);
+                            } else {
+                                // Fallback: redirect to studies list
+                                setTimeout(() => {
+                                    router.push('/dashboard/studies');
+                                }, 1500);
+                            }
+                        } else {
+                            console.log('❌ Server action returned error status:', result);
+                            throw new Error(result?.message || 'Server action returned error status');
+                        }
+                    } catch (serverActionError) {
+                        console.error('❌ Server action EXCEPTION:', serverActionError);
+                        console.error('❌ Error type:', typeof serverActionError);
+                        console.error('❌ Error constructor:', serverActionError?.constructor?.name);
+                        console.error('❌ Error message:', serverActionError?.message);
+                        console.error('❌ Error stack:', serverActionError?.stack);
+                        
+                        setIsUploading(false);
+                        toast({
+                            variant: 'destructive',
+                            title: 'Error al Guardar Estudio',
+                            description: `Error detallado: ${serverActionError instanceof Error ? serverActionError.message : JSON.stringify(serverActionError)}`
+                        });
+                    }
                 }
 
             } catch (fetchError) {
