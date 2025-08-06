@@ -74,26 +74,18 @@ export async function getSignedUploadUrl(
 }
 
 export async function getPublicUrl(filePath: string): Promise<string> {
-  console.log(`🔍 [Public URL v4] Getting public URL with ADC for: ${filePath}`);
+  console.log(`🔍 [Public URL v4] Getting public URL for: ${filePath}`);
   
   try {
-    const bucket = getStorageBucket();
-    const file = bucket.file(filePath);
+    // Build the public URL directly using Firebase Storage URL format
+    const bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'heartlink-f4ftq.firebasestorage.app';
+    const publicUrl = `https://storage.googleapis.com/${bucketName}/${filePath}`;
     
-    // Check if file exists
-    const [exists] = await file.exists();
-    if (!exists) {
-      throw new Error(`File does not exist: ${filePath}`);
-    }
-    
-    await file.makePublic();
-    const publicUrl = file.publicUrl();
-    
-    console.log(`✅ [Public URL v4] Generated with ADC: ${publicUrl}`);
+    console.log(`✅ [Public URL v4] Generated direct URL: ${publicUrl}`);
     return publicUrl;
   } catch (error) {
-    console.error('❌ [Public URL v4] Error getting public URL with ADC:', error);
-    throw new Error('No se pudo obtener la URL pública del archivo con ADC.');
+    console.error('❌ [Public URL v4] Error getting public URL:', error);
+    throw new Error('No se pudo obtener la URL pública del archivo.');
   }
 }
 
