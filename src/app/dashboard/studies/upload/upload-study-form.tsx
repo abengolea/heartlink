@@ -253,6 +253,21 @@ export function UploadStudyForm() {
                     
                                         try {
                         console.log('🔍 About to call uploadStudy with formData...');
+                        
+                        // TEST: Also try with our test endpoint to compare
+                        console.log('🧪 Testing with test endpoint first...');
+                        try {
+                            const testResponse = await fetch('/api/test-real-upload', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const testResult = await testResponse.json();
+                            console.log('🧪 Test endpoint result:', testResult);
+                        } catch (testError) {
+                            console.log('🧪 Test endpoint error:', testError);
+                        }
+                        
+                        console.log('🔍 Now calling uploadStudy server action...');
                         const result = await uploadStudy(null, formData);
                         console.log('✅ Server action completed successfully!');
                         console.log('🔍 Result:', result);
