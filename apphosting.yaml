@@ -1,5 +1,5 @@
 # Firebase App Hosting Configuration - Updated for GEMINI API
-# Force redeploy: Timestamp conversion fix applied
+# CRITICAL FIX: Form action attribute added - Deploy NOW
 runConfig:
   cpu: 2
   memoryMiB: 1024
