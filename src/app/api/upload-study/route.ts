@@ -2,38 +2,38 @@ import { NextResponse } from 'next/server';
 import { uploadStudy } from '@/actions/upload-study';
 
 export async function POST(request: Request) {
-  console.log('🧪 [TEST-REAL-UPLOAD] Starting test with real form data...');
+  console.log('🔍 [UPLOAD-STUDY] Starting upload study via endpoint...');
   
   try {
     // Get the form data from the request
     const formData = await request.formData();
     
-    console.log('🧪 [TEST-REAL-UPLOAD] Received FormData entries:');
+    console.log('🔍 [UPLOAD-STUDY] Received FormData entries:');
     for (const [key, value] of formData.entries()) {
-      console.log(`🧪   ${key}: ${value}`);
+      console.log(`🔍   ${key}: ${value}`);
     }
     
-    console.log('🧪 [TEST-REAL-UPLOAD] About to call uploadStudy server action...');
+    console.log('🔍 [UPLOAD-STUDY] About to call uploadStudy server action...');
     
     const result = await uploadStudy(null, formData);
     
-    console.log('🧪 [TEST-REAL-UPLOAD] Server action completed!');
-    console.log('🧪 [TEST-REAL-UPLOAD] Result:', result);
+    console.log('✅ [UPLOAD-STUDY] Server action completed!');
+    console.log('✅ [UPLOAD-STUDY] Result:', result);
     
     return NextResponse.json({
       success: true,
-      message: 'Test real upload completed successfully',
+      message: 'Upload study completed successfully',
       result: result,
       formDataReceived: Object.fromEntries(formData.entries()),
       logs: 'Check server console for detailed logs'
     });
     
   } catch (error) {
-    console.error('🧪 [TEST-REAL-UPLOAD] EXCEPTION:', error);
-    console.error('🧪 [TEST-REAL-UPLOAD] Error type:', typeof error);
-    console.error('🧪 [TEST-REAL-UPLOAD] Error constructor:', error?.constructor?.name);
-    console.error('🧪 [TEST-REAL-UPLOAD] Error message:', error?.message);
-    console.error('🧪 [TEST-REAL-UPLOAD] Error stack:', error?.stack);
+    console.error('❌ [UPLOAD-STUDY] EXCEPTION:', error);
+    console.error('❌ [UPLOAD-STUDY] Error type:', typeof error);
+    console.error('❌ [UPLOAD-STUDY] Error constructor:', error?.constructor?.name);
+    console.error('❌ [UPLOAD-STUDY] Error message:', error?.message);
+    console.error('❌ [UPLOAD-STUDY] Error stack:', error?.stack);
     
     return NextResponse.json({
       success: false,

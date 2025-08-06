@@ -252,23 +252,25 @@ export function UploadStudyForm() {
                     console.log('🔍 Calling uploadStudy server action directly...');
                     
                                         try {
-                        console.log('🔍 About to call uploadStudy with formData...');
+                        console.log('🔍 Using endpoint instead of server action due to payload size limits...');
                         
-                        // TEST: Also try with our test endpoint to compare
-                        console.log('🧪 Testing with test endpoint first...');
-                        try {
-                            const testResponse = await fetch('/api/test-real-upload', {
-                                method: 'POST',
-                                body: formData
-                            });
-                            const testResult = await testResponse.json();
-                            console.log('🧪 Test endpoint result:', testResult);
-                        } catch (testError) {
-                            console.log('🧪 Test endpoint error:', testError);
+                        const response = await fetch('/api/upload-study', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
                         
-                        console.log('🔍 Now calling uploadStudy server action...');
-                        const result = await uploadStudy(null, formData);
+                        const responseData = await response.json();
+                        console.log('✅ Endpoint response:', responseData);
+                        
+                        if (!responseData.success) {
+                            throw new Error(responseData.error || 'Endpoint returned failure');
+                        }
+                        
+                        const result = responseData.result;
                         console.log('✅ Server action completed successfully!');
                         console.log('🔍 Result:', result);
                         console.log('🔍 Result type:', typeof result);
@@ -354,7 +356,7 @@ export function UploadStudyForm() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-        <form ref={formRef} action={uploadStudy} onSubmit={handleFormSubmit} className="grid gap-6">
+        <form ref={formRef} onSubmit={handleFormSubmit} className="grid gap-6">
             <div className="grid gap-2">
                 <Label htmlFor="video">Video del Estudio (MP4, WEBM)</Label>
                 <Input id="video" name="video" type="file" accept="video/mp4,video/webm,video/avi,video/mov" required onChange={handleVideoChange}/>
