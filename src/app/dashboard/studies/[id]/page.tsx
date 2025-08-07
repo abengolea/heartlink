@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import VideoPlayer from "./video-player";
 import ShareButton from "./share-button";
+import TranscriptionPanel from "./transcription-panel";
 
 export default async function StudyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -64,6 +65,13 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                              <VideoPlayer videoUrl={study.videoUrl || ''} />
                         </CardContent>
                     </Card>
+                    
+                    {/* Transcription Panel */}
+                    <TranscriptionPanel 
+                        studyId={study.id}
+                        videoUrl={study.videoUrl || ''}
+                        initialTranscription={study.transcription || ''}
+                    />
                     <Card>
                         <CardHeader>
                            <CardTitle className="flex items-center gap-2">

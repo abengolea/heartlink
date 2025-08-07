@@ -339,3 +339,21 @@ export async function getPatientById(id: string): Promise<Patient | null> {
     throw new Error(`Failed to get patient from Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
+
+// Update study transcription
+export async function updateStudyTranscription(studyId: string, transcription: string): Promise<void> {
+  console.log('💾 [Firestore] Updating study transcription:', studyId);
+  
+  try {
+    const db = getFirestoreAdmin();
+    await db.collection('studies').doc(studyId).update({
+      transcription: transcription,
+      updatedAt: new Date().toISOString()
+    });
+    
+    console.log('✅ [Firestore] Study transcription updated successfully');
+  } catch (error) {
+    console.error('❌ [Firestore] Error updating study transcription:', error);
+    throw new Error(`Failed to update study transcription: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
