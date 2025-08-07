@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import VideoPlayer from "./video-player";
 
 export default async function StudyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -59,29 +60,7 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                             </div>
                         </CardHeader>
                         <CardContent>
-                             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                                {study.videoUrl ? (
-                                    <>
-                                        <video 
-                                            className="w-full h-full object-cover"
-                                            controls
-                                            preload="metadata"
-                                            crossOrigin="anonymous"
-                                        >
-                                            <source src={study.videoUrl} type="video/mp4" />
-                                            <source src={study.videoUrl} type="video/webm" />
-                                            Tu navegador no soporta el elemento video.
-                                        </video>
-                                        <div className="mt-2 text-xs text-gray-500 break-all">
-                                            <strong>Video URL:</strong> {study.videoUrl}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="flex items-center justify-center h-full">
-                                        <p className="text-muted-foreground">Video no disponible</p>
-                                    </div>
-                                )}
-                             </div>
+                             <VideoPlayer videoUrl={study.videoUrl || ''} />
                         </CardContent>
                     </Card>
                     <Card>

@@ -89,6 +89,28 @@ export async function getPublicUrl(filePath: string): Promise<string> {
   }
 }
 
+export async function getSignedDownloadUrl(filePath: string): Promise<string> {
+  console.log(`🎥 [Signed Download] Generating signed download URL for: ${filePath}`);
+  
+  try {
+    const bucket = getStorageBucket();
+    const file = bucket.file(filePath);
+    
+    // Generate signed URL for download - valid for 1 hour
+    const [signedUrl] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 60 * 60 * 1000, // 1 hour
+    });
+    
+    console.log(`✅ [Signed Download] Generated signed URL successfully`);
+    return signedUrl;
+  } catch (error) {
+    console.error('❌ [Signed Download] Error generating signed URL:', error);
+    throw new Error('No se pudo generar la URL firmada para el video.');
+  }
+}
+
 /**
  * Uploads a video from a data URI to Firebase Storage.
  * @param dataUri The data URI of the video.
