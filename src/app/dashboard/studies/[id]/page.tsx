@@ -61,15 +61,21 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                         <CardContent>
                              <div className="aspect-video bg-muted rounded-lg overflow-hidden">
                                 {study.videoUrl ? (
-                                    <video 
-                                        className="w-full h-full object-cover"
-                                        controls
-                                        preload="metadata"
-                                    >
-                                        <source src={study.videoUrl} type="video/mp4" />
-                                        <source src={study.videoUrl} type="video/webm" />
-                                        Tu navegador no soporta el elemento video.
-                                    </video>
+                                    <>
+                                        <video 
+                                            className="w-full h-full object-cover"
+                                            controls
+                                            preload="metadata"
+                                            crossOrigin="anonymous"
+                                        >
+                                            <source src={study.videoUrl} type="video/mp4" />
+                                            <source src={study.videoUrl} type="video/webm" />
+                                            Tu navegador no soporta el elemento video.
+                                        </video>
+                                        <div className="mt-2 text-xs text-gray-500 break-all">
+                                            <strong>Video URL:</strong> {study.videoUrl}
+                                        </div>
+                                    </>
                                 ) : (
                                     <div className="flex items-center justify-center h-full">
                                         <p className="text-muted-foreground">Video no disponible</p>
@@ -155,7 +161,11 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                             </div>
                              <div className="flex justify-between">
                                 <span className="text-muted-foreground">Médico Solicitante</span>
-                                <span>{requester?.name}</span>
+                                <span>{requester?.name || 'No asignado'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Especialidad</span>
+                                <span>{requester?.specialty || 'No especificada'}</span>
                             </div>
                         </CardContent>
                     </Card>
