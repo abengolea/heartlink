@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -10,6 +10,19 @@ export default function VideoPlayer({ videoUrl }: VideoPlayerProps) {
   const [signedUrl, setSignedUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [isVertical, setIsVertical] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Detect video orientation when metadata loads
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      const { videoWidth, videoHeight } = videoRef.current;
+      const aspectRatio = videoWidth / videoHeight;
+      const vertical = aspectRatio < 1; // Less than 1 means height > width
+      setIsVertical(vertical);
+      console.log(`📱 Video dimensions: ${videoWidth}x${videoHeight} (ratio: ${aspectRatio.toFixed(2)}) - ${vertical ? 'VERTICAL' : 'HORIZONTAL'}`);
+    }
+  };
 
   useEffect(() => {
     async function fetchSignedUrl() {
@@ -76,12 +89,23 @@ export default function VideoPlayer({ videoUrl }: VideoPlayerProps) {
     );
   }
 
+  // Dynamic container class based on video orientation
+  const containerClass = isVertical 
+    ? "w-full max-w-sm mx-auto bg-muted rounded-lg overflow-hidden min-h-[400px] flex items-center justify-center" // Vertical: narrower, centered, min height
+    : "aspect-video bg-muted rounded-lg overflow-hidden"; // Horizontal: standard
+
+  const videoClass = isVertical
+    ? "w-full max-h-[500px] object-contain" // Vertical: maintain aspect ratio, max height
+    : "w-full h-full object-cover";  // Horizontal: fill container
+
   return (
-    <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+    <div className={containerClass}>
       <video 
-        className="w-full h-full object-cover"
+        ref={videoRef}
+        className={videoClass}
         controls
         preload="metadata"
+        onLoadedMetadata={handleLoadedMetadata}
         onError={(e) => {
           console.error('Video playback error:', e);
           setError('Error reproduciendo el video');
@@ -93,7 +117,8 @@ export default function VideoPlayer({ videoUrl }: VideoPlayerProps) {
         Tu navegador no soporta el elemento video.
       </video>
       <div className="mt-2 text-xs text-gray-500 break-all">
-        <strong>Original URL:</strong> {videoUrl}
+        <strong>Orientación:</strong> {isVertical ? '📱 Vertical' : '🖥️ Horizontal'} | 
+        <strong> URL:</strong> {videoUrl.substring(0, 50)}...
       </div>
     </div>
   );
