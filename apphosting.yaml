@@ -1,8 +1,8 @@
-# Firebase App Hosting Configuration - REAL AUDIO TRANSCRIPTION
-# FORCE DEPLOY: Google Speech-to-Text + FFmpeg Integration v8.6.2
+# Firebase App Hosting Configuration - REAL AUDIO TRANSCRIPTION v9.0.1
+# CACHE BUST: Force complete rebuild with package-lock.json sync
 runConfig:
-  cpu: 2
-  memoryMiB: 1024
+  cpu: 4
+  memoryMiB: 2048
   maxInstances: 10
   minInstances: 1
   concurrency: 100
