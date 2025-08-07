@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - Updated for GEMINI API
-# CRITICAL FIX: Form action attribute added - Deploy NOW
+# Firebase App Hosting Configuration - REAL AUDIO TRANSCRIPTION
+# FORCE DEPLOY: Google Speech-to-Text + FFmpeg Integration v8.6.2
 runConfig:
   cpu: 2
   memoryMiB: 1024
