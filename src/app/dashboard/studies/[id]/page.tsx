@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import VideoPlayer from "./video-player";
+import ShareButton from "./share-button";
 
 export default async function StudyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -163,10 +164,7 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                             <CardTitle>Compartir</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <Button className="w-full">
-                                <LinkIcon className="mr-2 h-4 w-4"/>
-                                Generar Link Público
-                            </Button>
+                             <ShareButton studyId={study.id} />
                         </CardContent>
                     </Card>
                 </div>
