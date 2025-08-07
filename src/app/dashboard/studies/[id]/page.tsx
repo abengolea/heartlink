@@ -1,5 +1,5 @@
 
-import { patients, users } from "@/lib/data";
+import { getAllPatients, getAllUsers } from "@/lib/firestore";
 import { getStudyById } from "@/lib/firestore";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,11 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
         notFound();
     }
 
+    const [patients, users] = await Promise.all([
+        getAllPatients(),
+        getAllUsers()
+    ]);
+    
     const patient = patients.find(p => p.id === study.patientId);
     const operator = users.find(u => u.id === patient?.operatorId);
     const requester = users.find(u => u.id === patient?.requesterId);
