@@ -54,8 +54,22 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                             </div>
                         </CardHeader>
                         <CardContent>
-                             <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                                <p className="text-muted-foreground">Video no disponible</p>
+                             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                                {study.videoUrl ? (
+                                    <video 
+                                        className="w-full h-full object-cover"
+                                        controls
+                                        preload="metadata"
+                                    >
+                                        <source src={study.videoUrl} type="video/mp4" />
+                                        <source src={study.videoUrl} type="video/webm" />
+                                        Tu navegador no soporta el elemento video.
+                                    </video>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full">
+                                        <p className="text-muted-foreground">Video no disponible</p>
+                                    </div>
+                                )}
                              </div>
                         </CardContent>
                     </Card>
