@@ -1,4 +1,10 @@
 import { NextResponse } from 'next/server';
+import { SpeechClient } from '@google-cloud/speech';
+
+// Initialize Google Speech-to-Text client at module level
+const speechClient = new SpeechClient({
+  // Uses Application Default Credentials from Firebase App Hosting
+});
 
 export async function POST(request: Request) {
   console.log('🎤 [TRANSCRIBE-VIDEO] Starting REAL audio transcription (FREE with Google)...');
@@ -22,14 +28,6 @@ export async function POST(request: Request) {
     const filePath = pathParts.slice(2).join('/'); // Remove /v0/b/bucket/o/ prefix
     
     console.log('📂 [TRANSCRIBE-VIDEO] Extracted file path:', filePath);
-    
-    // Use Google Speech-to-Text API directly with GCS URI
-    // This is FREE with Firebase and works without downloading the video
-    const { SpeechClient } = await import('@google-cloud/speech');
-    
-    const speechClient = new SpeechClient({
-      // Uses Application Default Credentials from Firebase App Hosting
-    });
     
     // Configure the request for Google Speech-to-Text
     const gcsUri = `gs://heartlink-f4ftq.firebasestorage.app/${filePath}`;
