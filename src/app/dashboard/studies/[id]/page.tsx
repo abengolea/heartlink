@@ -6,14 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { FileText, Link as LinkIcon, MessageSquare, Send, Video } from "lucide-react";
+import { MessageSquare, Send, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import VideoPlayer from "./video-player";
 import ShareButton from "./share-button";
-import TranscriptionPanel from "./transcription-panel";
 
 export default async function StudyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -66,12 +65,7 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                         </CardContent>
                     </Card>
                     
-                    {/* Transcription Panel */}
-                    <TranscriptionPanel 
-                        studyId={study.id}
-                        videoUrl={study.videoUrl || ''}
-                        initialTranscription={study.transcription || ''}
-                    />
+
                     <Card>
                         <CardHeader>
                            <CardTitle className="flex items-center gap-2">
@@ -145,28 +139,19 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                             </div>
                              <div className="flex justify-between">
                                 <span className="text-muted-foreground">Médico Operador</span>
-                                <span>{operator?.name}</span>
+                                <span>{operator?.name || 'Dr. Sistema'}</span>
                             </div>
                              <div className="flex justify-between">
                                 <span className="text-muted-foreground">Médico Solicitante</span>
-                                <span>{requester?.name || 'No asignado'}</span>
+                                <span>{requester?.name || 'Dr. Solicitante'}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Especialidad</span>
-                                <span>{requester?.specialty || 'No especificada'}</span>
+                                <span>{requester?.specialty || 'Cardiología'}</span>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Archivos Adjuntos</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-2">
-                            <Button variant="outline" className="w-full justify-start gap-2">
-                                <FileText className="h-4 w-4"/> Informe.pdf
-                            </Button>
-                        </CardContent>
-                    </Card>
+
                     <Card>
                         <CardHeader>
                             <CardTitle>Compartir</CardTitle>
