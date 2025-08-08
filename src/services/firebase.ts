@@ -103,11 +103,49 @@ export async function getSignedDownloadUrl(filePath: string): Promise<string> {
       expires: Date.now() + 60 * 60 * 1000, // 1 hour
     });
     
-    console.log(`✅ [Signed Download] Generated signed URL successfully`);
-    return signedUrl;
+      console.log(`✅ [Signed Download] Generated signed URL successfully`);
+  return signedUrl;
+} catch (error) {
+  console.error('❌ [Signed Download] Error generating signed URL:', error);
+  throw new Error('No se pudo generar la URL firmada para el video.');
+}
+}
+
+export async function uploadVideoFromBuffer(
+  videoBuffer: Buffer,
+  fileName: string
+): Promise<string> {
+  console.log(`📤 [WhatsApp Upload] Uploading video buffer: ${fileName} (${videoBuffer.length} bytes)`);
+  
+  try {
+    const bucket = getStorageBucket();
+    
+    // Generate unique file path
+    const extension = fileName.split('.').pop()?.toLowerCase() || 'mp4';
+    const filePath = `studies/whatsapp/${uuidv4()}.${extension}`;
+    
+    console.log(`📤 [WhatsApp Upload] Creating file: ${filePath}`);
+    const file = bucket.file(filePath);
+
+    // Upload buffer directly to Firebase Storage
+    await file.save(videoBuffer, {
+      metadata: {
+        contentType: 'video/mp4',
+        metadata: {
+          source: 'whatsapp',
+          uploadedAt: new Date().toISOString()
+        }
+      }
+    });
+
+    // Get public URL
+    const publicUrl = await getPublicUrl(filePath);
+    
+    console.log(`✅ [WhatsApp Upload] Video uploaded successfully: ${publicUrl}`);
+    return publicUrl;
   } catch (error) {
-    console.error('❌ [Signed Download] Error generating signed URL:', error);
-    throw new Error('No se pudo generar la URL firmada para el video.');
+    console.error('❌ [WhatsApp Upload] Error uploading video:', error);
+    throw new Error('No se pudo subir el video desde WhatsApp.');
   }
 }
 
