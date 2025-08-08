@@ -4,9 +4,25 @@ const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 
 export class WhatsAppService {
   
+  // Normalize phone number format for WhatsApp API
+  private static normalizePhoneNumber(phoneNumber: string): string {
+    // Remove all non-digit characters
+    let cleaned = phoneNumber.replace(/\D/g, '');
+    
+    // For Argentina numbers that start with 549, keep as is
+    // For numbers that start with 5493364, remove the extra 9
+    if (cleaned.startsWith('5493364')) {
+      cleaned = '549336' + cleaned.substring(7);
+    }
+    
+    console.log(`📱 [WhatsApp] Phone normalized: ${phoneNumber} → ${cleaned}`);
+    return cleaned;
+  }
+  
   static async sendTextMessage(to: string, text: string): Promise<boolean> {
     try {
-      console.log(`📱 [WhatsApp] Sending text to ${to}: ${text.substring(0, 50)}...`);
+      const normalizedTo = this.normalizePhoneNumber(to);
+      console.log(`📱 [WhatsApp] Sending text to ${normalizedTo}: ${text.substring(0, 50)}...`);
       
       const response = await fetch(`${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`, {
         method: 'POST',
@@ -16,7 +32,7 @@ export class WhatsAppService {
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',
-          to: to,
+          to: normalizedTo,
           type: 'text',
           text: {
             body: text
@@ -41,7 +57,8 @@ export class WhatsAppService {
 
   static async sendListMessage(to: string, headerText: string, bodyText: string, listItems: Array<{id: string, title: string, description?: string}>): Promise<boolean> {
     try {
-      console.log(`📱 [WhatsApp] Sending list to ${to}: ${listItems.length} items`);
+      const normalizedTo = this.normalizePhoneNumber(to);
+      console.log(`📱 [WhatsApp] Sending list to ${normalizedTo}: ${listItems.length} items`);
       
       const response = await fetch(`${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`, {
         method: 'POST',
@@ -51,7 +68,7 @@ export class WhatsAppService {
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',
-          to: to,
+          to: normalizedTo,
           type: 'interactive',
           interactive: {
             type: 'list',
@@ -63,9 +80,9 @@ export class WhatsAppService {
               text: bodyText
             },
             action: {
-              button: 'Seleccionar',
+              button: 'Ver opciones',
               sections: [{
-                title: 'Opciones',
+                title: 'Seleccionar',
                 rows: listItems.map(item => ({
                   id: item.id,
                   title: item.title,
@@ -80,7 +97,7 @@ export class WhatsAppService {
       const result = await response.json();
       
       if (response.ok) {
-        console.log('✅ [WhatsApp] List message sent successfully:', result.messages?.[0]?.id);
+        console.log('✅ [WhatsApp] List sent successfully:', result.messages?.[0]?.id);
         return true;
       } else {
         console.error('❌ [WhatsApp] List send failed:', result);
