@@ -42,6 +42,12 @@ env:
     availability:
       - RUNTIME
 
+  # Meta App Configuration for GDPR Compliance
+  - variable: META_APP_SECRET
+    secret: META_APP_SECRET
+    availability:
+      - RUNTIME
+
   # Application URL
   - variable: NEXT_PUBLIC_APP_URL
     value: https://heartlink--heartlink-f4ftq.us-central1.hosted.app
