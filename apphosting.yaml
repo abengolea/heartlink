@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - WHATSAPP TOKEN UPDATE v2.1.0
-# FORCE REDEPLOY: New WhatsApp token configured - must restart app
+# Firebase App Hosting Configuration - LEGAL PAGES DEPLOY v2.2.0
+# DEPLOY: Legal pages + META_APP_SECRET for production compliance
 runConfig:
   cpu: 4
   memoryMiB: 2048
