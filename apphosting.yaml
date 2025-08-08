@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - REAL AUDIO TRANSCRIPTION v9.0.1
-# CACHE BUST: Force complete rebuild with package-lock.json sync
+# Firebase App Hosting Configuration - WHATSAPP FORCE DEPLOY v1.0.2
+# CACHE BUST: WhatsApp endpoints deployment required - user getting 404
 runConfig:
   cpu: 4
   memoryMiB: 2048
@@ -8,57 +8,35 @@ runConfig:
   concurrency: 100
 
 env:
-  # Firebase Configuration
-  - variable: FIREBASE_STORAGE_BUCKET
-    value: heartlink-f4ftq.firebasestorage.app
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: heartlink-f4ftq
-    availability:
-      - BUILD
-      - RUNTIME
-
-  # Firebase Service Account Key (Secret)
+  # Firebase Admin SDK
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
     secret: firebase-service-account-key
     availability:
       - RUNTIME
-
-  - variable: SERVICE_ACCOUNT_KEY
+  - variable: SERVICE_ACCOUNT_KEY # Fallback for older configs
     secret: SERVICE_ACCOUNT_KEY
     availability:
       - RUNTIME
 
-  # Google Gemini AI API Key (Secret)
+  # Google Gemini AI
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
     availability:
       - RUNTIME
-
-  - variable: GOOGLE_API_KEY
+  - variable: GOOGLE_API_KEY # Fallback for older configs
     secret: GOOGLE_API_KEY
     availability:
       - RUNTIME
 
-  # WhatsApp Business API Configuration
-  - variable: WHATSAPP_PHONE_NUMBER_ID
-    value: "693302653873170"
-    availability:
-      - RUNTIME
-
+  # WhatsApp Business API
   - variable: WHATSAPP_WEBHOOK_VERIFY_TOKEN
     value: heartlink_webhook_2025
     availability:
       - RUNTIME
-
   - variable: WHATSAPP_ACCESS_TOKEN
     secret: WHATSAPP_ACCESS_TOKEN
     availability:
       - RUNTIME
-
   - variable: WHATSAPP_PHONE_NUMBER_ID
     secret: WHATSAPP_PHONE_NUMBER_ID
     availability:
