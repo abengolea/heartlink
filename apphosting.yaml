@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - WHATSAPP FORCE DEPLOY v1.0.2
-# CACHE BUST: WhatsApp endpoints deployment required - user getting 404
+# Firebase App Hosting Configuration - WHATSAPP FORCE DEPLOY v2.0.0
+# URGENT DEPLOY: User needs WhatsApp endpoints NOW - force complete rebuild
 runConfig:
   cpu: 4
   memoryMiB: 2048
@@ -28,7 +28,7 @@ env:
     availability:
       - RUNTIME
 
-  # WhatsApp Business API
+  # WhatsApp Business API - SECRETS CONFIGURED ✅
   - variable: WHATSAPP_WEBHOOK_VERIFY_TOKEN
     value: heartlink_webhook_2025
     availability:
