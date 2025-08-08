@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         alternativeLanguageCodes: ['es-AR', 'es-MX', 'es-US'], 
         enableAutomaticPunctuation: true,
         enableWordTimeOffsets: false,
-        model: 'latest_long', // Better for longer audio
+        model: 'latest_short', // Optimized for short audio (under 1 minute)
         useEnhanced: true,
         audioChannelCount: 1, // Assume mono audio
       },
@@ -53,12 +53,10 @@ export async function POST(request: Request) {
     
     console.log('🤖 [TRANSCRIBE-VIDEO] Calling Google Speech-to-Text API...');
     
-    // Perform the speech recognition
-    const [operation] = await speechClient.longRunningRecognize(request);
-    console.log('⏳ [TRANSCRIBE-VIDEO] Long-running operation started, waiting for result...');
-    
-    // Wait for the operation to complete
-    const [response] = await operation.promise();
+    // For short videos (1:30), use regular recognize instead of longRunningRecognize
+    // This is faster and more efficient for videos under 1 minute
+    console.log('🚀 [TRANSCRIBE-VIDEO] Using fast recognition for short video...');
+    const [response] = await speechClient.recognize(request);
     
     if (!response.results || response.results.length === 0) {
       throw new Error('No speech detected in the video audio');
