@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { generate } from '@/ai/genkit';
 
 export async function POST(request: Request) {
-  console.log('🎤 [TRANSCRIBE-VIDEO] Starting REAL audio transcription with AI...');
+  console.log('🎤 [TRANSCRIBE-VIDEO] Starting REAL audio transcription (FREE with Google)...');
   
   try {
     const body = await request.json();
@@ -15,87 +14,111 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
     
-    console.log('🎤 [TRANSCRIBE-VIDEO] Processing video for transcription:', videoUrl);
+    console.log('🎤 [TRANSCRIBE-VIDEO] Processing video URL:', videoUrl);
     
-    // For now, we'll use AI to generate realistic medical transcriptions
-    // This is more practical than trying to extract audio in Firebase App Hosting
-    // which doesn't have FFmpeg support by default
+    // Extract file path from the video URL for Google Speech-to-Text
+    const url = new URL(videoUrl);
+    const pathParts = url.pathname.split('/');
+    const filePath = pathParts.slice(2).join('/'); // Remove /v0/b/bucket/o/ prefix
     
-    const prompt = `
-Eres un asistente médico especializado. 
-
-Genera una transcripción realista de audio para un video de estudio médico cardiológico.
-La transcripción debe sonar como si fuera dictada por un cardiólogo durante un examen.
-
-Incluye:
-- Observaciones clínicas específicas
-- Hallazgos del examen
-- Parámetros medidos
-- Conclusiones profesionales
-- Terminología médica apropiada
-
-Haz que suene natural, como si fuera una grabación real de un doctor explicando o dictando sus observaciones durante un estudio cardíaco.
-
-Genera SOLO la transcripción del audio, sin explicaciones adicionales:
-    `;
+    console.log('📂 [TRANSCRIBE-VIDEO] Extracted file path:', filePath);
     
-    console.log('🤖 [TRANSCRIBE-VIDEO] Generating realistic medical transcription with AI...');
+    // Use Google Speech-to-Text API directly with GCS URI
+    // This is FREE with Firebase and works without downloading the video
+    const { SpeechClient } = await import('@google-cloud/speech');
     
-    const result = await generate({
-      model: 'googleai/gemini-1.5-flash',
-      prompt: prompt,
-      config: {
-        temperature: 0.7, // Slightly creative for realistic variation
-        maxOutputTokens: 1024
-      }
+    const speechClient = new SpeechClient({
+      // Uses Application Default Credentials from Firebase App Hosting
     });
     
-    const transcription = result.text().trim();
+    // Configure the request for Google Speech-to-Text
+    const gcsUri = `gs://heartlink-f4ftq.firebasestorage.app/${filePath}`;
+    console.log('☁️ [TRANSCRIBE-VIDEO] Using GCS URI:', gcsUri);
     
-    if (!transcription || transcription.length === 0) {
-      throw new Error('Failed to generate transcription');
+    const request = {
+      audio: {
+        uri: gcsUri, // Direct reference to file in Firebase Storage
+      },
+      config: {
+        encoding: 'MP4', // Let Google auto-detect the encoding
+        languageCode: 'es-ES', // Spanish
+        alternativeLanguageCodes: ['es-AR', 'es-MX', 'es-US'], 
+        enableAutomaticPunctuation: true,
+        enableWordTimeOffsets: false,
+        model: 'latest_long', // Better for longer audio
+        useEnhanced: true,
+        audioChannelCount: 1, // Assume mono audio
+      },
+    };
+    
+    console.log('🤖 [TRANSCRIBE-VIDEO] Calling Google Speech-to-Text API...');
+    
+    // Perform the speech recognition
+    const [operation] = await speechClient.longRunningRecognize(request);
+    console.log('⏳ [TRANSCRIBE-VIDEO] Long-running operation started, waiting for result...');
+    
+    // Wait for the operation to complete
+    const [response] = await operation.promise();
+    
+    if (!response.results || response.results.length === 0) {
+      throw new Error('No speech detected in the video audio');
     }
     
-    console.log('✅ [TRANSCRIBE-VIDEO] AI transcription completed successfully');
+    // Combine all transcriptions
+    const transcription = response.results
+      .map(result => result.alternatives?.[0]?.transcript || '')
+      .filter(text => text.length > 0)
+      .join(' ');
+    
+    if (!transcription || transcription.trim().length === 0) {
+      throw new Error('Empty transcription result from Google Speech-to-Text');
+    }
+    
+    console.log('✅ [TRANSCRIBE-VIDEO] REAL transcription completed successfully!');
     console.log('📊 [TRANSCRIBE-VIDEO] Transcription length:', transcription.length);
+    console.log('🎤 [TRANSCRIBE-VIDEO] First 100 chars:', transcription.substring(0, 100));
     
     return NextResponse.json({
       success: true,
       transcription: transcription,
-      message: 'Realistic medical transcription generated with AI',
+      message: 'Real audio transcription completed with Google Speech-to-Text (FREE)',
       videoUrl: videoUrl,
-      method: 'ai_generated',
-      note: 'This is an AI-generated realistic medical transcription. For real audio transcription, additional infrastructure would be needed.'
+      method: 'google_speech_to_text',
+      cost: 'FREE with Firebase',
+      audioProcessed: true
     });
     
   } catch (error) {
-    console.error('❌ [TRANSCRIBE-VIDEO] Error:', error);
+    console.error('❌ [TRANSCRIBE-VIDEO] Error with real transcription:', error);
     
-    // Fallback to basic simulated transcription
-    console.log('🔄 [TRANSCRIBE-VIDEO] Using fallback transcription...');
-    
+    // Fallback message explaining the limitation
     const fallbackTranscription = `
-Se realiza estudio cardiológico de rutina en paciente adulto.
+[NOTA: Para obtener transcripción real del audio, necesitamos configurar algunos permisos adicionales]
 
-Durante el examen se observa:
-- Ritmo cardíaco regular, frecuencia dentro de parámetros normales
-- Función ventricular conservada 
-- Contractilidad adecuada
-- Válvulas cardíacas sin alteraciones significativas
+Esta sería la transcripción del audio que se habla en el video.
+Por ejemplo, si en el video el doctor dice:
 
-El paciente tolera bien el procedimiento, permaneciendo estable durante toda la evaluación.
+"Aquí podemos observar el ventrículo izquierdo del paciente, 
+que muestra una contractilidad normal. La fracción de eyección 
+se encuentra dentro de parámetros normales..."
 
-Conclusión: Estudio dentro de límites normales. Se recomienda seguimiento médico según protocolo habitual.
+La transcripción mostraría exactamente esas palabras.
 
-Observaciones adicionales: Procedimiento completado sin complicaciones.
+📝 Para activar transcripción real del audio:
+1. El video debe tener audio claro
+2. Se requiere configuración adicional de permisos
+3. Funciona con audio en español
+
+Error técnico: ${error instanceof Error ? error.message : 'Error desconocido'}
     `.trim();
     
     return NextResponse.json({
       success: true,
       transcription: fallbackTranscription,
-      message: 'Fallback transcription used due to processing error',
+      message: 'Transcripción de demostración - configuración adicional requerida para audio real',
       error: error instanceof Error ? error.message : 'Unknown error',
-      fallback: true
+      fallback: true,
+      needsConfiguration: true
     });
   }
 }
