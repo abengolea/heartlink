@@ -14,8 +14,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 // The uploadVideoToStorage function is no longer needed here as the upload is handled client-side
 // import { uploadVideoToStorage } from '@/services/firebase';
-import { users } from '@/lib/data';
-import { createStudy, findOrCreatePatient } from '@/lib/firestore';
+import { createStudy, findOrCreatePatient, getAllUsers } from '@/lib/firestore';
 
 const StudyUploadFlowInputSchema = z.object({
   videoDataUri: z
@@ -53,16 +52,17 @@ const studyUploadFlowFn = ai.defineFlow(
     // The video is already uploaded, the input.videoDataUri is the public URL
     const videoUrl = input.videoDataUri;
     
+    // Get all users from Firestore to find the requesting doctor
+    const allUsers = await getAllUsers();
+    
     // Find existing doctor by name
-    const existingDoctor = users.find(u => 
-      u.role === 'solicitante' && (
-        u.name.toLowerCase().includes(input.requestingDoctorName.toLowerCase()) ||
-        input.requestingDoctorName.toLowerCase().includes(u.name.toLowerCase())
-      )
+    const existingDoctor = allUsers.find(u => 
+      u.name.toLowerCase().includes(input.requestingDoctorName.toLowerCase()) ||
+      input.requestingDoctorName.toLowerCase().includes(u.name.toLowerCase())
     );
 
-    const requestingDoctorId = existingDoctor?.id || 'user2'; // Default to first requester
-    const operatorId = 'user1'; // Default operator
+    const requestingDoctorId = existingDoctor?.id || allUsers[0]?.id || 'default-doctor';
+    const operatorId = allUsers.find(u => u.role === 'operador')?.id || allUsers[0]?.id || 'default-operator';
     
     // Find or create patient in Firestore
     const patientId = await findOrCreatePatient(

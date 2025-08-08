@@ -392,9 +392,9 @@ export function UploadStudyForm() {
                         <SelectValue placeholder="Seleccionar médico solicitante" />
                     </SelectTrigger>
                     <SelectContent>
-                        {requesters.map(requester => (
-                            <SelectItem key={requester.id} value={requester.name}>
-                                {requester.name}
+                        {users.map(user => (
+                            <SelectItem key={user.id} value={user.name}>
+                                {user.name} - {user.specialty || 'Médico'}
                             </SelectItem>
                         ))}
                     </SelectContent>

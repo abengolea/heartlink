@@ -28,7 +28,6 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
     ]);
     
     const patient = patients.find(p => p.id === study.patientId);
-    const operator = users.find(u => u.id === patient?.operatorId);
     const requester = users.find(u => u.id === patient?.requesterId);
 
     return (
@@ -136,10 +135,6 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">DNI</span>
                                 <span className="font-mono">{patient?.dni}</span>
-                            </div>
-                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Médico Operador</span>
-                                <span>{operator?.name || 'Dr. Sistema'}</span>
                             </div>
                              <div className="flex justify-between">
                                 <span className="text-muted-foreground">Médico Solicitante</span>
