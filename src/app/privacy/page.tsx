@@ -1,9 +1,4 @@
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Política de Privacidad - HeartLink',
-  description: 'Política de privacidad de HeartLink para WhatsApp Business API'
-};
+'use client';
 
 export default function PrivacyPolicy() {
   return (

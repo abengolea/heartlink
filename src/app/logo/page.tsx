@@ -1,9 +1,4 @@
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Logo HeartLink - Descarga',
-  description: 'Centro de descarga del logo HeartLink para Meta Developer Console'
-};
+'use client';
 
 export default function LogoPage() {
   return (

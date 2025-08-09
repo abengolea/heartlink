@@ -1,9 +1,4 @@
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Términos de Servicio - HeartLink',
-  description: 'Términos de servicio de HeartLink para WhatsApp Business API'
-};
+'use client';
 
 export default function TermsOfService() {
   return (
