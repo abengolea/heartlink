@@ -2,18 +2,42 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, PlusCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { VideoThumbnail } from "@/components/video-thumbnail";
+
+interface Study {
+    id: string;
+    patientId: string;
+    description: string;
+    date: string;
+    isUrgent: boolean;
+    videoUrl?: string;
+}
 
 export default function StudiesPage() {
-    const [studies, setStudies] = useState<any[]>([]);
+    const [studies, setStudies] = useState<Study[]>([]);
     const [patients, setPatients] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
+
+    // Función para obtener URL del video de un estudio
+    const getVideoUrl = async (studyId: string) => {
+        try {
+            const response = await fetch(`/api/studies/${studyId}/video-url`);
+            if (response.ok) {
+                const data = await response.json();
+                return data.videoUrl;
+            }
+        } catch (error) {
+            console.error(`❌ [StudiesPage] Error getting video URL for study ${studyId}:`, error);
+        }
+        return null;
+    };
 
     useEffect(() => {
         async function loadData() {
@@ -36,11 +60,28 @@ export default function StudiesPage() {
                     
                     console.log('✅ [StudiesPage] Studies loaded:', studiesData.length, 'studies');
                     console.log('✅ [StudiesPage] Patients loaded:', patientsData.length, 'patients');
-                    console.log('🔍 [StudiesPage] Studies data:', studiesData);
-                    console.log('🔍 [StudiesPage] Patients data:', patientsData);
                     
                     setStudies(studiesData);
                     setPatients(patientsData);
+
+                    // Cargar URLs de video para todos los estudios
+                    console.log('🎬 [StudiesPage] Loading video URLs for thumbnails...');
+                    const urlPromises = studiesData.map(async (study: Study) => {
+                        const videoUrl = await getVideoUrl(study.id);
+                        return { studyId: study.id, videoUrl };
+                    });
+
+                    const urlResults = await Promise.all(urlPromises);
+                    const urlMap: Record<string, string> = {};
+                    
+                    urlResults.forEach(({ studyId, videoUrl }) => {
+                        if (videoUrl) {
+                            urlMap[studyId] = videoUrl;
+                        }
+                    });
+
+                    console.log('✅ [StudiesPage] Video URLs loaded:', Object.keys(urlMap).length, 'URLs');
+                    setVideoUrls(urlMap);
                 } else {
                     console.error('❌ [StudiesPage] API failed with status:', studiesResponse.status, patientsResponse.status);
                     setStudies([]);
@@ -59,6 +100,8 @@ export default function StudiesPage() {
 
     const refreshStudies = () => {
         setIsLoading(true);
+        setVideoUrls({}); // Limpiar URLs al refrescar
+        
         const loadData = async () => {
             try {
                 console.log('🔍 [StudiesPage] Refreshing data...');
@@ -75,6 +118,23 @@ export default function StudiesPage() {
                     console.log('✅ [StudiesPage] Data refreshed:', studiesData.length, 'studies,', patientsData.length, 'patients');
                     setStudies(studiesData);
                     setPatients(patientsData);
+
+                    // Recargar URLs de video
+                    const urlPromises = studiesData.map(async (study: Study) => {
+                        const videoUrl = await getVideoUrl(study.id);
+                        return { studyId: study.id, videoUrl };
+                    });
+
+                    const urlResults = await Promise.all(urlPromises);
+                    const urlMap: Record<string, string> = {};
+                    
+                    urlResults.forEach(({ studyId, videoUrl }) => {
+                        if (videoUrl) {
+                            urlMap[studyId] = videoUrl;
+                        }
+                    });
+
+                    setVideoUrls(urlMap);
                 } else {
                     setStudies([]);
                     setPatients([]);
@@ -136,14 +196,23 @@ export default function StudiesPage() {
                     {studies.map(study => (
                     <Card key={study.id}>
                         <CardHeader className="p-0">
-                           <Image
-                            src="https://placehold.co/600x400.png"
-                            alt="Placeholder de video de estudio"
-                            width={600}
-                            height={400}
-                            className="rounded-t-lg object-cover aspect-video"
-                            data-ai-hint="heart ultrasound"
-                           />
+                           {videoUrls[study.id] ? (
+                                <VideoThumbnail
+                                    videoUrl={videoUrls[study.id]}
+                                    alt={`Thumbnail del estudio de ${getPatientName(study.patientId)}`}
+                                    width={600}
+                                    height={400}
+                                    className="rounded-t-lg object-cover aspect-video"
+                                    timePosition={2} // Thumbnail en el segundo 2
+                                />
+                            ) : (
+                                <div className="bg-gray-200 rounded-t-lg aspect-video flex items-center justify-center">
+                                    <div className="text-center text-gray-500">
+                                        <div className="text-3xl mb-2">🎬</div>
+                                        <div className="text-sm">Cargando video...</div>
+                                    </div>
+                                </div>
+                            )}
                         </CardHeader>
                         <CardContent className="p-4 grid gap-2">
                              {study.isUrgent ? (
