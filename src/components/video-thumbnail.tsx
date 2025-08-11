@@ -28,6 +28,7 @@ export function VideoThumbnail({
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!videoUrl) {
@@ -48,6 +49,13 @@ export function VideoThumbnail({
 
     console.log('🎬 [VideoThumbnail] Generating thumbnail for:', videoUrl);
 
+    // Timeout de 15 segundos
+    timeoutRef.current = setTimeout(() => {
+      console.error('⏰ [VideoThumbnail] Timeout loading video:', videoUrl);
+      setError('Timeout loading video');
+      setIsLoading(false);
+    }, 15000);
+
     const generateThumbnail = () => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -64,6 +72,16 @@ export function VideoThumbnail({
       }
 
       try {
+        // Verificar que el video tenga dimensiones válidas
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          console.error('❌ [VideoThumbnail] Video has invalid dimensions:', video.videoWidth, 'x', video.videoHeight);
+          setError('Invalid video dimensions');
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('📐 [VideoThumbnail] Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+
         // Configurar el canvas con las dimensiones del thumbnail
         canvas.width = width;
         canvas.height = height;
@@ -105,6 +123,12 @@ export function VideoThumbnail({
         setThumbnailDataUrl(dataUrl);
         setIsLoading(false);
         
+        // Limpiar timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        
         console.log('✅ [VideoThumbnail] Thumbnail generated successfully for:', videoUrl);
       } catch (err) {
         console.error('❌ [VideoThumbnail] Error drawing to canvas:', err);
@@ -118,33 +142,50 @@ export function VideoThumbnail({
       if (!video) return;
 
       console.log('🎬 [VideoThumbnail] Video loaded, duration:', video.duration);
+      console.log('📐 [VideoThumbnail] Video ready state:', video.readyState);
       
-      // Buscar a la posición específica del video
-      const targetTime = Math.min(timePosition, video.duration || 0);
-      video.currentTime = targetTime;
-      
-      console.log('🕐 [VideoThumbnail] Seeking to time:', targetTime);
+      if (video.duration && video.duration > 0) {
+        // Buscar a la posición específica del video
+        const targetTime = Math.min(timePosition, video.duration);
+        video.currentTime = targetTime;
+        console.log('🕐 [VideoThumbnail] Seeking to time:', targetTime);
+      } else {
+        console.log('⚠️ [VideoThumbnail] Video duration is 0 or invalid, trying to generate thumbnail anyway');
+        setTimeout(generateThumbnail, 500);
+      }
     };
 
     const handleSeeked = () => {
       console.log('🎯 [VideoThumbnail] Video seeked, generating thumbnail...');
       // Dar un pequeño delay para asegurar que el frame esté listo
-      setTimeout(generateThumbnail, 200);
+      setTimeout(generateThumbnail, 300);
+    };
+
+    const handleCanPlay = () => {
+      console.log('▶️ [VideoThumbnail] Video can play, ready state:', videoRef.current?.readyState);
+    };
+
+    const handleLoadedData = () => {
+      console.log('📊 [VideoThumbnail] Video data loaded');
     };
 
     const handleError = (e: any) => {
       console.error('❌ [VideoThumbnail] Video error:', e);
+      console.error('❌ [VideoThumbnail] Video element error:', videoRef.current?.error);
       setError('Error loading video');
       setIsLoading(false);
-    };
-
-    const handleCanPlay = () => {
-      console.log('▶️ [VideoThumbnail] Video can play');
+      
+      // Limpiar timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
 
     const video = videoRef.current;
     if (video) {
       video.addEventListener('loadedmetadata', handleVideoLoad);
+      video.addEventListener('loadeddata', handleLoadedData);
       video.addEventListener('seeked', handleSeeked);
       video.addEventListener('error', handleError);
       video.addEventListener('canplay', handleCanPlay);
@@ -156,26 +197,34 @@ export function VideoThumbnail({
       video.playsInline = true;
       
       // Cargar el video
+      console.log('🔄 [VideoThumbnail] Loading video:', videoUrl);
       video.src = videoUrl;
 
       return () => {
         video.removeEventListener('loadedmetadata', handleVideoLoad);
+        video.removeEventListener('loadeddata', handleLoadedData);
         video.removeEventListener('seeked', handleSeeked);
         video.removeEventListener('error', handleError);
         video.removeEventListener('canplay', handleCanPlay);
+        
+        // Limpiar timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
       };
     }
   }, [videoUrl, width, height, timePosition]);
 
-  if (error || (!thumbnailDataUrl && !isLoading)) {
+  if (error) {
     return (
       <div 
-        className={`bg-gray-200 rounded-lg flex items-center justify-center ${className}`}
+        className={`bg-red-100 border border-red-300 rounded-lg flex items-center justify-center ${className}`}
         style={{ width, height }}
       >
-        <div className="text-center text-gray-500">
-          <div className="text-2xl mb-2">🎬</div>
-          <div className="text-sm">Video no disponible</div>
+        <div className="text-center text-red-600">
+          <div className="text-2xl mb-2">⚠️</div>
+          <div className="text-sm px-2">{error}</div>
         </div>
       </div>
     );
@@ -190,6 +239,7 @@ export function VideoThumbnail({
         <div className="text-center text-gray-400">
           <div className="text-2xl mb-2 animate-bounce">🎬</div>
           <div className="text-sm">Generando thumbnail...</div>
+          <div className="text-xs mt-1 opacity-60">Procesando video</div>
         </div>
       </div>
     );

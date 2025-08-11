@@ -28,10 +28,18 @@ export default function StudiesPage() {
     // Función para obtener URL del video de un estudio
     const getVideoUrl = async (studyId: string) => {
         try {
+            console.log(`📡 [StudiesPage] Fetching video URL for study: ${studyId}`);
             const response = await fetch(`/api/studies/${studyId}/video-url`);
+            
+            console.log(`📡 [StudiesPage] Video URL API response status: ${response.status}`);
+            
             if (response.ok) {
                 const data = await response.json();
+                console.log(`✅ [StudiesPage] Video URL data for ${studyId}:`, data);
                 return data.videoUrl;
+            } else {
+                const errorData = await response.text();
+                console.error(`❌ [StudiesPage] Failed to get video URL for ${studyId}:`, response.status, errorData);
             }
         } catch (error) {
             console.error(`❌ [StudiesPage] Error getting video URL for study ${studyId}:`, error);
@@ -60,6 +68,7 @@ export default function StudiesPage() {
                     
                     console.log('✅ [StudiesPage] Studies loaded:', studiesData.length, 'studies');
                     console.log('✅ [StudiesPage] Patients loaded:', patientsData.length, 'patients');
+                    console.log('🔍 [StudiesPage] Studies data sample:', studiesData.slice(0, 2));
                     
                     setStudies(studiesData);
                     setPatients(patientsData);
@@ -76,11 +85,14 @@ export default function StudiesPage() {
                     
                     urlResults.forEach(({ studyId, videoUrl }) => {
                         if (videoUrl) {
+                            console.log(`✅ [StudiesPage] Video URL mapped for ${studyId}:`, videoUrl.substring(0, 100) + '...');
                             urlMap[studyId] = videoUrl;
+                        } else {
+                            console.log(`⚠️ [StudiesPage] No video URL for study ${studyId}`);
                         }
                     });
 
-                    console.log('✅ [StudiesPage] Video URLs loaded:', Object.keys(urlMap).length, 'URLs');
+                    console.log('✅ [StudiesPage] Video URLs loaded:', Object.keys(urlMap).length, 'URLs total');
                     setVideoUrls(urlMap);
                 } else {
                     console.error('❌ [StudiesPage] API failed with status:', studiesResponse.status, patientsResponse.status);
@@ -210,6 +222,7 @@ export default function StudiesPage() {
                                     <div className="text-center text-gray-500">
                                         <div className="text-3xl mb-2">🎬</div>
                                         <div className="text-sm">Cargando video...</div>
+                                        <div className="text-xs mt-1">Study ID: {study.id.substring(0, 8)}</div>
                                     </div>
                                 </div>
                             )}
