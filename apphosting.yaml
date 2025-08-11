@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - LEGAL PAGES DEPLOY v2.2.0
-# DEPLOY: Legal pages + META_APP_SECRET for production compliance
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.3.0
+# DEPLOY: Video thumbnails + Logo download + Legal pages fix
 runConfig:
   cpu: 4
   memoryMiB: 2048
@@ -42,15 +42,13 @@ env:
     availability:
       - RUNTIME
 
-  # Meta App Configuration for GDPR Compliance
-  - variable: META_APP_SECRET
-    secret: META_APP_SECRET
-    availability:
-      - RUNTIME
-
   # Application URL
   - variable: NEXT_PUBLIC_APP_URL
     value: https://heartlink--heartlink-f4ftq.us-central1.hosted.app
     availability:
       - BUILD
+      - RUNTIME
+  - variable: META_APP_SECRET
+    secret: META_APP_SECRET
+    availability:
       - RUNTIME
