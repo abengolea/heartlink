@@ -8,7 +8,6 @@ import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, PlusCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { VideoThumbnail } from "@/components/video-thumbnail";
 
 interface Study {
     id: string;
@@ -45,17 +44,6 @@ export default function StudiesPage() {
                     
                     console.log('✅ [StudiesPage] Studies loaded:', studiesData.length, 'studies');
                     console.log('✅ [StudiesPage] Patients loaded:', patientsData.length, 'patients');
-                    console.log('🔍 [StudiesPage] Studies data sample:', studiesData.slice(0, 2));
-                    
-                    // Video URLs ya vienen en los estudios!
-                    console.log('🎬 [StudiesPage] Video URLs already in studies data:');
-                    studiesData.forEach((study: Study) => {
-                        if (study.videoUrl) {
-                            console.log(`✅ [StudiesPage] Study ${study.id.substring(0, 8)} has video:`, study.videoUrl.substring(0, 80) + '...');
-                        } else {
-                            console.log(`⚠️ [StudiesPage] Study ${study.id.substring(0, 8)} has NO video URL`);
-                        }
-                    });
                     
                     setStudies(studiesData);
                     setPatients(patientsData);
@@ -154,26 +142,6 @@ export default function StudiesPage() {
                 <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
                     {studies.map(study => (
                     <Card key={study.id}>
-                        <CardHeader className="p-0">
-                           {study.videoUrl ? (
-                                <VideoThumbnail
-                                    videoUrl={study.videoUrl}
-                                    alt={`Thumbnail del estudio de ${getPatientName(study.patientId)}`}
-                                    width={600}
-                                    height={400}
-                                    className="rounded-t-lg object-cover aspect-video"
-                                    timePosition={2} // Thumbnail en el segundo 2
-                                />
-                            ) : (
-                                <div className="bg-yellow-100 border border-yellow-300 rounded-t-lg aspect-video flex items-center justify-center">
-                                    <div className="text-center text-yellow-700">
-                                        <div className="text-3xl mb-2">⚠️</div>
-                                        <div className="text-sm">Sin video</div>
-                                        <div className="text-xs mt-1">Study ID: {study.id.substring(0, 8)}</div>
-                                    </div>
-                                </div>
-                            )}
-                        </CardHeader>
                         <CardContent className="p-4 grid gap-2">
                              {study.isUrgent ? (
                                 <Badge variant="destructive" className="w-fit">Urgente</Badge>
