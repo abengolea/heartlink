@@ -14,10 +14,9 @@ import Link from "next/link";
 interface Patient {
     id: string;
     name: string;
-    dni: string;
-    dob: string;
+    dni?: string; // Hacer opcional
+    dob?: string; // Hacer opcional
     status?: string;
-    operatorId: string;
     requesterId: string;
 }
 
@@ -80,56 +79,44 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
         if (!patient) return;
         
         setIsSaving(true);
-        console.log('🔍 [EditPatientForm] Starting form submission...');
         
         try {
-            const updatedData = {
+            const patientData = {
                 name: formData.get('name') as string,
-                dni: formData.get('dni') as string,
-                dob: formData.get('dob') as string,
-                operatorId: formData.get('operatorId') as string,
+                dni: formData.get('dni') as string || undefined, // Permitir vacío
+                dob: formData.get('dob') as string || undefined, // Permitir vacío
                 requesterId: formData.get('requesterId') as string,
+                status: 'active' // Mantener estado activo
             };
 
-            console.log('🔍 [EditPatientForm] Form data extracted:', updatedData);
+            console.log('💾 [EditPatientForm] Updating patient:', patientData);
 
-            // Validate required fields
-            if (!updatedData.name || !updatedData.dni || !updatedData.dob || !updatedData.operatorId || !updatedData.requesterId) {
-                throw new Error('Todos los campos son requeridos');
-            }
-
-            console.log('🔍 [EditPatientForm] Making API call to update patient...');
             const response = await fetch(`/api/patients/${patientId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(patientData),
             });
 
-            console.log('🔍 [EditPatientForm] API response status:', response.status);
-
             if (response.ok) {
-                const result = await response.json();
-                console.log('✅ [EditPatientForm] Patient updated successfully:', result);
                 toast({
-                    title: 'Paciente actualizado',
-                    description: 'Los datos del paciente han sido actualizados exitosamente.',
+                    title: 'Éxito',
+                    description: 'Paciente actualizado correctamente.',
                 });
-                console.log('🔍 [EditPatientForm] Redirecting to patients list...');
                 router.push('/dashboard/patients');
             } else {
-                const errorData = await response.text();
-                console.error('❌ [EditPatientForm] API Error:', response.status, errorData);
-                throw new Error(`Error ${response.status}: ${errorData}`);
+                throw new Error('Error al actualizar el paciente');
             }
+
         } catch (error) {
             console.error('❌ [EditPatientForm] Error updating patient:', error);
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: error instanceof Error ? error.message : 'No se pudo actualizar el paciente. Intenta nuevamente.',
+                description: 'No se pudo actualizar el paciente. Inténtalo de nuevo.',
             });
         } finally {
-            console.log('🔍 [EditPatientForm] Form submission completed');
             setIsSaving(false);
         }
     }
@@ -137,9 +124,9 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
     if (isLoading) {
         return (
             <Card>
-                <CardContent className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span className="ml-2">Cargando información del paciente...</span>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                    <p className="text-muted-foreground">Cargando información del paciente...</p>
                 </CardContent>
             </Card>
         );
@@ -164,8 +151,8 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
         );
     }
 
-    const doctors = users.filter(u => u.role !== 'admin');
-    const operators = users.filter(u => u.role === 'operator' || u.role === 'admin');
+    // Solo médicos solicitantes para el campo requesterId
+    const requesters = users.filter(u => u.role === 'solicitante' || u.role === 'medico_solicitante');
 
     return (
         <Card>
@@ -178,7 +165,7 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
             <CardContent>
                 <form action={handleSubmit} className="space-y-6">
                     <div className="grid gap-2">
-                        <Label htmlFor="name">Nombre Completo</Label>
+                        <Label htmlFor="name">Nombre Completo *</Label>
                         <Input 
                             id="name" 
                             name="name" 
@@ -189,53 +176,41 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="dni">DNI</Label>
+                        <Label htmlFor="dni">DNI (opcional)</Label>
                         <Input 
                             id="dni" 
                             name="dni" 
-                            defaultValue={patient.dni}
+                            defaultValue={patient.dni || ''}
                             placeholder="12345678" 
-                            required 
                         />
+                        <p className="text-xs text-muted-foreground">
+                            Puedes dejarlo vacío si no tienes el DNI disponible
+                        </p>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="dob">Fecha de Nacimiento</Label>
+                        <Label htmlFor="dob">Fecha de Nacimiento (opcional)</Label>
                         <Input 
                             id="dob" 
                             name="dob" 
                             type="date"
-                            defaultValue={patient.dob}
-                            required 
+                            defaultValue={patient.dob || ''}
                         />
+                        <p className="text-xs text-muted-foreground">
+                            Puedes dejarlo vacío si no tienes la fecha disponible
+                        </p>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="requesterId">Médico Solicitante</Label>
+                        <Label htmlFor="requesterId">Médico Solicitante *</Label>
                         <Select name="requesterId" defaultValue={patient.requesterId} required>
                             <SelectTrigger>
                                 <SelectValue placeholder="Seleccionar médico solicitante" />
                             </SelectTrigger>
                             <SelectContent>
-                                {doctors.map(doctor => (
-                                    <SelectItem key={doctor.id} value={doctor.id}>
-                                        {doctor.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="operatorId">Operador</Label>
-                        <Select name="operatorId" defaultValue={patient.operatorId} required>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleccionar operador" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {operators.map(operator => (
-                                    <SelectItem key={operator.id} value={operator.id}>
-                                        {operator.name}
+                                {requesters.map(requester => (
+                                    <SelectItem key={requester.id} value={requester.id}>
+                                        {requester.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
