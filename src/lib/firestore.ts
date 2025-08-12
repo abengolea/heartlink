@@ -1,6 +1,6 @@
 import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
 import { getFirestore } from 'firebase-admin/firestore';
-import type { Study, Patient, User } from './types';
+import type { Study, Patient, User, Subscription, PaymentRecord } from './types';
 
 // Initialize Firestore with Firebase Admin
 function getFirestoreAdmin() {
@@ -321,5 +321,194 @@ export async function updateStudyTranscription(studyId: string, transcription: s
   } catch (error) {
     console.error('❌ [Firestore] Error updating study transcription:', error);
     throw new Error(`Failed to update study transcription: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// ========================================
+// SUBSCRIPTION MANAGEMENT FUNCTIONS
+// ========================================
+
+// Create a new subscription in Firestore
+export async function createSubscription(subscriptionData: Omit<Subscription, 'id'>): Promise<string> {
+  console.log('💳 [Firestore] Creating new subscription...');
+  
+  try {
+    const db = getFirestoreAdmin();
+    const subscriptionsRef = db.collection('subscriptions');
+    
+    const docRef = await subscriptionsRef.add({
+      ...subscriptionData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    
+    console.log('✅ [Firestore] Subscription created with ID:', docRef.id);
+    return docRef.id;
+    
+  } catch (error) {
+    console.error('❌ [Firestore] Error creating subscription:', error);
+    throw new Error(`Failed to create subscription in Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Get subscription by user ID
+export async function getSubscriptionByUserId(userId: string): Promise<Subscription | null> {
+  console.log('💳 [Firestore] Getting subscription for user:', userId);
+  
+  try {
+    const db = getFirestoreAdmin();
+    const subscriptionsSnapshot = await db.collection('subscriptions')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    
+    if (subscriptionsSnapshot.empty) {
+      console.log('❌ [Firestore] No subscription found for user:', userId);
+      return null;
+    }
+    
+    const subscriptionDoc = subscriptionsSnapshot.docs[0];
+    const data = subscriptionDoc.data();
+    
+    console.log('✅ [Firestore] Subscription found for user:', userId);
+    
+    return {
+      id: subscriptionDoc.id,
+      ...data
+    } as Subscription;
+    
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting subscription:', error);
+    throw new Error(`Failed to get subscription from Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Update subscription in Firestore
+export async function updateSubscription(id: string, subscriptionData: Partial<Subscription>): Promise<void> {
+  console.log('💳 [Firestore] Updating subscription:', id);
+  
+  try {
+    const db = getFirestoreAdmin();
+    await db.collection('subscriptions').doc(id).update({
+      ...subscriptionData,
+      updatedAt: new Date().toISOString()
+    });
+    
+    console.log('✅ [Firestore] Subscription updated:', id);
+    
+  } catch (error) {
+    console.error('❌ [Firestore] Error updating subscription:', error);
+    throw new Error(`Failed to update subscription in Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Add payment record to subscription
+export async function addPaymentRecord(subscriptionId: string, paymentData: PaymentRecord): Promise<void> {
+  console.log('💰 [Firestore] Adding payment record to subscription:', subscriptionId);
+  
+  try {
+    const db = getFirestoreAdmin();
+    
+    // Get current subscription
+    const subscriptionDoc = await db.collection('subscriptions').doc(subscriptionId).get();
+    if (!subscriptionDoc.exists) {
+      throw new Error('Subscription not found');
+    }
+    
+    const subscription = subscriptionDoc.data() as Subscription;
+    const updatedPaymentHistory = [...(subscription.paymentHistory || []), paymentData];
+    
+    await db.collection('subscriptions').doc(subscriptionId).update({
+      paymentHistory: updatedPaymentHistory,
+      lastPaymentDate: paymentData.paymentDate,
+      updatedAt: new Date().toISOString()
+    });
+    
+    console.log('✅ [Firestore] Payment record added to subscription:', subscriptionId);
+    
+  } catch (error) {
+    console.error('❌ [Firestore] Error adding payment record:', error);
+    throw new Error(`Failed to add payment record: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Check if user has active subscription and access
+export async function checkUserAccess(userId: string): Promise<{ hasAccess: boolean; subscription: Subscription | null; reason?: string }> {
+  console.log('🔐 [Firestore] Checking user access for:', userId);
+  
+  try {
+    const subscription = await getSubscriptionByUserId(userId);
+    
+    if (!subscription) {
+      console.log('❌ [Firestore] No subscription found for user:', userId);
+      return { hasAccess: false, subscription: null, reason: 'no_subscription' };
+    }
+    
+    // Check if access is blocked
+    if (subscription.isAccessBlocked) {
+      console.log('🚫 [Firestore] Access blocked for user:', userId);
+      return { hasAccess: false, subscription, reason: 'access_blocked' };
+    }
+    
+    // Check if subscription is active
+    if (subscription.status !== 'active') {
+      console.log('❌ [Firestore] Subscription not active for user:', userId);
+      return { hasAccess: false, subscription, reason: 'subscription_inactive' };
+    }
+    
+    // Check if still within grace period if overdue
+    const now = new Date();
+    const endDate = new Date(subscription.endDate);
+    
+    if (now > endDate) {
+      const gracePeriodEnd = subscription.gracePeriodEndDate ? new Date(subscription.gracePeriodEndDate) : null;
+      
+      if (!gracePeriodEnd || now > gracePeriodEnd) {
+        console.log('❌ [Firestore] Subscription expired and grace period ended:', userId);
+        return { hasAccess: false, subscription, reason: 'expired' };
+      } else {
+        console.log('⚠️ [Firestore] Subscription expired but within grace period:', userId);
+        return { hasAccess: true, subscription, reason: 'grace_period' };
+      }
+    }
+    
+    console.log('✅ [Firestore] User has active access:', userId);
+    return { hasAccess: true, subscription };
+    
+  } catch (error) {
+    console.error('❌ [Firestore] Error checking user access:', error);
+    throw new Error(`Failed to check user access: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Get all expired subscriptions that need to be processed
+export async function getExpiredSubscriptions(): Promise<Subscription[]> {
+  console.log('⏰ [Firestore] Getting expired subscriptions...');
+  
+  try {
+    const db = getFirestoreAdmin();
+    const now = new Date().toISOString();
+    
+    const expiredSnapshot = await db.collection('subscriptions')
+      .where('status', '==', 'active')
+      .where('endDate', '<', now)
+      .where('isAccessBlocked', '==', false)
+      .get();
+    
+    const expiredSubscriptions: Subscription[] = [];
+    expiredSnapshot.forEach((doc) => {
+      expiredSubscriptions.push({
+        id: doc.id,
+        ...doc.data()
+      } as Subscription);
+    });
+    
+    console.log('⏰ [Firestore] Found', expiredSubscriptions.length, 'expired subscriptions');
+    return expiredSubscriptions;
+    
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting expired subscriptions:', error);
+    throw new Error(`Failed to get expired subscriptions: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

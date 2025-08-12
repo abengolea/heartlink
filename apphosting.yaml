@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.3.0
-# DEPLOY: Video thumbnails + Logo download + Legal pages fix
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.4.0
+# DEPLOY: MercadoPago suscripciones + Control acceso + Cron jobs
 runConfig:
   cpu: 4
   memoryMiB: 2048
@@ -39,6 +39,16 @@ env:
       - RUNTIME
   - variable: WHATSAPP_PHONE_NUMBER_ID
     secret: WHATSAPP_PHONE_NUMBER_ID
+    availability:
+      - RUNTIME
+
+  # MercadoPago Integration - NEW 💳
+  - variable: MERCADOPAGO_ACCESS_TOKEN
+    secret: MERCADOPAGO_ACCESS_TOKEN
+    availability:
+      - RUNTIME
+  - variable: CRON_SECRET_TOKEN
+    value: heartlink-cron-2025
     availability:
       - RUNTIME
 
