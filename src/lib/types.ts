@@ -66,6 +66,11 @@ export interface Subscription {
   // Historial
   paymentHistory: PaymentRecord[];
   
+  // Cancelación y reactivación
+  cancellationReason?: string;
+  cancellationDate?: string;
+  reactivationDate?: string;
+  
   createdAt: string;
   updatedAt: string;
 }

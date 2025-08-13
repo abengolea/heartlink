@@ -399,6 +399,12 @@ export async function createSubscription(subscriptionData: Omit<Subscription, 'i
 export async function getSubscriptionByUserId(userId: string): Promise<Subscription | null> {
   console.log('💳 [Firestore] Getting subscription for user:', userId);
   
+  // DEMO: Usuario específico sin suscripción para probar la herramienta
+  if (userId === 'abengolea1@gmail.com') {
+    console.log('🎭 [Firestore] DEMO: User abengolea1@gmail.com has NO subscription for testing');
+    return null;
+  }
+  
   try {
     const db = getFirestoreAdmin();
     const subscriptionsSnapshot = await db.collection('subscriptions')
