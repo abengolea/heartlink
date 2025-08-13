@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.6.0
-# DEPLOY: SUBSCRIPTION MANAGEMENT COMPLETE + Usuario Demo sin Suscripción
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.6.1
+# DEPLOY: FIX Demo User Creation + getUserByEmail Function
 runConfig:
   cpu: 4
   memoryMiB: 2048

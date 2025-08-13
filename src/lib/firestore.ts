@@ -269,6 +269,37 @@ export async function getUserById(id: string): Promise<User | null> {
   }
 }
 
+// Get user by email from Firestore
+export async function getUserByEmail(email: string): Promise<User | null> {
+  console.log('📧 [Firestore] Getting user by email:', email);
+  
+  try {
+    const db = getFirestoreAdmin();
+    const usersSnapshot = await db.collection('users')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+    
+    if (usersSnapshot.empty) {
+      console.log('❌ [Firestore] User not found with email:', email);
+      return null;
+    }
+    
+    const userDoc = usersSnapshot.docs[0];
+    const userData = userDoc.data();
+    console.log('✅ [Firestore] User found by email:', email);
+    
+    return {
+      id: userDoc.id,
+      ...userData
+    } as User;
+    
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting user by email:', error);
+    throw new Error(`Failed to get user by email from Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 // Update user in Firestore
 export async function updateUser(id: string, userData: Partial<User>): Promise<void> {
   console.log('🔄 [Firestore] Updating user:', id);
