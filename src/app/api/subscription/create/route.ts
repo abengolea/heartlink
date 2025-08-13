@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { createSubscription, getUserById, updateUser } from '@/lib/firestore';
+import { getFirestoreAdmin } from '@/lib/firebase-admin-v4';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Configurar MercadoPago
 const client = new MercadoPagoConfig({
@@ -13,9 +15,41 @@ const client = new MercadoPagoConfig({
 
 const preference = new Preference(client);
 
+// Get pricing configuration from Firestore
+async function getPricingConfig() {
+  try {
+    const app = getFirestoreAdmin();
+    const db = getFirestore(app);
+    const pricingDoc = await db.collection('admin').doc('pricing').get();
+    
+    if (!pricingDoc.exists) {
+      // Return default pricing if not configured
+      return {
+        monthlyPrice: 20000,
+        annualPrice: 144000,
+        annualDiscountPercent: 40,
+        currency: 'ARS',
+        isActive: true
+      };
+    }
+    
+    return pricingDoc.data();
+  } catch (error) {
+    console.error('❌ [Subscription API] Error getting pricing config:', error);
+    // Return default on error
+    return {
+      monthlyPrice: 20000,
+      annualPrice: 144000,
+      annualDiscountPercent: 40,
+      currency: 'ARS',
+      isActive: true
+    };
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await request.json();
+    const { userId, planType = 'monthly' } = await request.json();
     
     if (!userId) {
       return NextResponse.json(
@@ -24,7 +58,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log('💳 [Subscription API] Creating subscription for user:', userId);
+    if (!['monthly', 'annual'].includes(planType)) {
+      return NextResponse.json(
+        { error: 'Plan type must be monthly or annual' },
+        { status: 400 }
+      );
+    }
+    
+    console.log(`💳 [Subscription API] Creating ${planType} subscription for user:`, userId);
     
     // Verificar que el usuario existe
     const user = await getUserById(userId);
@@ -35,10 +76,35 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Obtener configuración de precios
+    const pricingConfig = await getPricingConfig();
+    console.log('💰 [Subscription API] Using pricing config:', pricingConfig);
+    
+    if (!pricingConfig.isActive) {
+      return NextResponse.json(
+        { error: 'Subscriptions are temporarily unavailable' },
+        { status: 503 }
+      );
+    }
+    
+    // Determinar precio y descripción según el plan
+    const isAnnual = planType === 'annual';
+    const amount = isAnnual ? pricingConfig.annualPrice : pricingConfig.monthlyPrice;
+    const period = isAnnual ? 'año' : 'mes';
+    const title = `HeartLink - Suscripción ${isAnnual ? 'Anual' : 'Mensual'}`;
+    const description = isAnnual 
+      ? `Acceso completo a HeartLink por 1 año (${pricingConfig.annualDiscountPercent}% descuento)`
+      : 'Acceso completo a HeartLink por 1 mes';
+    
     // Configurar fechas
     const now = new Date();
     const endDate = new Date(now);
-    endDate.setMonth(endDate.getMonth() + 1); // +1 mes
+    
+    if (isAnnual) {
+      endDate.setFullYear(endDate.getFullYear() + 1); // +1 año
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1); // +1 mes
+    }
     
     const gracePeriodEndDate = new Date(endDate);
     gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + 10); // +10 días de gracia
@@ -47,13 +113,13 @@ export async function POST(request: NextRequest) {
     const preferenceData = {
       items: [
         {
-          id: 'heartlink-monthly',
-          title: 'HeartLink - Suscripción Mensual',
-          description: 'Acceso completo a HeartLink por 1 mes',
+          id: `heartlink-${planType}`,
+          title,
+          description,
           category_id: 'services',
           quantity: 1,
-          currency_id: 'ARS',
-          unit_price: 5000,
+          currency_id: pricingConfig.currency,
+          unit_price: amount,
         }
       ],
       payer: {
@@ -63,22 +129,27 @@ export async function POST(request: NextRequest) {
       payment_methods: {
         excluded_payment_types: [],
         excluded_payment_methods: [],
-        installments: 1,
+        installments: isAnnual ? 12 : 1, // Permitir cuotas para plan anual
       },
       back_urls: {
-        success: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=success`,
-        failure: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=failure`,
-        pending: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=pending`,
+        success: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=success&plan=${planType}`,
+        failure: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=failure&plan=${planType}`,
+        pending: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=pending&plan=${planType}`,
       },
       auto_return: 'approved',
       notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
-      external_reference: `subscription_${userId}_${now.getTime()}`,
+      external_reference: `subscription_${userId}_${planType}_${now.getTime()}`,
       expires: true,
       expiration_date_from: now.toISOString(),
       expiration_date_to: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(), // 24 horas
     };
     
-    console.log('💳 [Subscription API] Creating MercadoPago preference:', preferenceData);
+    console.log('💳 [Subscription API] Creating MercadoPago preference:', {
+      planType,
+      amount,
+      title,
+      userId
+    });
     
     const response = await preference.create({ body: preferenceData });
     
@@ -92,9 +163,9 @@ export async function POST(request: NextRequest) {
     const subscriptionData = {
       userId,
       status: 'inactive' as const,
-      planType: 'monthly' as const,
-      amount: 5000,
-      currency: 'ARS' as const,
+      planType: planType as 'monthly' | 'annual',
+      amount,
+      currency: pricingConfig.currency as 'ARS',
       
       // MercadoPago data
       mercadoPagoSubscriptionId: response.id,
@@ -125,9 +196,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       subscriptionId,
+      planType,
+      amount,
       mercadoPagoPreferenceId: response.id,
       checkoutUrl: response.init_point,
       sandboxUrl: response.sandbox_init_point,
+      pricingInfo: {
+        monthlyPrice: pricingConfig.monthlyPrice,
+        annualPrice: pricingConfig.annualPrice,
+        discount: isAnnual ? pricingConfig.annualDiscountPercent : 0,
+        savings: isAnnual ? (pricingConfig.monthlyPrice * 12) - pricingConfig.annualPrice : 0
+      }
     });
     
   } catch (error) {

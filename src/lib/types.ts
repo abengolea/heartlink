@@ -45,7 +45,7 @@ export interface Subscription {
   id: string;
   userId: string;
   status: 'active' | 'inactive' | 'suspended' | 'cancelled';
-  planType: 'monthly';
+  planType: 'monthly' | 'annual';
   amount: number; // En pesos argentinos
   currency: 'ARS';
   
@@ -101,11 +101,21 @@ export interface MercadoPagoWebhookEvent {
   };
 }
 
+export interface PricingConfig {
+  monthlyPrice: number;
+  annualPrice: number;
+  annualDiscountPercent: number;
+  currency: string;
+  isActive: boolean;
+  updatedAt: string;
+  updatedBy?: string;
+}
+
 export interface Backup {
   id: string;
-  date: string;
-  firestoreSize: string;
-  fileCount: number;
-  destinationUrl: string;
-  status: 'completed' | 'in-progress' | 'failed';
+  timestamp: string;
+  studiesCount: number;
+  patientsCount: number;
+  usersCount: number;
+  status: 'completed' | 'failed' | 'in_progress';
 }
