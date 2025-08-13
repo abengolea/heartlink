@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.6.1
-# DEPLOY: FIX Demo User Creation + getUserByEmail Function
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.7.0
+# DEPLOY: FIREBASE AUTHENTICATION REAL - Login System Complete
 runConfig:
   cpu: 4
   memoryMiB: 2048
@@ -50,6 +50,38 @@ env:
   - variable: CRON_SECRET_TOKEN
     value: heartlink-cron-2025
     availability:
+      - RUNTIME
+
+  # Firebase Client Configuration
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyBJ3QqV-8x_4VWKpYTYAZ4FTe_B6ZJLlQE
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: heartlink-f4ftq.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: heartlink-f4ftq
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: heartlink-f4ftq.appspot.com
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "1060964824602"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:1060964824602:web:abc123def456
+    availability:
+      - BUILD
       - RUNTIME
 
   # Application URL

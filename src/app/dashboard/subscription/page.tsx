@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, X, AlertTriangle, CreditCard, Calendar, User, RefreshCw, Download, Ban, Play, Clock, DollarSign, History } from "lucide-react";
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/auth-context';
 
 interface SubscriptionStatus {
   hasSubscription: boolean;
@@ -25,6 +26,7 @@ interface SubscriptionStatus {
 
 function SubscriptionPageContent() {
   const searchParams = useSearchParams();
+  const { dbUser } = useAuth();
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -33,14 +35,16 @@ function SubscriptionPageContent() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
-  // Simulamos el userId del médico operador (en producción vendría del auth)
-  const userId = 'abengolea1@gmail.com'; // Usuario que no está suscripto
+  // Usar el email del usuario autenticado
+  const userId = dbUser?.email || '';
 
   useEffect(() => {
-    loadSubscriptionStatus();
-    loadPricingConfig();
-    handlePaymentCallback();
-  }, []);
+    if (userId) {
+      loadSubscriptionStatus();
+      loadPricingConfig();
+      handlePaymentCallback();
+    }
+  }, [userId]);
 
   const loadPricingConfig = async () => {
     try {
@@ -55,6 +59,11 @@ function SubscriptionPageContent() {
   };
 
   const loadSubscriptionStatus = async () => {
+    if (!userId) {
+      console.log('⏳ [Subscription] Waiting for user authentication...');
+      return;
+    }
+    
     setLoading(true);
     try {
       console.log('📊 Loading subscription status for user:', userId);
