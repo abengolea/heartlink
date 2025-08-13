@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.7.0
-# DEPLOY: FIREBASE AUTHENTICATION REAL - Login System Complete
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.7.1
+# DEPLOY: AUTH COMPLETE - Register + Reset Password + Login Working
 runConfig:
   cpu: 4
   memoryMiB: 2048

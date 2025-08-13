@@ -1,6 +1,6 @@
 // Firebase Client Configuration (for frontend authentication)
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -49,6 +49,16 @@ export const logout = async () => {
     return { success: true };
   } catch (error: any) {
     console.error('Logout error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const resetPassword = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Password reset error:', error);
     return { success: false, error: error.message };
   }
 };
