@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ interface SubscriptionStatus {
   };
 }
 
-export default function SubscriptionPage() {
+function SubscriptionPageContent() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -356,5 +356,27 @@ export default function SubscriptionPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function SubscriptionPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col gap-4">
+        <div className="flex-1">
+          <h1 className="font-semibold text-lg md:text-2xl">
+            Gestionar Suscripción
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Cargando...
+          </p>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    }>
+      <SubscriptionPageContent />
+    </Suspense>
   );
 }

@@ -125,6 +125,50 @@ export async function createPatient(patientData: Omit<Patient, 'id'>): Promise<s
   }
 }
 
+// Find or create a patient by name (for AI flow compatibility)
+export async function findOrCreatePatient(patientName: string, requesterId: string): Promise<Patient> {
+  console.log('🔍 [Firestore] Finding or creating patient:', patientName);
+  
+  try {
+    const db = getFirestoreAdmin();
+    
+    // First, try to find existing patient
+    const patientsSnapshot = await db.collection('patients')
+      .where('name', '==', patientName)
+      .limit(1)
+      .get();
+    
+    if (!patientsSnapshot.empty) {
+      const patientDoc = patientsSnapshot.docs[0];
+      const existingPatient = {
+        id: patientDoc.id,
+        ...patientDoc.data()
+      } as Patient;
+      
+      console.log('✅ [Firestore] Found existing patient:', existingPatient.id);
+      return existingPatient;
+    }
+    
+    // Create new patient if not found
+    const newPatientData = {
+      name: patientName,
+      requesterId: requesterId,
+      status: 'active'
+    };
+    
+    const patientId = await createPatient(newPatientData);
+    
+    return {
+      id: patientId,
+      ...newPatientData
+    } as Patient;
+    
+  } catch (error) {
+    console.error('❌ [Firestore] Error finding/creating patient:', error);
+    throw new Error(`Failed to find or create patient: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 // Get all patients from Firestore
 export async function getAllPatients(): Promise<Patient[]> {
   console.log('🔍 [Firestore] Getting all patients...');
