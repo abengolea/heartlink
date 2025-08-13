@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getUserByEmail } from '@/lib/firestore';
-import { getFirebaseAdmin } from '@/lib/firebase-admin-v4';
+import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
 
 export async function POST(request: NextRequest) {
   console.log('👤 [Auth API] Creating Firebase Auth user...');
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ [Auth API] User found in Firestore:', dbUser.id);
 
     // Create user in Firebase Authentication
-    const app = getFirebaseAdmin();
+    const app = initializeFirebaseAdmin();
     const auth = getAuth(app);
 
     try {

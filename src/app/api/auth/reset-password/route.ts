@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getUserByEmail } from '@/lib/firestore';
-import { getFirebaseAdmin } from '@/lib/firebase-admin-v4';
+import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
 
 export async function POST(request: NextRequest) {
   console.log('🔑 [Reset API] Processing password reset request...');
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ [Reset API] User found in Firestore:', dbUser.id);
 
     // Try to send password reset email via Firebase Auth
-    const app = getFirebaseAdmin();
+    const app = initializeFirebaseAdmin();
     const auth = getAuth(app);
 
     try {
