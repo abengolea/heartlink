@@ -4,17 +4,8 @@ import { useState, useEffect, Suspense } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-<<<<<<< HEAD
 import { Check, AlertTriangle, CreditCard, RefreshCw } from "lucide-react";
 
-=======
-import { Separator } from "@/components/ui/separator";
-import { Check, X, AlertTriangle, CreditCard, Calendar, User, RefreshCw } from "lucide-react";
-import { useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
-
-// Simple placeholder component for now
->>>>>>> 8dbcd153857ce9c9c46337dd93b6288df3fd3f68
 function SubscriptionPageContent() {
   return (
     <div className="flex flex-col gap-4">
