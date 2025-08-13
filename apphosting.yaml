@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.7.2
-# DEPLOY: FIX Firebase Admin Import Error - Register Working
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.7.3
+# DEPLOY: DETAILED LOGGING + Error Debug - Find Registration Issue
 runConfig:
   cpu: 4
   memoryMiB: 2048
