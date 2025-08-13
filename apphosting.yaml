@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.5.2
-# DEPLOY: MercadoPago TOKEN + YAML formatting + MANUAL REDEPLOY
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.5.3
+# DEPLOY: MercadoPago TOKEN + Conflictos Git RESUELTOS
 runConfig:
   cpu: 4
   memoryMiB: 2048
