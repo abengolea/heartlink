@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.4.0
-# DEPLOY: MercadoPago suscripciones + Control acceso + Cron jobs
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.5.0
+# DEPLOY: MercadoPago TOKEN configurado + Sistema suscripciones ACTIVO
 runConfig:
   cpu: 4
   memoryMiB: 2048
@@ -42,7 +42,7 @@ env:
     availability:
       - RUNTIME
 
-  # MercadoPago Integration - NEW 💳
+  # MercadoPago Integration - TOKEN CONFIGURADO 💳✅
   - variable: MERCADOPAGO_ACCESS_TOKEN
     secret: MERCADOPAGO_ACCESS_TOKEN
     availability:
