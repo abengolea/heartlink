@@ -54,3 +54,13 @@
 [debug] 
 [debug] [2025-08-13T00:44:34.573Z] Object "/extensions" in "firebase.json" has unknown property: {"additionalProperty":"firestore-send-email"}
 [info] i  The Firebase CLI’s MCP server feature can optionally make use of Gemini in Firebase. Learn more about Gemini in Firebase and how it uses your data: https://firebase.google.com/docs/gemini-in-firebase#how-gemini-in-firebase-uses-your-data 
+[debug] [2025-08-13T00:47:48.921Z] ----------------------------------------------------------------------
+[debug] [2025-08-13T00:47:48.923Z] Command:       /home/ubuntu/.nvm/versions/node/v22.16.0/bin/node /home/ubuntu/.nvm/versions/node/v22.16.0/bin/firebase login --no-localhost
+[debug] [2025-08-13T00:47:48.923Z] CLI Version:   14.11.2
+[debug] [2025-08-13T00:47:48.923Z] Platform:      linux
+[debug] [2025-08-13T00:47:48.923Z] Node Version:  v22.16.0
+[debug] [2025-08-13T00:47:48.923Z] Time:          Wed Aug 13 2025 00:47:48 GMT+0000 (Coordinated Universal Time)
+[debug] [2025-08-13T00:47:48.923Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-13T00:47:49.036Z] Object "/extensions" in "firebase.json" has unknown property: {"additionalProperty":"firestore-send-email"}
+[info] i  The Firebase CLI’s MCP server feature can optionally make use of Gemini in Firebase. Learn more about Gemini in Firebase and how it uses your data: https://firebase.google.com/docs/gemini-in-firebase#how-gemini-in-firebase-uses-your-data 
