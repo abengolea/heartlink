@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.8.0
-# DEPLOY: REAL FIREBASE CREDENTIALS - Fix API Key Error
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.8.1
+# DEPLOY: CORRECT FIREBASE CREDENTIALS - From Firebase Console
 runConfig:
   cpu: 4
   memoryMiB: 2048
@@ -52,9 +52,9 @@ env:
     availability:
       - RUNTIME
 
-  # Firebase Client Configuration - REAL CREDENTIALS
+  # Firebase Client Configuration - REAL CREDENTIALS FROM CONSOLE
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: AIzaSyCHNOHa_HHs5JGQSgKv-0c4vWvl8BqRZgE
+    value: AIzaSyDO-9ftR7wOY09PZ6QzL3WqBY_JTrTY5Zw
     availability:
       - BUILD
       - RUNTIME
@@ -79,7 +79,7 @@ env:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: 1:1060964824602:web:b9f82e7ab2ca0b64c4ac93
+    value: 1:1060964824602:web:0590cb4e2a94318bacc3a3
     availability:
       - BUILD
       - RUNTIME
