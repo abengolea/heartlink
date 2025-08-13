@@ -1,46 +1,52 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
+# Dependencies
+node_modules/
 /.pnp
 .pnp.js
-.yarn/install-state.gz
 
-# testing
+# Testing
 /coverage
 
-# next.js
+# Next.js
 /.next/
 /out/
 
-# production
+# Production
 /build
 
-# misc
+# Misc
 .DS_Store
 *.pem
 
-# debug
+# Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# Local env files
 .env*.local
 .env
-.env.production
-.env.development
 
-# Firebase service account keys
-firebase-service-account.json
-service-account.json
-
-# vercel
+# Vercel
 .vercel
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# IDX
-.idx/.env.local
+# Security - Never commit these
+google-cloud-sdk/
+*.key
+*.pem
+*-key.json
+service-account*.json
+firebase-service-account*.json
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# API Keys and Secrets (extra protection)
+config.js
+credentials.json
+.env.production

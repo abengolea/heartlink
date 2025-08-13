@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.8.1
-# DEPLOY: CORRECT FIREBASE CREDENTIALS - From Firebase Console
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.9.0
+# DEPLOY: SECURE SECRETS - API Keys Hidden from GitHub
 runConfig:
   cpu: 4
   memoryMiB: 2048
@@ -52,9 +52,9 @@ env:
     availability:
       - RUNTIME
 
-  # Firebase Client Configuration - REAL CREDENTIALS FROM CONSOLE
+  # Firebase Client Configuration - USING SECRETS FOR SECURITY
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: AIzaSyDO-9ftR7wOY09PZ6QzL3WqBY_JTrTY5Zw
+    secret: NEXT_PUBLIC_FIREBASE_API_KEY
     availability:
       - BUILD
       - RUNTIME
@@ -79,7 +79,7 @@ env:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: 1:1060964824602:web:0590cb4e2a94318bacc3a3
+    secret: NEXT_PUBLIC_FIREBASE_APP_ID
     availability:
       - BUILD
       - RUNTIME
