@@ -1,5 +1,5 @@
-# Firebase App Hosting Configuration - FORCE DEPLOY v2.5.0
-# DEPLOY: MercadoPago TOKEN configurado + Sistema suscripciones ACTIVO
+# Firebase App Hosting Configuration - FORCE DEPLOY v2.5.3
+# DEPLOY: MercadoPago TOKEN + Conflictos Git RESUELTOS
 runConfig:
   cpu: 4
   memoryMiB: 2048
@@ -13,7 +13,7 @@ env:
     secret: firebase-service-account-key
     availability:
       - RUNTIME
-  - variable: SERVICE_ACCOUNT_KEY # Fallback for older configs
+  - variable: SERVICE_ACCOUNT_KEY
     secret: SERVICE_ACCOUNT_KEY
     availability:
       - RUNTIME
@@ -23,12 +23,12 @@ env:
     secret: GEMINI_API_KEY
     availability:
       - RUNTIME
-  - variable: GOOGLE_API_KEY # Fallback for older configs
+  - variable: GOOGLE_API_KEY
     secret: GOOGLE_API_KEY
     availability:
       - RUNTIME
 
-  # WhatsApp Business API - NEW TOKEN UPDATED ✅
+  # WhatsApp Business API
   - variable: WHATSAPP_WEBHOOK_VERIFY_TOKEN
     value: heartlink_webhook_2025
     availability:
@@ -42,7 +42,7 @@ env:
     availability:
       - RUNTIME
 
-  # MercadoPago Integration - TOKEN CONFIGURADO 💳✅
+  # MercadoPago Integration
   - variable: MERCADOPAGO_ACCESS_TOKEN
     secret: MERCADOPAGO_ACCESS_TOKEN
     availability:
@@ -60,11 +60,5 @@ env:
       - RUNTIME
   - variable: META_APP_SECRET
     secret: META_APP_SECRET
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
     availability:
       - RUNTIME
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
