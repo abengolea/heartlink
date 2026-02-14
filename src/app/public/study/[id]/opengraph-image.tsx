@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og';
-import { getStudyById, getPatientById, getUserById } from '@/lib/firestore';
 
 export const alt = 'Estudio médico compartido - HeartLink';
 export const size = { width: 1200, height: 630 };
@@ -16,6 +15,7 @@ export default async function Image({
   let doctorName = '';
 
   try {
+    const { getStudyById, getPatientById, getUserById } = await import('@/lib/firestore');
     const study = await getStudyById(id);
     if (study) {
       const patientIdRaw = study.patientId;
