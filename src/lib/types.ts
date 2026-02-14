@@ -1,6 +1,17 @@
+export interface StudyComment {
+  id: string;
+  userId: string;
+  userName: string;
+  role: string;
+  text: string;
+  timestamp: string;
+}
+
 export interface Study {
   id: string;
   patientId: string;
+  /** Médico solicitante - guardado para acceso público sin depender del paciente */
+  requestingDoctorId?: string;
   videoUrl?: string;
   videoPath?: string;
   reportUrl?: string;
@@ -8,8 +19,9 @@ export interface Study {
   isUrgent: boolean;
   description: string;
   diagnosis?: string;
-  comments?: string[];
+  comments?: StudyComment[];
   transcription?: string;
+  shareToken?: string; // Token único para acceso público seguro
   createdAt?: string;
   updatedAt?: string;
 }
@@ -32,9 +44,10 @@ export interface User {
   name: string;
   email?: string;
   phone?: string;
-  role: 'admin' | 'operator' | 'solicitante' | 'medico_solicitante';
+  /** operator y medico_operador son equivalentes: médico que realiza estudios */
+  role: 'admin' | 'operator' | 'medico_operador' | 'solicitante' | 'medico_solicitante';
   specialty?: string;
-  status?: 'active' | 'inactive';
+  status?: 'active' | 'inactive' | 'pending_approval';
   subscriptionStatus?: 'active' | 'inactive' | 'suspended' | 'trial';
   subscriptionId?: string;
   createdAt?: string;

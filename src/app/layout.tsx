@@ -6,7 +6,10 @@ import Link from 'next/link';
 import { Shield } from 'lucide-react';
 import { AuthProvider } from '@/contexts/auth-context';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'HeartLink',
   description: 'A platform for cardiac studies management.',
 };
@@ -38,7 +41,12 @@ export default function RootLayout({
               </div>
           </footer>
           <Toaster />
-          <SonnerToaster />
+          <SonnerToaster 
+            toastOptions={{
+              style: { fontSize: '15px', minWidth: '300px' },
+              duration: 5000,
+            }}
+          />
         </AuthProvider>
       </body>
     </html>

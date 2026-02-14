@@ -1,98 +1,76 @@
-
 'use server';
 
 /**
  * @fileOverview This file implements the study upload flow.
  *
  * It allows doctors to upload heart studies (videos), uploads the study, and notifies the requesting doctor automatically.
- * - studyUploadFlow - A function that handles the study upload process.
- * - StudyUploadFlowInput - The input type for the studyUploadFlow function.
- * - StudyUploadFlowOutput - The return type for the studyUploadFlow function.
+ * - processStudyUpload - Lógica pura sin Genkit (no requiere GEMINI_API_KEY).
+ * - studyUploadFlow - Wrapper Genkit (opcional, para dev UI).
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'zod';
-// The uploadVideoToStorage function is no longer needed here as the upload is handled client-side
-// import { uploadVideoToStorage } from '@/services/firebase';
 import { createStudy, findOrCreatePatient, getAllUsers } from '@/lib/firestore';
 
-const StudyUploadFlowInputSchema = z.object({
-  videoDataUri: z
-    .string()
-    .describe(
-      "A video of a heart study, as a public URL to the file in storage."
-    ),
-  patientName: z.string().describe('The full name of the patient.'),
-  requestingDoctorName: z.string().describe('The full name of the requesting doctor.'),
-  description: z.string().optional().describe('The description or report draft for the study.'),
-});
-export type StudyUploadFlowInput = z.infer<typeof StudyUploadFlowInputSchema>;
+export type StudyUploadFlowInput = {
+  videoDataUri: string;
+  patientName: string;
+  requestingDoctorName: string;
+  description?: string;
+};
 
-const StudyUploadFlowOutputSchema = z.object({
-  patientId: z.string().describe('The ID of the patient in the system.'),
-  requestingDoctorId: z.string().describe('The ID of the requesting doctor in the system.'),
-  studyId: z.string().describe('The ID of the uploaded study in the system.'),
-  confirmationMessage: z.string().describe('A message confirming the successful upload and notification.'),
-  videoUrl: z.string().describe("The public URL of the uploaded video file.")
-});
-export type StudyUploadFlowOutput = z.infer<typeof StudyUploadFlowOutputSchema>;
+export type StudyUploadFlowOutput = {
+  patientId: string;
+  requestingDoctorId: string;
+  studyId: string;
+  confirmationMessage: string;
+  videoUrl: string;
+};
 
-export async function studyUploadFlow(input: StudyUploadFlowInput): Promise<StudyUploadFlowOutput> {
-  return studyUploadFlowFn(input);
+/**
+ * Procesa la subida del estudio sin depender de Genkit/Gemini.
+ * Usado por la API de upload para evitar requerir GEMINI_API_KEY.
+ */
+export async function processStudyUpload(input: StudyUploadFlowInput): Promise<StudyUploadFlowOutput> {
+  const videoUrl = input.videoDataUri;
+  const allUsers = await getAllUsers();
+
+  const existingDoctor = allUsers.find(u =>
+    u.name.toLowerCase().includes(input.requestingDoctorName.toLowerCase()) ||
+    input.requestingDoctorName.toLowerCase().includes(u.name.toLowerCase())
+  );
+
+  const requestingDoctorId = existingDoctor?.id || allUsers[0]?.id || 'default-doctor';
+
+  const patient = await findOrCreatePatient(
+    input.patientName,
+    requestingDoctorId  // Médico solicitante, no el operador
+  );
+
+  const studyId = await createStudy({
+    patientId: patient.id,  // ID string, no el objeto
+    requestingDoctorId,
+    videoUrl,
+    reportUrl: '',
+    date: new Date().toISOString(),
+    isUrgent: false,
+    description: input.description || 'Estudio cardiológico subido automáticamente',
+    diagnosis: 'Pendiente de análisis',
+    comments: []
+  });
+
+  const confirmationMessage = `✅ Estudio guardado correctamente.\n\n📋 Paciente: ${input.patientName}\n👨‍⚕️ Médico solicitante: ${input.requestingDoctorName}\n📝 ID: ${studyId}`;
+
+  console.log(`[StudyUploadFlow] Study created - ID: ${studyId}, Patient: ${patient.id}`);
+
+  return {
+    patientId: patient.id,
+    requestingDoctorId,
+    studyId,
+    confirmationMessage,
+    videoUrl
+  };
 }
 
-const studyUploadFlowFn = ai.defineFlow(
-  {
-    name: 'studyUploadFlow',
-    inputSchema: StudyUploadFlowInputSchema,
-    outputSchema: StudyUploadFlowOutputSchema,
-  },
-  async input => {
-    
-    // The video is already uploaded, the input.videoDataUri is the public URL
-    const videoUrl = input.videoDataUri;
-    
-    // Get all users from Firestore to find the requesting doctor
-    const allUsers = await getAllUsers();
-    
-    // Find existing doctor by name
-    const existingDoctor = allUsers.find(u => 
-      u.name.toLowerCase().includes(input.requestingDoctorName.toLowerCase()) ||
-      input.requestingDoctorName.toLowerCase().includes(u.name.toLowerCase())
-    );
-
-    const requestingDoctorId = existingDoctor?.id || allUsers[0]?.id || 'default-doctor';
-    const operatorId = allUsers.find(u => u.role === 'operador')?.id || allUsers[0]?.id || 'default-operator';
-    
-    // Find or create patient in Firestore
-    const patientId = await findOrCreatePatient(
-      input.patientName, 
-      operatorId, 
-      requestingDoctorId
-    );
-    
-    // Create the study in Firestore
-    const studyId = await createStudy({
-      patientId,
-      videoUrl,
-      reportUrl: '',
-      date: new Date().toISOString(),
-      isUrgent: false,
-      description: input.description || 'Estudio cardiológico subido automáticamente',
-      diagnosis: 'Pendiente de análisis',
-      comments: []
-    });
-    
-    const confirmationMessage = `✅ Estudio guardado en Firestore!\n\n📋 Paciente: ${input.patientName}\n👨‍⚕️ Médico solicitante: ${input.requestingDoctorName}\n🎥 Video: ${videoUrl}\n📝 ID: ${studyId}`;
-
-    console.log(`[StudyUploadFlow] Study created in Firestore - ID: ${studyId}, Patient: ${patientId}`);
-
-    return {
-      patientId,
-      requestingDoctorId,
-      studyId,
-      confirmationMessage,
-      videoUrl
-    };
-  }
-);
+/** @deprecated Usar processStudyUpload. Mantenido por compatibilidad con Genkit dev. */
+export async function studyUploadFlow(input: StudyUploadFlowInput): Promise<StudyUploadFlowOutput> {
+  return processStudyUpload(input);
+}
