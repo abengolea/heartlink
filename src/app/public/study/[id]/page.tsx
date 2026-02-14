@@ -61,8 +61,6 @@ export async function generateMetadata({
     ? `Estudio cardiológico de ${patientName} solicitado por ${doctorName}`
     : 'Visualización de estudio médico compartido';
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app';
-
   return {
     title,
     description,
@@ -70,7 +68,6 @@ export async function generateMetadata({
       title,
       description,
       type: 'website',
-      images: [{ url: `${SITE_URL}/public/study/${id}/opengraph-image`, width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image',
