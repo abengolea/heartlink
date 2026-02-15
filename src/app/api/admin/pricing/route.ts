@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin-v4';
 import { getFirestore } from 'firebase-admin/firestore';
+import { requireRole } from '@/lib/api-auth';
 
 interface PricingConfig {
   monthlyPrice: number;
@@ -21,6 +22,7 @@ function getDb() {
 // GET - Obtener configuración de precios
 export async function GET(request: NextRequest) {
   try {
+    await requireRole(request, ['admin']);
     console.log('📊 [Admin Pricing API] Getting pricing configuration...');
     
     const db = getDb();
@@ -48,7 +50,10 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(pricingData);
     
-  } catch (error) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : '';
+    if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
     console.error('❌ [Admin Pricing API] Error getting pricing:', error);
     return NextResponse.json(
       { error: 'Failed to get pricing configuration' },
@@ -60,6 +65,7 @@ export async function GET(request: NextRequest) {
 // PUT - Actualizar configuración de precios
 export async function PUT(request: NextRequest) {
   try {
+    await requireRole(request, ['admin']);
     console.log('💰 [Admin Pricing API] Updating pricing configuration...');
     
     const body = await request.json();
@@ -111,7 +117,10 @@ export async function PUT(request: NextRequest) {
       message: 'Pricing configuration updated successfully'
     });
     
-  } catch (error) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : '';
+    if (msg === 'UNAUTHORIZED') return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
     console.error('❌ [Admin Pricing API] Error updating pricing:', error);
     return NextResponse.json(
       { error: 'Failed to update pricing configuration' },

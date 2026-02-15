@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
@@ -30,8 +31,8 @@ export default function StudiesPage() {
                 
                 // Load studies and patients in parallel
                 const [studiesResponse, patientsResponse] = await Promise.all([
-                    fetch('/api/studies'),
-                    fetch('/api/patients')
+                    fetchWithAuth('/api/studies'),
+                    fetchWithAuth('/api/patients')
                 ]);
                 
                 console.log('🔍 [StudiesPage] API response status:', studiesResponse.status, patientsResponse.status);
@@ -70,8 +71,8 @@ export default function StudiesPage() {
             try {
                 console.log('🔍 [StudiesPage] Refreshing data...');
                 const [studiesResponse, patientsResponse] = await Promise.all([
-                    fetch('/api/studies'),
-                    fetch('/api/patients')
+                    fetchWithAuth('/api/studies'),
+                    fetchWithAuth('/api/patients')
                 ]);
                 
                 if (studiesResponse.ok && patientsResponse.ok) {
@@ -103,14 +104,14 @@ export default function StudiesPage() {
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center">
-                <div className="flex-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1 min-w-0">
                     <h1 className="font-semibold text-lg md:text-2xl">Estudios</h1>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted-foreground text-sm truncate">
                         {isLoading ? 'Cargando estudios...' : `${studies.length} estudios encontrados`}
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 shrink-0">
                     <Button variant="outline" onClick={refreshStudies} disabled={isLoading}>
                         <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                         Actualizar

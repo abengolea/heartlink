@@ -1,0 +1,20 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "123",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": { "phone_number_id": "693302653873170" },
+        "contacts": [{ "profile": { "name": "Test" } }],
+        "messages": [{
+          "from": "5493364645357",
+          "id": "wamid.test123",
+          "timestamp": "1234567890",
+          "type": "text",
+          "text": { "body": "Hola prueba" }
+        }]
+      }
+    }]
+  }]
+}

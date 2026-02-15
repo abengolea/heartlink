@@ -29,7 +29,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           console.log('🔍 [Auth] Fetching user data for:', firebaseUser.email);
           
-          const response = await fetch(`/api/users/by-email?email=${encodeURIComponent(firebaseUser.email)}`);
+          const token = await firebaseUser.getIdToken();
+          const response = await fetch(`/api/users/by-email?email=${encodeURIComponent(firebaseUser.email)}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
           
           if (response.ok) {
             const userData = await response.json();

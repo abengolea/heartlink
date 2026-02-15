@@ -1,22 +1,20 @@
 import Link from "next/link";
 import {
-  Bell,
   CreditCard,
+  Database,
   FileText,
   Home,
   Link2,
   ListOrdered,
-  Package,
-  Shield,
+  Mail,
   Syringe,
   Users,
   Webhook,
-  Workflow,
-  Database
 } from "lucide-react";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import Logo from "@/components/logo";
+import AuthGuard from "@/components/auth-guard";
 
 export default function AdminLayout({
   children,
@@ -24,7 +22,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+    <AuthGuard requireAuth={true} allowedRoles={['admin']}>
+    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] min-w-0">
       <div className="hidden border-r bg-muted/40 md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
@@ -56,7 +55,7 @@ export default function AdminLayout({
                 Usuarios
               </Link>
                <Link
-                href="#"
+                href="/admin/pricing"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
@@ -64,7 +63,7 @@ export default function AdminLayout({
                 Facturación
               </Link>
               <Link
-                href="#"
+                href="/dashboard/patients"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
@@ -72,7 +71,7 @@ export default function AdminLayout({
                 Pacientes
               </Link>
               <Link
-                href="#"
+                href="/dashboard/studies"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
@@ -80,7 +79,7 @@ export default function AdminLayout({
                 Estudios
               </Link>
               <Link
-                href="#"
+                href="/admin/links-publicos"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
@@ -96,7 +95,15 @@ export default function AdminLayout({
                 Copias de Seguridad
               </Link>
               <Link
-                href="#"
+                href="/admin/trigger-mail-test"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <Mail className="h-4 w-4" />
+                Probar Trigger Mail
+              </Link>
+              <Link
+                href="/admin/actividad"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
@@ -104,7 +111,7 @@ export default function AdminLayout({
                 Actividad
               </Link>
               <Link
-                href="#"
+                href="/admin/soporte"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
@@ -115,12 +122,13 @@ export default function AdminLayout({
           </div>
         </div>
       </div>
-      <div className="flex flex-col">
+      <div className="flex flex-col min-w-0 overflow-x-hidden">
         <DashboardHeader />
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+        <main className="flex flex-1 flex-col gap-4 p-4 sm:p-4 lg:gap-6 lg:p-6 bg-background min-w-0">
           {children}
         </main>
       </div>
     </div>
+    </AuthGuard>
   );
 }

@@ -78,7 +78,7 @@ npm run dev
 
 2. **Ir a la aplicación:**
    ```
-   http://localhost:9002
+   http://localhost:4000
    ```
 
 3. **Navegar a:**
@@ -102,6 +102,13 @@ npm run dev
 ### **Error: "Bucket not found"**
 - Verifica que `FIREBASE_STORAGE_BUCKET` sea correcto
 - Debe ser: `heartlink-f4ftq.firebasestorage.app`
+
+### **Error: "Video playback error" / El video no reproduce**
+- Configura CORS en el bucket de Storage para permitir reproducción en el navegador
+- Ejecuta (requiere [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)):
+  ```bash
+  gsutil cors set storage.cors.json gs://heartlink-f4ftq.firebasestorage.app
+  ```
 
 ### **El archivo .env.local no se carga**
 - Reinicia el servidor de desarrollo

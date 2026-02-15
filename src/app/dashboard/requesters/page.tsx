@@ -2,7 +2,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { File, PlusCircle, Search, Edit, Trash2, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
+import { useAuth } from "@/contexts/auth-context";
+import { File, PlusCircle, Search, Edit, Trash2, Plus, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -52,23 +55,37 @@ interface User {
 }
 
 export default function RequestersPage() {
+  const router = useRouter();
+  const { dbUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [requesters, setRequesters] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Cargar médicos solicitantes desde la API
+  const isSolicitante =
+    dbUser?.role === "medico_solicitante" || dbUser?.role === "solicitante";
+
   useEffect(() => {
+    if (dbUser && isSolicitante) {
+      router.replace("/dashboard/doctors");
+      return;
+    }
+  }, [dbUser, isSolicitante, router]);
+
+  // Cargar médicos solicitantes desde la API (solo operadores/admin)
+  useEffect(() => {
+    if (!dbUser || isSolicitante) return;
     loadRequesters();
-  }, []);
+  }, [dbUser, isSolicitante]);
 
   const loadRequesters = async () => {
     try {
       console.log('🔍 [RequestersPage] Loading requesters from API...');
-      const response = await fetch('/api/users');
+      const response = await fetchWithAuth('/api/users');
       
       if (response.ok) {
         const users = await response.json();
@@ -110,7 +127,7 @@ export default function RequestersPage() {
 
       console.log(`🔄 [RequestersPage] ${isCreating ? 'Creating' : 'Updating'} requester:`, payload);
       
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -146,6 +163,45 @@ export default function RequestersPage() {
     }
   };
 
+  const handleResendInvite = async (user: User) => {
+    if (!user.email) {
+      toast({
+        title: "Error",
+        description: "Este médico no tiene email registrado",
+        variant: "destructive",
+      });
+      return;
+    }
+    setResendingId(user.id);
+    try {
+      const res = await fetchWithAuth(
+        `/api/operators/me/doctors/${user.id}/resend-invite`,
+        { method: "POST" }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        toast({
+          title: "Éxito",
+          description: data.message,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Error al reenviar email",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Error al reenviar email",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   const handleDelete = async (userId: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar este médico solicitante?')) {
       return;
@@ -153,7 +209,7 @@ export default function RequestersPage() {
 
     try {
       console.log('🗑️ [RequestersPage] Deleting requester:', userId);
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetchWithAuth(`/api/users/${userId}`, {
         method: 'DELETE',
       });
 
@@ -199,9 +255,9 @@ export default function RequestersPage() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center">
-        <div className="flex-1">
+    <div className="flex flex-col gap-4 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
           <h1 className="font-semibold text-lg md:text-2xl">
             Médicos Solicitantes
           </h1>
@@ -209,7 +265,7 @@ export default function RequestersPage() {
             Gestiona los médicos que pueden solicitar estudios cardiológicos.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <Button size="sm" variant="outline" className="h-8 gap-1">
             <File className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
@@ -256,8 +312,8 @@ export default function RequestersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Especialidad</TableHead>
+                  <TableHead className="hidden md:table-cell">Email</TableHead>
+                  <TableHead className="hidden lg:table-cell">Especialidad</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>
                     <span className="sr-only">Acciones</span>
@@ -274,9 +330,14 @@ export default function RequestersPage() {
                 ) : (
                   filteredRequesters.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email || '-'}</TableCell>
-                      <TableCell>{user.specialty || '-'}</TableCell>
+                      <TableCell className="font-medium">
+                        <div>
+                          <span className="block">{user.name}</span>
+                          <span className="text-xs text-muted-foreground md:hidden">{user.email || '-'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{user.email || '-'}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{user.specialty || '-'}</TableCell>
                       <TableCell>
                         <Badge variant={user.status === 'active' ? 'outline' : 'secondary'}>
                             {user.status === 'active' ? 'Activo' : 'Inactivo'}
@@ -299,6 +360,15 @@ export default function RequestersPage() {
                             <DropdownMenuItem onClick={() => openEditDialog(user)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleResendInvite(user)}
+                              disabled={!user.email || resendingId === user.id}
+                            >
+                              <Mail className="h-4 w-4 mr-2" />
+                              {resendingId === user.id
+                                ? "Enviando..."
+                                : "Reenviar email de invitación"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
@@ -370,7 +440,7 @@ function UserForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">Nombre *</Label>
           <Input
@@ -393,7 +463,7 @@ function UserForm({
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="specialty">Especialidad</Label>
           <Input
@@ -404,12 +474,13 @@ function UserForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone">Teléfono</Label>
+          <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
           <Input
             id="phone"
             value={formData.phone}
             onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
             placeholder="+54 9 336 4123456"
+            required
           />
         </div>
       </div>

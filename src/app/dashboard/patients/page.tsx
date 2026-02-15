@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { File, PlusCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -44,8 +45,8 @@ export default function PatientsPage() {
     async function loadData() {
       try {
         const [patientsResponse, usersResponse] = await Promise.all([
-          fetch('/api/patients'),
-          fetch('/api/users')
+          fetchWithAuth('/api/patients'),
+          fetchWithAuth('/api/users')
         ]);
         
         if (patientsResponse.ok && usersResponse.ok) {
@@ -71,12 +72,12 @@ export default function PatientsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center">
-        <div className="flex-1">
+    <div className="flex flex-col gap-4 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
           <h1 className="font-semibold text-lg md:text-2xl">Pacientes</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <Button size="sm" variant="outline" className="h-8 gap-1">
             <File className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">

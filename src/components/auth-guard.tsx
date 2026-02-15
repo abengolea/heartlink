@@ -7,6 +7,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2, User } from 'lucide-react';
 
+function AccessDeniedCard({
+  userRole,
+  allowedRoles,
+  onGoToDashboard,
+}: {
+  userRole: string;
+  allowedRoles: string[];
+  onGoToDashboard: () => void;
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+          <CardTitle>Acceso denegado</CardTitle>
+          <CardDescription>
+            No tienes permisos para acceder a esta sección.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="text-sm text-muted-foreground">
+            <strong>Tu rol:</strong> {userRole}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            <strong>Roles permitidos:</strong> {allowedRoles.join(', ')}
+          </div>
+          <Button onClick={onGoToDashboard} className="w-full">
+            Ir al dashboard
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 interface AuthGuardProps {
   children: React.ReactNode;
   requireAuth?: boolean;
@@ -104,8 +139,8 @@ export default function AuthGuard({
             <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
             <CardTitle>Usuario no registrado</CardTitle>
             <CardDescription>
-              Tu cuenta de Firebase está autenticada, pero no tienes un perfil en nuestra base de datos.
-              Contacta al administrador para activar tu cuenta.
+              Tu cuenta está autenticada, pero no tienes un perfil en nuestra base de datos.
+              Contacta al administrador.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -125,34 +160,44 @@ export default function AuthGuard({
     );
   }
 
-  // Role-based access control
-  if (requireAuth && dbUser && allowedRoles.length > 0 && !allowedRoles.includes(dbUser.role)) {
+  // Usuario pendiente de aprobación por el admin
+  if (requireAuth && dbUser && dbUser.status === 'pending_approval') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-            <CardTitle>Acceso denegado</CardTitle>
+            <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+            <CardTitle>Cuenta pendiente de aprobación</CardTitle>
             <CardDescription>
-              No tienes permisos para acceder a esta sección.
+              Tu registro fue exitoso. Un administrador debe autorizar tu acceso a la plataforma.
+              Te notificaremos cuando tu cuenta esté activa.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              <strong>Tu rol:</strong> {dbUser.role}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <strong>Roles permitidos:</strong> {allowedRoles.join(', ')}
+              <strong>Email:</strong> {dbUser.email || firebaseUser?.email}
             </div>
             <Button 
-              onClick={() => router.push('/dashboard')} 
+              onClick={() => router.push('/')} 
               className="w-full"
+              variant="outline"
             >
-              Ir al dashboard
+              Cerrar sesión
             </Button>
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  // Role-based access control
+  if (requireAuth && dbUser && allowedRoles.length > 0 && !allowedRoles.includes(dbUser.role)) {
+    return (
+      <AccessDeniedCard
+        userRole={dbUser.role}
+        allowedRoles={allowedRoles}
+        onGoToDashboard={() => router.push('/dashboard')}
+      />
     );
   }
 

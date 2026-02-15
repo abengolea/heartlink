@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,56 +19,45 @@ export function NewRequesterForm() {
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true);
-        console.log('🔍 [NewRequesterForm] Starting form submission...');
         
         try {
             const requesterData = {
                 name: formData.get('name') as string,
                 email: formData.get('email') as string,
                 phone: formData.get('phone') as string,
-                role: 'solicitante', // Fixed role for requesters
                 specialty: formData.get('specialty') as string,
             };
 
-            console.log('🔍 [NewRequesterForm] Form data extracted:', requesterData);
-
-            // Validate required fields
             if (!requesterData.name || !requesterData.email || !requesterData.phone || !requesterData.specialty) {
                 throw new Error('Todos los campos son requeridos');
             }
 
-            console.log('🔍 [NewRequesterForm] Making API call...');
-            const response = await fetch('/api/users', {
+            // Usar invite-solicitante: crea cuenta, envía email para generar contraseña
+            const response = await fetchWithAuth('/api/invite-solicitante', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requesterData),
             });
 
-            console.log('🔍 [NewRequesterForm] API response status:', response.status);
+            const result = await response.json();
 
             if (response.ok) {
-                const result = await response.json();
-                console.log('✅ [NewRequesterForm] Requester created successfully:', result);
                 toast({
-                    title: 'Solicitante creado',
-                    description: 'El médico solicitante ha sido agregado exitosamente.',
+                    title: 'Solicitante invitado',
+                    description: result.message || 'Se envió un email al médico para que genere su contraseña.',
                 });
-                console.log('🔍 [NewRequesterForm] Redirecting to requesters list...');
                 router.push('/dashboard/requesters');
             } else {
-                const errorData = await response.text();
-                console.error('❌ [NewRequesterForm] API Error:', response.status, errorData);
-                throw new Error(`Error ${response.status}: ${errorData}`);
+                throw new Error(result.error || `Error ${response.status}`);
             }
         } catch (error) {
-            console.error('❌ [NewRequesterForm] Error creating requester:', error);
+            console.error('Error creating requester:', error);
             toast({
                 variant: 'destructive',
                 title: 'Error',
                 description: error instanceof Error ? error.message : 'No se pudo crear el solicitante. Intenta nuevamente.',
             });
         } finally {
-            console.log('🔍 [NewRequesterForm] Form submission completed');
             setIsLoading(false);
         }
     }
@@ -77,7 +67,7 @@ export function NewRequesterForm() {
             <CardHeader>
                 <CardTitle>Información del Solicitante</CardTitle>
                 <CardDescription>
-                    Completa los datos del nuevo médico solicitante.
+                    Completa los datos. El médico recibirá un email para generar su contraseña. El teléfono es necesario para enviarle notificaciones por WhatsApp cuando sus estudios estén listos.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -104,7 +94,7 @@ export function NewRequesterForm() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="phone">Teléfono</Label>
+                        <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
                         <Input 
                             id="phone" 
                             name="phone" 

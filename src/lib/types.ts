@@ -137,3 +137,23 @@ export interface Backup {
   usersCount: number;
   status: 'completed' | 'failed' | 'in_progress';
 }
+
+export interface DataDeletionRequest {
+  id: string;
+  metaUserId: string;
+  confirmationCode: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface UserPreferences {
+  userId: string;
+  notifications: {
+    email: boolean;
+    whatsapp: boolean;
+    studyReady: boolean;
+  };
+  language: string;
+  updatedAt: string;
+}

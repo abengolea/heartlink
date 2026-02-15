@@ -4,15 +4,16 @@
 
 ### **📱 PROCESO PASO A PASO:**
 
-1. **🎥 Doctor envía video** → WhatsApp Business
-2. **🤖 Sistema recibe video** → Webhook procesa automáticamente
-3. **💾 Video se sube** → Firebase Storage 
-4. **📝 Sistema responde:** "👤 Completar Paciente:" + lista interactiva
-5. **👤 Doctor selecciona paciente** → Respuesta WhatsApp
-6. **📝 Sistema responde:** "👨‍⚕️ Completar Médico Requirente:" + lista interactiva
-7. **👨‍⚕️ Doctor selecciona médico** → Respuesta WhatsApp
-8. **✅ Estudio creado** → Aparece automáticamente en página estudios
-9. **🔗 Link directo** → Sistema envía enlace al estudio creado
+1. **🔐 Validación:** Solo médicos operadores con licencia mensual activa pueden subir (número vinculado en perfil)
+2. **🎥 Operador envía video** → WhatsApp Business
+3. **🤖 Sistema recibe video** → Webhook valida licencia y procesa
+4. **💾 Video se sube** → Firebase Storage
+5. **📝 Sistema responde:** "👤 Completar Paciente:" + lista (solo pacientes de sus médicos vinculados)
+6. **👤 Operador selecciona paciente** → Respuesta WhatsApp
+7. **📝 Sistema responde:** "👨‍⚕️ Completar Médico Requirente:" + lista (solo médicos vinculados)
+8. **👨‍⚕️ Operador selecciona médico** → Respuesta WhatsApp
+9. **✅ Estudio creado** → Aparece en la plataforma
+10. **📱 Notificación automática** → El médico solicitante recibe por WhatsApp el link público (si tiene teléfono configurado)
 
 ---
 
@@ -127,14 +128,16 @@ Sistema: ✅ ¡Estudio creado exitosamente!
 
 ### **✅ Funcionalidades Implementadas:**
 
+- **🔐 Validación de licencia:** Solo operadores con suscripción activa pueden subir por WhatsApp
+- **📱 Vinculación por teléfono:** El número de WhatsApp del operador debe coincidir con `phone` en su perfil
 - **🎥 Recepción de videos** desde WhatsApp
-- **📤 Subida automática** a Firebase Storage  
-- **📋 Listas interactivas** para selección de pacientes/médicos
+- **📤 Subida automática** a Firebase Storage
+- **📋 Listas filtradas:** Pacientes y médicos según vínculos del operador
 - **🤖 Integración con AI flow** para creación de estudios
-- **🔗 Links directos** al estudio creado
+- **🔗 Link público** generado automáticamente
+- **📲 Notificación al médico solicitante:** Recibe por WhatsApp el link del estudio cuando está listo (requiere `phone` en perfil)
 - **💬 Sistema de comandos** (hola, ayuda, cancelar)
 - **🔄 Gestión de sesiones** por usuario
-- **📱 Respuestas automáticas** con estado del proceso
 
 ### **⚡ Beneficios:**
 
@@ -153,6 +156,20 @@ Sistema: ✅ ¡Estudio creado exitosamente!
 - **📊 Logging completo** de todas las operaciones
 - **⚠️ Manejo de errores** robusto
 - **🧹 Limpieza automática** de sesiones temporales
+
+---
+
+## 📝 CONFIGURACIÓN DE OPERADORES
+
+Para que un médico operador pueda subir estudios por WhatsApp:
+
+1. **Perfil del operador:** El campo `phone` debe coincidir con su número de WhatsApp (ej: `+54 9 336 451-3355`)
+2. **Licencia activa:** Debe tener suscripción mensual activa en la plataforma
+3. **Médicos solicitantes:** Vincular médicos en "Médicos Solicitantes" para que aparezcan en la lista
+
+Para que el médico solicitante reciba la notificación cuando el estudio está listo:
+
+1. **Perfil del médico solicitante:** Debe tener `phone` configurado con su número de WhatsApp
 
 ---
 

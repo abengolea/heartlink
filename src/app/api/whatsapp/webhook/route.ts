@@ -1,81 +1,98 @@
 import { NextResponse } from 'next/server';
+import { parseWebhookPayload } from '@/lib/whatsapp/parseWebhook';
 import { handleWhatsAppMessage } from '@/services/whatsapp-handler';
+import { upsertWhatsAppContact } from '@/lib/firestore/upsertWhatsAppContact';
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const mode = url.searchParams.get('hub.mode');
-  const token = url.searchParams.get('hub.verify_token');
-  const challenge = url.searchParams.get('hub.challenge');
+export const runtime = 'nodejs';
 
-  console.log('🔍 [WhatsApp Webhook] GET verification request:', { mode, token, challenge });
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
-  if (mode === 'subscribe' && token === 'heartlink_webhook_2025') {
-    console.log('✅ [WhatsApp Webhook] Verification successful');
-    return new Response(challenge, { status: 200 });
-  }
-
-  console.log('❌ WhatsApp webhook verification failed');
-  return new Response('Verification failed', { status: 403 });
-}
-
-export async function POST(request: Request) {
-  console.log('🚨 [WhatsApp Webhook] POST REQUEST RECEIVED!!!');
-  console.log('🚨 [WhatsApp Webhook] Headers:', Object.fromEntries(request.headers.entries()));
-  
+/**
+ * GET - Verificación del webhook por Meta
+ * Meta envía hub.mode, hub.verify_token, hub.challenge para validar la URL
+ */
+export async function GET(request: Request): Promise<Response> {
   try {
-    const rawBody = await request.text();
-    console.log('🚨 [WhatsApp Webhook] Raw body received:', rawBody);
-    
-    const body = JSON.parse(rawBody);
-    console.log('🚨 [WhatsApp Webhook] Parsed body:', JSON.stringify(body, null, 2));
+    const url = new URL(request.url);
+    const mode = url.searchParams.get('hub.mode');
+    const token = url.searchParams.get('hub.verify_token');
+    const challenge = url.searchParams.get('hub.challenge');
 
-    // Extract message data from WhatsApp webhook
-    const entry = body.entry?.[0];
-    console.log('🚨 [WhatsApp Webhook] Entry:', JSON.stringify(entry, null, 2));
-    
-    const changes = entry?.changes?.[0];
-    console.log('🚨 [WhatsApp Webhook] Changes:', JSON.stringify(changes, null, 2));
-    
-    const value = changes?.value;
-    console.log('🚨 [WhatsApp Webhook] Value:', JSON.stringify(value, null, 2));
-    
-    const messages = value?.messages;
-    const contacts = value?.contacts;
-
-    console.log('🚨 [WhatsApp Webhook] Messages:', JSON.stringify(messages, null, 2));
-    console.log('🚨 [WhatsApp Webhook] Contacts:', JSON.stringify(contacts, null, 2));
-
-    if (!messages || messages.length === 0) {
-      console.log('📱 [WhatsApp Webhook] No messages in webhook - might be status update');
-      return NextResponse.json({ status: 'ok' });
+    const expectedToken = VERIFY_TOKEN?.trim();
+    if (!expectedToken) {
+      console.error('[WhatsApp Webhook] WHATSAPP_VERIFY_TOKEN no configurado');
+      return new Response('Server misconfiguration', { status: 500 });
     }
 
-    const message = messages[0];
-    const contact = contacts?.[0];
-    
-    console.log('🚨 [WhatsApp Webhook] Processing message:', JSON.stringify(message, null, 2));
-    console.log('🚨 [WhatsApp Webhook] Contact info:', JSON.stringify(contact, null, 2));
+    if (mode === 'subscribe' && token === expectedToken) {
+      return new Response(challenge ?? '', { status: 200 });
+    }
 
-    const whatsappMessage = {
-      messageId: message.id,
-      from: message.from,
-      contactName: contact?.profile?.name || 'Unknown',
-      message: message,
-      timestamp: message.timestamp
+    return new Response('Verification failed', { status: 403 });
+  } catch (error) {
+    console.error('[WhatsApp Webhook] GET error:', error instanceof Error ? error.message : error);
+    return new Response('Verification failed', { status: 403 });
+  }
+}
+
+/**
+ * POST - Recepción de eventos de WhatsApp Cloud API
+ * Responde 200 OK rápidamente (<5s) para evitar que Meta corte la conexión.
+ * El procesamiento se ejecuta en background.
+ */
+export async function POST(request: Request): Promise<Response> {
+  console.log('\n========== [WhatsApp Webhook] POST RECIBIDO ==========');
+  let rawBody: string;
+  try {
+    rawBody = await request.text();
+  } catch (error) {
+    console.error('[WhatsApp Webhook] Error reading body:', error instanceof Error ? error.message : error);
+    return NextResponse.json({ status: 'error' }, { status: 200 });
+  }
+
+  let body: unknown;
+  try {
+    body = JSON.parse(rawBody) as unknown;
+  } catch {
+    console.error('[WhatsApp Webhook] Invalid JSON payload');
+    return NextResponse.json({ status: 'ok' }, { status: 200 });
+  }
+
+  const parsed = parseWebhookPayload(body);
+
+  if (!parsed) {
+    const v = (body as { entry?: { changes?: { value?: { messages?: unknown; statuses?: unknown } }[] }[] })?.entry?.[0]?.changes?.[0]?.value;
+    console.log('[WhatsApp Webhook] Payload sin mensaje procesable', {
+      hasMessages: !!v?.messages,
+      hasStatuses: !!v?.statuses,
+    });
+  }
+
+  if (parsed) {
+    console.log('[WhatsApp Webhook] Message received', {
+      userPhone: parsed.userPhone,
+      messageId: parsed.messageId,
+      messageType: parsed.messageType,
+      messagePreview: parsed.message.slice(0, 50),
+      hasVideo: !!(parsed.rawMessage as { video?: unknown })?.video,
+    });
+
+    // Procesamiento en background - NO await para responder 200 rápido
+    const contactName = parsed.contactName ?? 'Unknown';
+    const handlerPayload = {
+      messageId: parsed.messageId,
+      from: parsed.userPhone,
+      contactName,
+      message: parsed.rawMessage,
+      timestamp: String(parsed.timestamp),
     };
 
-    console.log('🚨 [WhatsApp Webhook] Calling handleWhatsAppMessage with:', JSON.stringify(whatsappMessage, null, 2));
-
-    await handleWhatsAppMessage(whatsappMessage);
-    
-    console.log('✅ [WhatsApp Webhook] Message processed successfully');
-    return NextResponse.json({ status: 'ok' });
-
-  } catch (error) {
-    console.error('❌ [WhatsApp Webhook] Error processing webhook:', error);
-    console.error('❌ [WhatsApp Webhook] Error stack:', error instanceof Error ? error.stack : 'No stack');
-    
-    // Always return 200 to prevent Meta from retrying
-    return NextResponse.json({ status: 'error', message: 'Internal error' }, { status: 200 });
+    void upsertWhatsAppContact(parsed.userPhone).catch(() => {});
+    void handleWhatsAppMessage(handlerPayload).catch((err) => {
+      console.error('[WhatsApp Webhook] Handler error:', err instanceof Error ? err.message : err);
+    });
   }
+  // status updates, delivery receipts, etc. → no loguear, solo 200
+
+  return NextResponse.json({ status: 'ok' }, { status: 200 });
 }

@@ -1,7 +1,7 @@
 
 'use server';
 
-import { studyUploadFlow, StudyUploadFlowInput } from '@/ai/flows/study-upload-flow';
+import { processStudyUpload, StudyUploadFlowInput } from '@/ai/flows/study-upload-flow';
 import { getSignedUploadUrl, getPublicUrl } from '@/services/firebase';
 import { z } from 'zod';
 
@@ -90,8 +90,8 @@ export async function uploadStudy(
         description,
     };
 
-    console.log('[uploadStudy] Calling AI flow...');
-    const result = await studyUploadFlow(input);
+    console.log('[uploadStudy] Processing study...');
+    const result = await processStudyUpload(input);
 
     console.log('[uploadStudy] Successfully completed');
     return {

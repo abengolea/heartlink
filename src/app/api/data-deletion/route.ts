@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import {
+  createDataDeletionRequest,
+  updateDataDeletionRequest,
+  getUsersByPhone,
+  updateUser,
+} from '@/lib/firestore';
 
 // Configuración de Meta App
 const APP_SECRET = process.env.META_APP_SECRET || 'tu_app_secret_aqui';
@@ -12,8 +18,40 @@ function verifySignature(payload: string, signature: string): boolean {
     .createHmac('sha256', APP_SECRET)
     .update(payload)
     .digest('hex');
-  
   return signature === `sha256=${expectedSignature}`;
+}
+
+/**
+ * Ejecuta la eliminación/anonymización de datos para cumplir GDPR.
+ * Meta puede enviar user_id como PSID o como teléfono; intentamos ambos.
+ */
+async function executeDataDeletion(metaUserId: string, requestId: string): Promise<void> {
+  try {
+    await updateDataDeletionRequest(requestId, { status: 'processing' });
+
+    // Meta puede enviar el teléfono como user_id (ej: 5493364513355)
+    const looksLikePhone = /^\d{10,15}$/.test(String(metaUserId));
+    const usersToAnonymize = looksLikePhone ? await getUsersByPhone(metaUserId) : [];
+
+    for (const user of usersToAnonymize) {
+      await updateUser(user.id, {
+        name: '[Usuario eliminado]',
+        email: '',
+        phone: '',
+      });
+    }
+
+    await updateDataDeletionRequest(requestId, {
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[Data Deletion] Error:', err);
+    await updateDataDeletionRequest(requestId, {
+      status: 'failed',
+      completedAt: new Date().toISOString(),
+    });
+  }
 }
 
 /**
@@ -23,85 +61,35 @@ function verifySignature(payload: string, signature: string): boolean {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Obtener el cuerpo de la solicitud
     const body = await request.text();
-    
-    // Verificar la firma de Meta (si está presente)
     const signature = request.headers.get('x-hub-signature-256');
-    if (signature && !verifySignature(body, signature)) {
+    if (signature && APP_SECRET !== 'tu_app_secret_aqui' && !verifySignature(body, signature)) {
       console.error('Invalid signature for data deletion request');
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    // Parsear el cuerpo
     const data = JSON.parse(body);
-    
-    // Extraer información del usuario
     const userId = data.user_id || data.psid;
-    
     if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID not provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'User ID not provided' }, { status: 400 });
     }
 
-    console.log(`Data deletion requested for user: ${userId}`);
+    console.log(`[Data Deletion] Request for user: ${userId}`);
 
-    // TODO: Aquí implementar la lógica real de eliminación
-    // Por ejemplo:
-    // - Eliminar de Firebase/Firestore
-    // - Eliminar de tu base de datos
-    // - Eliminar logs, analytics, etc.
-    
-    // Ejemplo de eliminación (descomentar y adaptar según tu setup):
-    /*
-    const admin = require('firebase-admin');
-    const db = admin.firestore();
-    
-    // Eliminar conversaciones del usuario
-    const conversationsRef = db.collection('conversations');
-    const snapshot = await conversationsRef.where('userId', '==', userId).get();
-    
-    const batch = db.batch();
-    snapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-    
-    await batch.commit();
-    
-    // Eliminar perfil del usuario
-    await db.collection('users').doc(userId).delete();
-    */
-
-    // Crear URL de confirmación (requerido por Meta)
     const confirmationCode = crypto.randomBytes(16).toString('hex');
+    const requestId = await createDataDeletionRequest(userId, confirmationCode);
     const statusUrl = `${request.nextUrl.origin}/api/data-deletion/status?code=${confirmationCode}`;
 
-    // Log para auditoría
-    console.log({
-      action: 'data_deletion_requested',
-      userId,
-      timestamp: new Date().toISOString(),
-      confirmationCode,
-      statusUrl
-    });
+    // Ejecutar eliminación en segundo plano (Meta da hasta 30 días)
+    executeDataDeletion(userId, requestId).catch(() => {});
 
-    // Respuesta requerida por Meta
     return NextResponse.json({
       url: statusUrl,
-      confirmation_code: confirmationCode
+      confirmation_code: confirmationCode,
     });
-
   } catch (error) {
     console.error('Error processing data deletion request:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,12 +22,16 @@ export function NewDoctorForm() {
         console.log('🔍 [NewDoctorForm] Starting form submission...');
         
         try {
-            const doctorData = {
+            const role = formData.get('role') as string;
+            const specialty = formData.get('specialty') as string;
+            const doctorData: Record<string, string> = {
                 name: formData.get('name') as string,
                 email: formData.get('email') as string,
                 phone: formData.get('phone') as string,
-                role: formData.get('role') as string,
+                role,
+                status: 'active',
             };
+            if (specialty) doctorData.specialty = specialty;
 
             console.log('🔍 [NewDoctorForm] Form data extracted:', doctorData);
 
@@ -36,7 +41,7 @@ export function NewDoctorForm() {
             }
 
             console.log('🔍 [NewDoctorForm] Making API call...');
-            const response = await fetch('/api/users', {
+            const response = await fetchWithAuth('/api/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(doctorData),
@@ -76,7 +81,7 @@ export function NewDoctorForm() {
             <CardHeader>
                 <CardTitle>Información del Médico</CardTitle>
                 <CardDescription>
-                    Completa los datos del nuevo médico.
+                    Completa los datos del nuevo médico. El teléfono (WhatsApp) es obligatorio para operadores (subir estudios) y solicitantes (recibir notificaciones).
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -103,7 +108,7 @@ export function NewDoctorForm() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="phone">Teléfono</Label>
+                        <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
                         <Input 
                             id="phone" 
                             name="phone" 
@@ -114,10 +119,23 @@ export function NewDoctorForm() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="role">Especialidad</Label>
+                        <Label htmlFor="role">Tipo de médico</Label>
                         <Select name="role" required>
                             <SelectTrigger>
-                                <SelectValue placeholder="Seleccionar especialidad" />
+                                <SelectValue placeholder="Seleccionar tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="operator">Operador (realiza estudios)</SelectItem>
+                                <SelectItem value="solicitante">Solicitante (pide estudios)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="specialty">Especialidad</Label>
+                        <Select name="specialty">
+                            <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar especialidad (opcional)" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Cardiólogo">Cardiólogo</SelectItem>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generate } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 
 export async function POST(request: Request) {
   console.log('🤖 [IMPROVE-TRANSCRIPTION] Starting text improvement...');
@@ -35,16 +35,16 @@ Transcripción original:
 
 Proporciona solo el texto mejorado, sin explicaciones adicionales:`;
 
-    const result = await generate({
-      model: 'googleai/gemini-1.5-flash',
+    const result = await ai.generate({
+      model: 'googleai/gemini-2.0-flash',
       prompt: prompt,
       config: {
-        temperature: 0.3, // Lower temperature for more consistent results
+        temperature: 0.3,
         maxOutputTokens: 2048
       }
     });
     
-    const improvedText = result.text();
+    const improvedText = result.text ?? '';
     
     console.log('✅ [IMPROVE-TRANSCRIPTION] Text improved successfully');
     console.log('🔍 [IMPROVE-TRANSCRIPTION] Original length:', transcription.length);

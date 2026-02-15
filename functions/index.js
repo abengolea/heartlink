@@ -1,32 +1,40 @@
 /**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * Firebase Cloud Functions - HeartLink
+ * Incluye cron programado para procesar suscripciones vencidas.
  */
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
 setGlobalOptions({ maxInstances: 10 });
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+const APP_URL = process.env.APP_URL || "https://heartlink--heartlink-f4ftq.us-central1.hosted.app";
+const CRON_SECRET = process.env.CRON_SECRET_TOKEN || "heartlink-cron-2025";
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+/**
+ * Cron diario: procesa suscripciones vencidas (bloquea acceso tras período de gracia).
+ * Se ejecuta todos los días a las 03:00 UTC.
+ */
+exports.processSubscriptionsCron = onSchedule(
+  {
+    schedule: "0 3 * * *", // 03:00 UTC diario (crontab: min hora día mes día-semana)
+    timeZone: "UTC",
+  },
+  async () => {
+    logger.info("[Cron] processSubscriptionsCron started");
+    try {
+      const res = await fetch(`${APP_URL}/api/cron/process-subscriptions`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${CRON_SECRET}`,
+        },
+      });
+      const data = await res.json();
+      logger.info("[Cron] processSubscriptionsCron result", data);
+    } catch (err) {
+      logger.error("[Cron] processSubscriptionsCron failed", err);
+      throw err;
+    }
+  }
+);

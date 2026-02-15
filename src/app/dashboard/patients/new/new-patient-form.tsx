@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -17,29 +19,37 @@ interface User {
     role: string;
 }
 
+/** Regla: médico solicitante y operador pueden registrar pacientes.
+ * - Operador: debe indicar a qué médico solicitante corresponde el paciente.
+ * - Solicitante: no indica operador (el vínculo ya existe entre médicos). */
 export function NewPatientForm() {
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const { dbUser } = useAuth();
 
-    // Load users for requesters dropdown
+    const isSolicitante = dbUser?.role === 'medico_solicitante' || dbUser?.role === 'solicitante';
+    const isOperadorOAdmin = dbUser?.role === 'medico_operador' || dbUser?.role === 'operator' || dbUser?.role === 'admin';
+
+    // Solo operadores y admin cargan la lista de médicos solicitantes (para indicar a quién corresponde el paciente)
     useEffect(() => {
+        if (!isOperadorOAdmin) {
+            setIsLoading(false);
+            return;
+        }
         async function loadUsers() {
             try {
-                console.log('🔍 [NewPatientForm] Loading users...');
-                const response = await fetch('/api/users');
-                
+                const response = await fetchWithAuth('/api/operators/me/doctors');
                 if (response.ok) {
                     const usersData = await response.json();
-                    console.log('✅ [NewPatientForm] Users loaded:', usersData.length);
                     setUsers(usersData);
                 } else {
-                    throw new Error('Error al cargar usuarios');
+                    throw new Error('Error al cargar médicos');
                 }
             } catch (error) {
-                console.error('❌ [NewPatientForm] Error loading users:', error);
+                console.error('Error loading doctors:', error);
                 toast({
                     variant: 'destructive',
                     title: 'Error',
@@ -50,25 +60,30 @@ export function NewPatientForm() {
             }
         }
         loadUsers();
-    }, [toast]);
+    }, [toast, isOperadorOAdmin]);
 
     async function handleSubmit(formData: FormData) {
         setIsSaving(true);
         
         try {
+            // Solicitante: requesterId = él mismo. Operador/Admin: del selector.
+            const requesterId = isSolicitante && dbUser?.id
+                ? dbUser.id
+                : (formData.get('requesterId') as string);
+
             const patientData = {
                 name: formData.get('name') as string,
                 dni: formData.get('dni') as string || undefined, // Opcional
                 dob: formData.get('dob') as string || undefined, // Opcional
                 phone: formData.get('phone') as string,
                 email: formData.get('email') as string || undefined, // Opcional
-                requesterId: formData.get('requesterId') as string,
+                requesterId,
                 status: 'active'
             };
 
             console.log('💾 [NewPatientForm] Creating patient:', patientData);
 
-            const response = await fetch('/api/patients', {
+            const response = await fetchWithAuth('/api/patients', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -98,7 +113,8 @@ export function NewPatientForm() {
         }
     }
 
-    if (isLoading) {
+    // Esperar a tener usuario para saber el rol; operadores además cargan la lista de médicos
+    if (!dbUser || isLoading) {
         return (
             <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
@@ -109,8 +125,7 @@ export function NewPatientForm() {
         );
     }
 
-    // Solo médicos solicitantes
-    const requesters = users.filter(u => u.role === 'solicitante' || u.role === 'medico_solicitante');
+    const requesters = users;
 
     return (
         <Card>
@@ -179,26 +194,36 @@ export function NewPatientForm() {
                         />
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="requesterId">Médico Solicitante *</Label>
-                        <Select name="requesterId" required>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleccionar médico solicitante" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {requesters.map(requester => (
-                                    <SelectItem key={requester.id} value={requester.id}>
-                                        {requester.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {requesters.length === 0 && (
-                            <p className="text-xs text-muted-foreground text-amber-600">
-                                No hay médicos solicitantes disponibles. Crea uno primero.
+                    {isOperadorOAdmin && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="requesterId">Médico Solicitante *</Label>
+                            <p className="text-xs text-muted-foreground">
+                                Indica a qué médico solicitante corresponde este paciente.
                             </p>
-                        )}
-                    </div>
+                            <Select name="requesterId" required={isOperadorOAdmin}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleccionar médico solicitante" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {requesters.map(requester => (
+                                        <SelectItem key={requester.id} value={requester.id}>
+                                            {requester.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {requesters.length === 0 && (
+                                <p className="text-xs text-muted-foreground text-amber-600">
+                                    No hay médicos solicitantes disponibles. Crea uno primero.
+                                </p>
+                            )}
+                        </div>
+                    )}
+                    {isSolicitante && (
+                        <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                            El paciente se asignará automáticamente a tu perfil (médico solicitante).
+                        </div>
+                    )}
 
                     <div className="flex justify-between">
                         <Button variant="outline" asChild>

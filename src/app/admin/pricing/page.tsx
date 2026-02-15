@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,7 +61,7 @@ export default function AdminPricingPage() {
   const loadPricingConfig = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/pricing');
+      const response = await fetchWithAuth('/api/admin/pricing');
       if (response.ok) {
         const data = await response.json();
         setPricing(data);
@@ -77,7 +78,7 @@ export default function AdminPricingPage() {
   const savePricingConfig = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/admin/pricing', {
+      const response = await fetchWithAuth('/api/admin/pricing', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

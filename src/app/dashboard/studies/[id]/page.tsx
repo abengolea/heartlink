@@ -1,18 +1,14 @@
-
-import { getAllPatients, getAllUsers } from "@/lib/firestore";
+import { getAllPatients, getAllUsers, getPatientById, getUserById } from "@/lib/firestore";
 import { getStudyById } from "@/lib/firestore";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { MessageSquare, Send, Video } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Video } from "lucide-react";
 import VideoPlayer from "./video-player";
 import ShareButton from "./share-button";
+import CommentsPanel from "./comments-panel";
 
 export default async function StudyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -26,31 +22,41 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
         getAllPatients(),
         getAllUsers()
     ]);
-    
-    const patient = patients.find(p => p.id === study.patientId);
-    const requester = users.find(u => u.id === patient?.requesterId);
+
+    // patientId puede ser string o objeto (estudios antiguos)
+    const patientIdRaw = study.patientId;
+    let patient = null;
+    if (typeof patientIdRaw === 'object' && patientIdRaw !== null && 'name' in patientIdRaw) {
+        patient = patientIdRaw as { id: string; name?: string; dni?: string; requesterId?: string };
+    } else {
+        const pid = typeof patientIdRaw === 'string' ? patientIdRaw : (patientIdRaw as { id?: string })?.id;
+        patient = pid ? (patients.find(p => p.id === pid) ?? await getPatientById(pid)) : null;
+    }
+    const requesterIdRaw = patient?.requesterId;
+    const requesterId = typeof requesterIdRaw === 'string' ? requesterIdRaw : (requesterIdRaw as { id?: string })?.id;
+    const requester = requesterId ? (users.find(u => u.id === requesterId) ?? await getUserById(requesterId)) : null;
 
     return (
-        <div className="mx-auto grid w-full max-w-6xl gap-6">
-            <div className="flex-1">
-                <h1 className="font-semibold text-2xl md:text-3xl">Detalle del Estudio</h1>
-                <p className="text-muted-foreground">Paciente: {patient?.name || 'Desconocido'}</p>
+        <div className="mx-auto grid w-full max-w-6xl gap-6 min-w-0 px-2 sm:px-0">
+            <div className="flex-1 min-w-0">
+                <h1 className="font-semibold text-xl sm:text-2xl md:text-3xl">Detalle del Estudio</h1>
+                <p className="text-muted-foreground text-sm truncate">Paciente: {patient?.name || 'Desconocido'}</p>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2 grid gap-6">
+            <div className="grid gap-6 lg:grid-cols-3 min-w-0">
+                <div className="lg:col-span-2 grid gap-6 min-w-0">
                     <Card>
                          <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Video className="h-5 w-5"/> Video del Estudio
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                        <Video className="h-5 w-5 shrink-0"/> Video del Estudio
                                     </CardTitle>
-                                    <CardDescription>
+                                    <CardDescription className="text-xs sm:text-sm truncate">
                                         Fecha: {format(parseISO(study.date), "PPP p", { locale: es })}
                                     </CardDescription>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 shrink-0">
                                      {study.isUrgent ? (
                                         <Badge variant="destructive" className="w-fit">Urgente</Badge>
                                     ) : (
@@ -65,62 +71,10 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                     </Card>
                     
 
-                    <Card>
-                        <CardHeader>
-                           <CardTitle className="flex items-center gap-2">
-                                <MessageSquare className="h-5 w-5" /> Notas Internas
-                            </CardTitle>
-                            <CardDescription>
-                                Comentarios entre el médico operador y el solicitante.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                           <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
-                             {study.comments.length > 0 ? (
-                                study.comments.map(comment => (
-                                    <div key={comment.id} className="flex items-start gap-3">
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <Avatar>
-                                                        <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
-                                                    </Avatar>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>{comment.userName}</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between">
-                                                <p className="font-semibold text-sm">{comment.userName} <span className="text-xs font-normal text-muted-foreground ml-1">{comment.role === 'operator' ? 'Operador' : 'Solicitante'}</span></p>
-                                                <p className="text-xs text-muted-foreground">{format(parseISO(comment.timestamp), "p, PPP", { locale: es })}</p>
-                                            </div>
-                                            <div className="p-3 bg-muted/50 rounded-lg mt-1">
-                                                <p className="text-sm">{comment.text}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                             ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">No hay comentarios en este estudio.</p>
-                             )}
-                           </div>
-                           <div className="flex items-start gap-3 pt-4 border-t">
-                                <Avatar>
-                                    <AvatarFallback>U</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 grid gap-2">
-                                     <Textarea placeholder="Escribe un comentario..."/>
-                                     <Button size="sm" className="ml-auto w-fit">
-                                        <Send className="mr-2 h-4 w-4"/>
-                                        Enviar
-                                     </Button>
-                                </div>
-                           </div>
-                        </CardContent>
-                    </Card>
+                    <CommentsPanel
+                        studyId={study.id}
+                        initialComments={study.comments ?? []}
+                    />
                 </div>
                 <div className="lg:col-span-1 grid gap-6 content-start">
                      <Card>
@@ -130,19 +84,19 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                         <CardContent className="grid gap-4 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Paciente</span>
-                                <span>{patient?.name}</span>
+                                <span>{patient?.name || 'Desconocido'}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">DNI</span>
-                                <span className="font-mono">{patient?.dni}</span>
+                                <span className="font-mono">{patient?.dni || '—'}</span>
                             </div>
                              <div className="flex justify-between">
                                 <span className="text-muted-foreground">Médico Solicitante</span>
-                                <span>{requester?.name || 'Dr. Solicitante'}</span>
+                                <span>{requester?.name || 'Desconocido'}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Especialidad</span>
-                                <span>{requester?.specialty || 'Cardiología'}</span>
+                                <span>{requester?.specialty || '—'}</span>
                             </div>
                         </CardContent>
                     </Card>

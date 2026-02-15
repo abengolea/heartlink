@@ -1,6 +1,7 @@
+import { randomBytes } from 'crypto';
 import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
 import { getFirestore } from 'firebase-admin/firestore';
-import type { Study, Patient, User, Subscription, PaymentRecord } from './types';
+import type { Study, StudyComment, Patient, User, Subscription, PaymentRecord, DataDeletionRequest, UserPreferences } from './types';
 
 // Initialize Firestore with Firebase Admin
 function getFirestoreAdmin() {
@@ -83,6 +84,26 @@ export async function getAllStudies(): Promise<Study[]> {
   }
 }
 
+/** Genera o obtiene el shareToken y URL pública de un estudio (para notificaciones WhatsApp, etc.) */
+export async function generateOrGetShareTokenAndUrl(studyId: string): Promise<{ shareToken: string; publicUrl: string }> {
+  const study = await getStudyById(studyId);
+  if (!study) throw new Error('Estudio no encontrado');
+
+  let shareToken = study.shareToken;
+  if (!shareToken) {
+    shareToken = randomBytes(32).toString('hex');
+    await updateStudy(studyId, { shareToken });
+  }
+
+  const PRODUCTION_URL = 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app';
+  const baseUrl = process.env.NEXT_PUBLIC_PUBLIC_SHARE_BASE_URL || PRODUCTION_URL;
+  const base = `${baseUrl.replace(/\/$/, '')}/public/study/${studyId}`;
+  const searchParams = new URLSearchParams({ token: shareToken });
+  const publicUrl = `${base}?${searchParams.toString()}`;
+
+  return { shareToken, publicUrl };
+}
+
 // Update study in Firestore
 export async function updateStudy(id: string, studyData: Partial<Study>): Promise<void> {
   console.log('🔄 [Firestore] Updating study:', id);
@@ -99,6 +120,40 @@ export async function updateStudy(id: string, studyData: Partial<Study>): Promis
   } catch (error) {
     console.error('❌ [Firestore] Error updating study:', error);
     throw new Error(`Failed to update study in Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Add comment to study
+export async function addCommentToStudy(studyId: string, comment: Omit<StudyComment, 'id' | 'timestamp'>): Promise<void> {
+  console.log('💬 [Firestore] Adding comment to study:', studyId);
+  
+  try {
+    const db = getFirestoreAdmin();
+    const studyRef = db.collection('studies').doc(studyId);
+    const studyDoc = await studyRef.get();
+    
+    if (!studyDoc.exists) {
+      throw new Error('Study not found');
+    }
+    
+    const study = studyDoc.data() as Study;
+    const existingComments: StudyComment[] = study.comments || [];
+    
+    const newComment: StudyComment = {
+      ...comment,
+      id: `c${Date.now()}`,
+      timestamp: new Date().toISOString(),
+    };
+    
+    await studyRef.update({
+      comments: [...existingComments, newComment],
+      updatedAt: new Date()
+    });
+    
+    console.log('✅ [Firestore] Comment added to study:', studyId);
+  } catch (error) {
+    console.error('❌ [Firestore] Error adding comment:', error);
+    throw new Error(`Failed to add comment: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -269,6 +324,40 @@ export async function getUserById(id: string): Promise<User | null> {
   }
 }
 
+/** Normaliza número de teléfono para comparación (solo dígitos) */
+function normalizePhoneForMatch(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+/**
+ * Busca un operador (medico_operador/operator) por su número de WhatsApp.
+ * El número debe estar guardado en User.phone o User (campo whatsappPhone si se agrega).
+ * Usado para validar que quien envía videos por WhatsApp tiene licencia activa.
+ */
+export async function getOperatorByWhatsAppPhone(whatsappPhone: string): Promise<User | null> {
+  const normalized = normalizePhoneForMatch(whatsappPhone);
+  if (!normalized || normalized.length < 10) return null;
+
+  try {
+    const db = getFirestoreAdmin();
+    const usersSnapshot = await db.collection('users')
+      .where('role', 'in', ['operator', 'medico_operador', 'admin'])
+      .get();
+
+    for (const doc of usersSnapshot.docs) {
+      const data = doc.data();
+      const userPhone = data.phone || data.whatsappPhone || '';
+      if (userPhone && normalizePhoneForMatch(userPhone) === normalized) {
+        return { id: doc.id, ...data } as User;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting operator by WhatsApp phone:', error);
+    return null;
+  }
+}
+
 // Get user by email from Firestore
 export async function getUserByEmail(email: string): Promise<User | null> {
   console.log('📧 [Firestore] Getting user by email:', email);
@@ -316,6 +405,84 @@ export async function updateUser(id: string, userData: Partial<User>): Promise<v
   } catch (error) {
     console.error('❌ [Firestore] Error updating user:', error);
     throw new Error(`Failed to update user in Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Operator-Doctor relationship: médicos solicitantes con los que trabaja cada operador
+export async function getDoctorsByOperator(operatorId: string): Promise<User[]> {
+  try {
+    const db = getFirestoreAdmin();
+    const linksSnapshot = await db.collection('operator_doctors')
+      .where('operatorId', '==', operatorId)
+      .get();
+
+    if (linksSnapshot.empty) return [];
+
+    const requesterIds = linksSnapshot.docs.map(d => d.data().requesterId);
+    const users: User[] = [];
+    for (const rid of requesterIds) {
+      const user = await getUserById(rid);
+      if (user) users.push(user);
+    }
+    return users.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting operator doctors:', error);
+    return [];
+  }
+}
+
+export async function addDoctorToOperator(operatorId: string, requesterId: string): Promise<void> {
+  try {
+    const db = getFirestoreAdmin();
+    const docId = `${operatorId}_${requesterId}`;
+    const docRef = db.collection('operator_doctors').doc(docId);
+    const existing = await docRef.get();
+    if (existing.exists) return; // ya existe
+
+    await docRef.set({
+      operatorId,
+      requesterId,
+      createdAt: new Date(),
+    });
+    console.log('✅ [Firestore] Doctor added to operator:', operatorId, requesterId);
+  } catch (error) {
+    console.error('❌ [Firestore] Error adding doctor to operator:', error);
+    throw new Error(`Failed to add doctor: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+export async function removeDoctorFromOperator(operatorId: string, requesterId: string): Promise<void> {
+  try {
+    const db = getFirestoreAdmin();
+    const docId = `${operatorId}_${requesterId}`;
+    await db.collection('operator_doctors').doc(docId).delete();
+    console.log('✅ [Firestore] Doctor removed from operator:', operatorId, requesterId);
+  } catch (error) {
+    console.error('❌ [Firestore] Error removing doctor from operator:', error);
+    throw new Error(`Failed to remove doctor: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/** Operadores (médicos que realizan estudios) con los que trabaja un médico solicitante */
+export async function getOperatorsByRequester(requesterId: string): Promise<User[]> {
+  try {
+    const db = getFirestoreAdmin();
+    const linksSnapshot = await db.collection('operator_doctors')
+      .where('requesterId', '==', requesterId)
+      .get();
+
+    if (linksSnapshot.empty) return [];
+
+    const operatorIds = linksSnapshot.docs.map(d => d.data().operatorId);
+    const users: User[] = [];
+    for (const oid of operatorIds) {
+      const user = await getUserById(oid);
+      if (user) users.push(user);
+    }
+    return users.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting operators by requester:', error);
+    return [];
   }
 }
 
@@ -586,4 +753,93 @@ export async function getExpiredSubscriptions(): Promise<Subscription[]> {
     console.error('❌ [Firestore] Error getting expired subscriptions:', error);
     throw new Error(`Failed to get expired subscriptions: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+// ========================================
+// DATA DELETION (GDPR / Meta)
+// ========================================
+
+export async function createDataDeletionRequest(metaUserId: string, confirmationCode: string): Promise<string> {
+  const db = getFirestoreAdmin();
+  const docRef = await db.collection('data_deletion_requests').add({
+    metaUserId,
+    confirmationCode,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  });
+  return docRef.id;
+}
+
+export async function getDataDeletionRequestByCode(code: string): Promise<DataDeletionRequest | null> {
+  const db = getFirestoreAdmin();
+  const snapshot = await db.collection('data_deletion_requests')
+    .where('confirmationCode', '==', code)
+    .limit(1)
+    .get();
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return { id: doc.id, ...doc.data() } as DataDeletionRequest;
+}
+
+export async function updateDataDeletionRequest(id: string, data: Partial<DataDeletionRequest>): Promise<void> {
+  const db = getFirestoreAdmin();
+  await db.collection('data_deletion_requests').doc(id).update(data);
+}
+
+/** Busca usuarios por teléfono normalizado (para GDPR - Meta puede enviar phone como user_id) */
+export async function getUsersByPhone(phone: string): Promise<User[]> {
+  const normalized = normalizePhoneForMatch(phone);
+  if (!normalized || normalized.length < 10) return [];
+  const db = getFirestoreAdmin();
+  const usersSnapshot = await db.collection('users').get();
+  const matches: User[] = [];
+  usersSnapshot.forEach((doc) => {
+    const data = doc.data();
+    const userPhone = data.phone || data.whatsappPhone || '';
+    if (userPhone && normalizePhoneForMatch(userPhone) === normalized) {
+      matches.push({ id: doc.id, ...data } as User);
+    }
+  });
+  return matches;
+}
+
+/** Registra contacto de WhatsApp para mapeo GDPR (phone puede coincidir con user_id de Meta) */
+export async function upsertWhatsAppContact(phone: string): Promise<void> {
+  const db = getFirestoreAdmin();
+  const normalized = normalizePhoneForMatch(phone);
+  if (!normalized) return;
+  const docId = `wa_${normalized}`;
+  await db.collection('whatsapp_contacts').doc(docId).set({
+    phone: normalized,
+    lastReceivedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }, { merge: true });
+}
+
+// ========================================
+// USER PREFERENCES
+// ========================================
+
+export async function getUserPreferences(userId: string): Promise<UserPreferences | null> {
+  const db = getFirestoreAdmin();
+  const doc = await db.collection('user_preferences').doc(userId).get();
+  if (!doc.exists) return null;
+  return { userId: doc.id, ...doc.data() } as UserPreferences;
+}
+
+export async function setUserPreferences(userId: string, prefs: Partial<Omit<UserPreferences, 'userId' | 'updatedAt'>>): Promise<void> {
+  const db = getFirestoreAdmin();
+  const existing = await getUserPreferences(userId);
+  const defaults: Omit<UserPreferences, 'userId' | 'updatedAt'> = {
+    notifications: { email: true, whatsapp: false, studyReady: true },
+    language: 'es',
+  };
+  const merged = {
+    ...defaults,
+    ...(existing ? { notifications: existing.notifications, language: existing.language } : {}),
+    ...prefs,
+    notifications: { ...defaults.notifications, ...existing?.notifications, ...prefs?.notifications },
+    updatedAt: new Date().toISOString(),
+  };
+  await db.collection('user_preferences').doc(userId).set({ userId, ...merged }, { merge: true });
 }

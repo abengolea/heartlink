@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -26,6 +28,9 @@ interface User {
     role: string;
 }
 
+/** Regla: médico solicitante y operador pueden editar pacientes.
+ * - Operador: puede cambiar a qué médico solicitante corresponde.
+ * - Solicitante: el paciente ya está vinculado a él (no muestra selector). */
 export function EditPatientForm({ patientId }: { patientId: string }) {
     const [patient, setPatient] = useState<Patient | null>(null);
     const [users, setUsers] = useState<User[]>([]);
@@ -33,36 +38,29 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
     const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const { dbUser } = useAuth();
 
-    // Load patient and users data
+    const isSolicitante = dbUser?.role === 'medico_solicitante' || dbUser?.role === 'solicitante';
+    const isOperadorOAdmin = dbUser?.role === 'medico_operador' || dbUser?.role === 'operator' || dbUser?.role === 'admin';
+
+    // Cargar paciente; solo operadores/admin cargan la lista de médicos para el selector
     useEffect(() => {
         async function loadData() {
             try {
-                console.log('🔍 [EditPatientForm] Loading patient and users:', patientId);
-                const [patientsResponse, usersResponse] = await Promise.all([
-                    fetch('/api/patients'),
-                    fetch('/api/users')
-                ]);
-                
-                if (patientsResponse.ok && usersResponse.ok) {
-                    const [patients, usersData] = await Promise.all([
-                        patientsResponse.json(),
-                        usersResponse.json()
-                    ]);
-                    
-                    const foundPatient = patients.find((p: Patient) => p.id === patientId);
-                    if (foundPatient) {
-                        console.log('✅ [EditPatientForm] Patient loaded:', foundPatient);
-                        setPatient(foundPatient);
+                const patientRes = await fetchWithAuth(`/api/patients/${patientId}`);
+                if (!patientRes.ok) throw new Error('Error al cargar paciente');
+                const foundPatient = await patientRes.json();
+                setPatient(foundPatient);
+
+                if (isOperadorOAdmin) {
+                    const doctorsRes = await fetchWithAuth('/api/operators/me/doctors');
+                    if (doctorsRes.ok) {
+                        const usersData = await doctorsRes.json();
                         setUsers(usersData);
-                    } else {
-                        throw new Error('Paciente no encontrado');
                     }
-                } else {
-                    throw new Error('Error al cargar datos');
                 }
             } catch (error) {
-                console.error('❌ [EditPatientForm] Error loading data:', error);
+                console.error('Error loading data:', error);
                 toast({
                     variant: 'destructive',
                     title: 'Error',
@@ -73,7 +71,7 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
             }
         }
         loadData();
-    }, [patientId, toast]);
+    }, [patientId, toast, isOperadorOAdmin]);
 
     async function handleSubmit(formData: FormData) {
         if (!patient) return;
@@ -81,17 +79,22 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
         setIsSaving(true);
         
         try {
+            // Solicitante: mantiene requesterId actual (él mismo). Operador/Admin: del selector.
+            const requesterId = isSolicitante && dbUser?.id
+                ? dbUser.id
+                : (formData.get('requesterId') as string);
+
             const patientData = {
                 name: formData.get('name') as string,
                 dni: formData.get('dni') as string || undefined, // Permitir vacío
                 dob: formData.get('dob') as string || undefined, // Permitir vacío
-                requesterId: formData.get('requesterId') as string,
+                requesterId,
                 status: 'active' // Mantener estado activo
             };
 
             console.log('💾 [EditPatientForm] Updating patient:', patientData);
 
-            const response = await fetch(`/api/patients/${patientId}`, {
+            const response = await fetchWithAuth(`/api/patients/${patientId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -151,8 +154,7 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
         );
     }
 
-    // Solo médicos solicitantes para el campo requesterId
-    const requesters = users.filter(u => u.role === 'solicitante' || u.role === 'medico_solicitante');
+    const requesters = users;
 
     return (
         <Card>
@@ -201,21 +203,31 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
                         </p>
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="requesterId">Médico Solicitante *</Label>
-                        <Select name="requesterId" defaultValue={patient.requesterId} required>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleccionar médico solicitante" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {requesters.map(requester => (
-                                    <SelectItem key={requester.id} value={requester.id}>
-                                        {requester.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {isOperadorOAdmin && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="requesterId">Médico Solicitante *</Label>
+                            <p className="text-xs text-muted-foreground">
+                                Indica a qué médico solicitante corresponde este paciente.
+                            </p>
+                            <Select name="requesterId" defaultValue={patient.requesterId} required>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleccionar médico solicitante" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {requesters.map(requester => (
+                                        <SelectItem key={requester.id} value={requester.id}>
+                                            {requester.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                    {isSolicitante && (
+                        <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                            Este paciente está asignado a tu perfil (médico solicitante).
+                        </div>
+                    )}
 
                     <div className="flex justify-between">
                         <Button variant="outline" asChild>

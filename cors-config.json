@@ -2,7 +2,7 @@
 [
   {
     "origin": [
-      "http://localhost:9002",
+      "http://localhost:4000",
       "https://heartlink--heartlink-f4ftq.us-central1.hosted.app"
     ],
     "method": ["PUT"],

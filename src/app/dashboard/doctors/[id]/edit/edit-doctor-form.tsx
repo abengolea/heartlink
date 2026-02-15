@@ -181,7 +181,7 @@ export function EditDoctorForm({ doctorId }: { doctorId: string }) {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="phone">Teléfono</Label>
+                        <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
                         <Input 
                             id="phone" 
                             name="phone" 

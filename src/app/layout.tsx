@@ -27,13 +27,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></link>
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet"></link>
       </head>
-      <body className="font-body antialiased flex flex-col min-h-screen">
+      <body className="font-body antialiased flex flex-col min-h-screen overflow-x-hidden">
         <AuthProvider>
           <div className='flex-grow'>
             {children}
           </div>
-          <footer className="w-full border-t bg-muted/40 p-4">
-              <div className="container mx-auto text-center text-sm text-muted-foreground flex justify-center items-center">
+          <footer className="w-full border-t bg-muted/40 p-4 px-4 sm:px-6">
+              <div className="container mx-auto text-center text-sm text-muted-foreground flex flex-wrap justify-center items-center gap-2">
                 <Link href="/admin" className="flex items-center gap-2 hover:text-primary transition-colors" prefetch={false}>
                   <Shield className="h-4 w-4"/>
                   <span>Admin Panel</span>

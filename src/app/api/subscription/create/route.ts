@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { createSubscription, getUserById, updateUser } from '@/lib/firestore';
+import { getAuthenticatedUser } from '@/lib/api-auth';
 import { getFirestoreAdmin } from '@/lib/firebase-admin-v4';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -49,12 +50,27 @@ async function getPricingConfig() {
 
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const { userId, planType = 'monthly' } = await request.json();
     
     if (!userId) {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
+      );
+    }
+
+    // Solo el propio usuario puede crear su suscripción (o admin para otro usuario)
+    const isOwn = authUser.dbUser.id === userId;
+    const isAdmin = authUser.dbUser.role === 'admin';
+    if (!isOwn && !isAdmin) {
+      return NextResponse.json(
+        { error: 'No autorizado para crear suscripción para otro usuario' },
+        { status: 403 }
       );
     }
     

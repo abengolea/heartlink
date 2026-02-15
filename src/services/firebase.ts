@@ -111,6 +111,41 @@ export async function getSignedDownloadUrl(filePath: string): Promise<string> {
 }
 }
 
+/**
+ * Sube un video a Firebase Storage desde un buffer (para estudios).
+ * Usado cuando el cliente no puede subir directamente (CORS, firewall, etc.).
+ */
+export async function uploadStudyVideoFromBuffer(
+  videoBuffer: Buffer,
+  fileName: string,
+  contentType: string = 'video/mp4'
+): Promise<string> {
+  console.log(`📤 [Study Upload] Uploading video: ${fileName} (${videoBuffer.length} bytes)`);
+  
+  if (videoBuffer.length > MAX_FILE_SIZE) {
+    throw new Error('El archivo es demasiado grande. El límite es 100MB.');
+  }
+
+  try {
+    const bucket = getStorageBucket();
+    const extension = fileName.split('.').pop()?.toLowerCase() || 'mp4';
+    const filePath = `studies/${uuidv4()}.${extension}`;
+    
+    const file = bucket.file(filePath);
+    await file.save(videoBuffer, {
+      metadata: {
+        contentType: contentType || 'video/mp4',
+      },
+    });
+    
+    console.log(`✅ [Study Upload] Video uploaded: ${filePath}`);
+    return filePath;
+  } catch (error) {
+    console.error('❌ [Study Upload] Error:', error);
+    throw new Error('No se pudo subir el video a la nube.');
+  }
+}
+
 export async function uploadVideoFromBuffer(
   videoBuffer: Buffer,
   fileName: string

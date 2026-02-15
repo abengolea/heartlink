@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDataDeletionRequestByCode } from '@/lib/firestore';
 
 /**
  * GET /api/data-deletion/status
@@ -8,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
-  
+
   if (!code) {
     return NextResponse.json(
       { error: 'Confirmation code required' },
@@ -16,9 +17,18 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // TODO: En producción, verificar el código contra una base de datos
-  // y devolver el estado real de la eliminación
-  
+  const deletionRequest = await getDataDeletionRequestByCode(code);
+  const status = deletionRequest?.status ?? 'unknown';
+  const statusLabel =
+    status === 'completed' ? 'Completado' :
+    status === 'processing' ? 'En proceso' :
+    status === 'failed' ? 'Error' :
+    status === 'pending' ? 'Pendiente' : 'No encontrado';
+
+  const statusClass =
+    status === 'completed' ? 'success' :
+    status === 'processing' || status === 'pending' ? 'pending' : 'error';
+
   const html = `
     <!DOCTYPE html>
     <html lang="es">
@@ -41,14 +51,9 @@ export async function GET(request: NextRequest) {
           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         h1 { color: #2c3e50; }
-        .success {
-          background: #d4edda;
-          border: 1px solid #c3e6cb;
-          color: #155724;
-          padding: 15px;
-          border-radius: 5px;
-          margin: 20px 0;
-        }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .pending { background: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; margin: 20px 0; }
         .code {
           background: #f8f9fa;
           padding: 10px;
@@ -62,9 +67,13 @@ export async function GET(request: NextRequest) {
       <div class="container">
         <h1>Estado de Eliminación de Datos</h1>
         
-        <div class="success">
-          <h2>✅ Solicitud Procesada</h2>
-          <p>Su solicitud de eliminación de datos ha sido procesada correctamente.</p>
+        <div class="${statusClass}">
+          <h2>${status === 'completed' ? '✅' : status === 'failed' ? '❌' : '⏳'} ${statusLabel}</h2>
+          <p>${status === 'completed'
+            ? 'Su solicitud de eliminación de datos ha sido completada.'
+            : status === 'failed'
+            ? 'Hubo un error al procesar la eliminación. Contacte a soporte.'
+            : 'Su solicitud está siendo procesada. El proceso se completa en un máximo de 30 días.'}</p>
         </div>
 
         <h2>Detalles de la Solicitud</h2>
@@ -75,9 +84,9 @@ export async function GET(request: NextRequest) {
         <h2>Estado del Proceso</h2>
         <ul>
           <li>✅ Solicitud recibida y validada</li>
-          <li>✅ Datos marcados para eliminación</li>
-          <li>⏳ Eliminación en proceso (completa en 30 días)</li>
-          <li>⏳ Notificación final pendiente</li>
+          <li>${status !== 'pending' ? '✅' : '⏳'} Datos marcados para eliminación</li>
+          <li>${status === 'completed' ? '✅' : '⏳'} Eliminación ${status === 'completed' ? 'completada' : 'en proceso (máx. 30 días)'}</li>
+          <li>${status === 'completed' ? '✅' : '⏳'} Proceso finalizado</li>
         </ul>
 
         <h2>¿Qué se ha eliminado?</h2>

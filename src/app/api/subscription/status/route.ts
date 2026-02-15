@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriptionByUserId, checkUserAccess } from '@/lib/firestore';
+import { getAuthenticatedUser } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
     
@@ -11,6 +17,13 @@ export async function GET(request: NextRequest) {
         { error: 'userId parameter is required' },
         { status: 400 }
       );
+    }
+
+    // Solo el propio usuario o un admin pueden consultar el estado
+    const isOwn = authUser.dbUser.id === userId;
+    const isAdmin = authUser.dbUser.role === 'admin';
+    if (!isOwn && !isAdmin) {
+      return NextResponse.json({ error: 'No autorizado para consultar esta suscripción' }, { status: 403 });
     }
     
     console.log('📊 [Subscription Status API] Checking status for user:', userId);

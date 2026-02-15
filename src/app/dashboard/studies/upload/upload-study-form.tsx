@@ -2,8 +2,8 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-// Removed useActionState and useFormStatus imports since we call server action directly
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 // Removed Alert imports since we use toast notifications instead
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,19 +19,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Remove server-side Firestore imports from client component
 import { CheckCircle, Loader2, UploadCloud, Wand2 } from "lucide-react";
-import { generateUploadUrlAction, uploadStudy } from "@/actions/upload-study";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
 import { Progress } from "@/components/ui/progress";
-import { ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE, getUploadErrorMessage } from "@/lib/upload-constants";
+import { ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE } from "@/lib/upload-constants";
+import { useAuth } from "@/contexts/auth-context";
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
 
 // Removed initialUploadState since we don't use useActionState anymore
 
 export function UploadStudyForm() {
     const formRef = useRef<HTMLFormElement>(null);
-    // Calling uploadStudy directly instead of using useActionState
     const router = useRouter();
     const { toast } = useToast();
+    const { dbUser } = useAuth();
     
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [isTranscribing, setIsTranscribing] = useState(false);
@@ -40,34 +41,46 @@ export function UploadStudyForm() {
     const [description, setDescription] = useState('');
     const [users, setUsers] = useState<any[]>([]);
     const [patients, setPatients] = useState<any[]>([]);
+    const [selectedPatientName, setSelectedPatientName] = useState<string>('');
+    const [selectedRequestingDoctorName, setSelectedRequestingDoctorName] = useState<string>('');
 
     // Removed useEffect since we handle success/error in direct server action call
 
-    // Load users and patients from API endpoints
+    // Load doctors (operadores: vinculados + disponibles; admin/solicitante: según API) y pacientes
     useEffect(() => {
         async function loadData() {
             try {
-                // Load data from API endpoints instead of direct Firestore
-                const [usersResponse, patientsResponse] = await Promise.all([
-                    fetch('/api/users'),
-                    fetch('/api/patients')
+                const [doctorsRes, availableRes, patientsRes] = await Promise.all([
+                    fetchWithAuth('/api/operators/me/doctors'),
+                    fetchWithAuth('/api/operators/me/doctors/available').catch(() => ({ ok: false })),
+                    fetchWithAuth('/api/patients')
                 ]);
-                
-                if (usersResponse.ok && patientsResponse.ok) {
-                    const usersData = await usersResponse.json();
-                    const patientsData = await patientsResponse.json();
-                    console.log('✅ Upload form loaded data:', { 
-                        doctors: usersData.length, 
-                        patients: patientsData.length,
-                        doctorRoles: usersData.map(u => u.role)
-                    });
-                    setUsers(usersData);
+                if (doctorsRes.ok && patientsRes.ok) {
+                    const [linkedDoctors, patientsData] = await Promise.all([
+                        doctorsRes.json(),
+                        patientsRes.json()
+                    ]);
+                    let doctorsList = Array.isArray(linkedDoctors) ? linkedDoctors : [];
+                    let available: any[] = [];
+                    if (availableRes?.ok) {
+                        try {
+                            const data = await availableRes.json();
+                            available = Array.isArray(data) ? data : [];
+                        } catch {
+                            available = [];
+                        }
+                    }
+                    // Combinar vinculados + disponibles (sin duplicados) para que el dropdown siempre tenga opciones
+                    if (doctorsList.length === 0 && available.length > 0) {
+                        doctorsList = available;
+                    } else if (doctorsList.length > 0 && available.length > 0) {
+                        const linkedIds = new Set(doctorsList.map((d: { id: string }) => d.id));
+                        const extra = available.filter((d: { id: string }) => !linkedIds.has(d.id));
+                        doctorsList = [...doctorsList, ...extra].sort((a: { name?: string }, b: { name?: string }) => (a.name || '').localeCompare(b.name || ''));
+                    }
+                    setUsers(doctorsList.filter((u: { id?: string; name?: string }) => u?.id && u?.name));
                     setPatients(patientsData);
                 } else {
-                    console.error('❌ API failed:', { 
-                        usersStatus: usersResponse.status, 
-                        patientsStatus: patientsResponse.status 
-                    });
                     throw new Error('Failed to load data from API');
                 }
             } catch (error) {
@@ -75,33 +88,16 @@ export function UploadStudyForm() {
                 toast({
                     variant: 'destructive',
                     title: 'Error',
-                    description: 'Error al cargar datos. Usando datos predeterminados.'
+                    description: 'Error al cargar datos.'
                 });
-                // Fallback to hardcoded data
-                setUsers([
-                    { id: '1', name: 'Dr. Juan Carlos Martínez', email: 'jmartinez@hospital.com', role: 'Cardiólogo', phone: '+54 9 11 1234-5678' },
-                    { id: '2', name: 'Dra. María Elena Rodríguez', email: 'mrodriguez@clinica.com', role: 'Cardióloga', phone: '+54 9 11 8765-4321' },
-                    { id: '3', name: 'Dr. Carlos Alberto González', email: 'cgonzalez@hospital.com', role: 'Cardiólogo Intervencionista', phone: '+54 9 11 5555-1234' }
-                ]);
-                setPatients([
-                    { id: '1', name: 'Ana María López', age: 45, gender: 'Femenino', phone: '+54 9 11 9999-1111' },
-                    { id: '2', name: 'Roberto Carlos Fernández', age: 62, gender: 'Masculino', phone: '+54 9 11 8888-2222' },
-                    { id: '3', name: 'Carmen Beatriz Silva', age: 38, gender: 'Femenino', phone: '+54 9 11 7777-3333' }
-                ]);
+                setUsers([]);
+                setPatients([]);
             }
         }
         loadData();
     }, [toast]);
 
-    // Filter doctors by medical specialties instead of 'solicitante'
-    const requesters = users.filter(u => 
-        u.role === 'solicitante' || 
-        u.role === 'Cardiólogo' || 
-        u.role === 'Cardióloga' || 
-        u.role === 'Cardiólogo Intervencionista' ||
-        u.role === 'Cardiólogo Pediatra' ||
-        u.role === 'Electrofisiólogo'
-    );
+    const requesters = users;
 
     // Removed useEffect for state since we handle success/error directly in server action call
 
@@ -187,6 +183,10 @@ export function UploadStudyForm() {
             toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un video.' });
             return;
         }
+        if (!selectedPatientName || !selectedRequestingDoctorName) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona paciente y médico solicitante.' });
+            return;
+        }
 
         if (isUploading) return;
 
@@ -195,150 +195,95 @@ export function UploadStudyForm() {
         setUploadProgress(0);
 
         try {
-            // 1. Get signed URL from server action
-            console.log('Getting signed upload URL...');
-            const urlState = await generateUploadUrlAction(videoFile.type, videoFile.name, videoFile.size);
-
-            if (!urlState.success || !urlState.uploadUrl || !urlState.filePath) {
-                throw new Error(`No se pudo obtener la URL de subida: ${urlState.error}`);
-            }
+            // Enviar todo en una sola petición: el servidor sube el video a Firebase
+            const formData = new FormData();
+            formData.append('video', videoFile);
+            formData.append('patientName', selectedPatientName);
+            formData.append('requestingDoctorName', selectedRequestingDoctorName);
+            formData.append('description', description || '');
             
-            const { uploadUrl, filePath } = urlState;
-            console.log(`Got upload URL for file path: ${filePath}`);
+            console.log('Subiendo video y datos al servidor...');
 
-            // 2. Upload file directly to Firebase Storage using fetch (more reliable than XMLHttpRequest)
-            console.log('Uploading file to Firebase Storage with fetch...');
-            
-            try {
-                const response = await fetch(uploadUrl, {
-                    method: 'PUT',
-                    body: videoFile,
-                    headers: {
-                        'Content-Type': videoFile.type,
-                    },
+            if (!dbUser?.id) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error de sesión',
+                    description: 'No se pudo verificar tu usuario. Por favor, inicia sesión nuevamente.',
                 });
-
                 setIsUploading(false);
+                return;
+            }
 
-                if (!response.ok) {
-                    console.error('Upload failed with status:', response.status, response.statusText);
-                    const errorText = await response.text();
-                    const userFriendlyError = getUploadErrorMessage(response.status, errorText);
-                    throw new Error(userFriendlyError);
-                }
-
-                console.log('File uploaded successfully to Firebase Storage');
-                toast({ title: "Subida Completa", description: "El video se ha subido correctamente. Guardando detalles..." });
-                
-                if(formRef.current) {
-                    // Add the filePath to the form data
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'filePath';
-                    hiddenInput.value = filePath;
-                    formRef.current.appendChild(hiddenInput);
-                    
-                    // Submit the form to save study details
-                    console.log('Submitting form with file path:', filePath);
-                    console.log('Form data before submit:', {
-                        patientName: formRef.current.querySelector('[name="patientName"]')?.value,
-                        requestingDoctorName: formRef.current.querySelector('[name="requestingDoctorName"]')?.value,
-                        description: formRef.current.querySelector('[name="description"]')?.value,
-                        filePath: filePath
-                    });
-                    
-                    // Create FormData and call server action directly
-                    const formData = new FormData(formRef.current);
-                    console.log('🔍 Calling uploadStudy server action directly...');
-                    
-                                        try {
-                        console.log('🔍 Using endpoint instead of server action due to payload size limits...');
-                        
-                        const response = await fetch('/api/upload-study', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                        }
-                        
-                        const responseData = await response.json();
-                        console.log('✅ Endpoint response:', responseData);
-                        
-                        if (!responseData.success) {
-                            throw new Error(responseData.error || 'Endpoint returned failure');
-                        }
-                        
-                        const result = responseData.result;
-                        console.log('✅ Server action completed successfully!');
-                        console.log('🔍 Result:', result);
-                        console.log('🔍 Result type:', typeof result);
-                        console.log('🔍 Result keys:', Object.keys(result || {}));
-                        
-                        if (result && result.status === 'success') {
-                            console.log('🎉 Success! Showing toast and redirecting...');
-                            toast({
-                                title: 'Estudio Guardado',
-                                description: result.message,
-                            });
-                            
-                            // Reset form
-                            setVideoFile(null);
-                            setUploadProgress(0);
-                            setIsUploading(false);
-                            
-                            // Redirect to study detail page if we have studyId
-                            if (result.data?.studyId) {
-                                console.log('Redirecting to study detail:', result.data.studyId);
-                                setTimeout(() => {
-                                    router.push(`/dashboard/studies/${result.data.studyId}`);
-                                }, 1500);
-                            } else {
-                                // Fallback: redirect to studies list
-                                setTimeout(() => {
-                                    router.push('/dashboard/studies');
-                                }, 1500);
-                            }
-                        } else {
-                            console.log('❌ Server action returned error status:', result);
-                            throw new Error(result?.message || 'Server action returned error status');
-                        }
-                    } catch (serverActionError) {
-                        console.error('❌ Server action EXCEPTION:', serverActionError);
-                        console.error('❌ Error type:', typeof serverActionError);
-                        console.error('❌ Error constructor:', serverActionError?.constructor?.name);
-                        console.error('❌ Error message:', serverActionError?.message);
-                        console.error('❌ Error stack:', serverActionError?.stack);
-                        
-                        setIsUploading(false);
-                        toast({
-                            variant: 'destructive',
-                            title: 'Error al Guardar Estudio',
-                            description: `Error detallado: ${serverActionError instanceof Error ? serverActionError.message : JSON.stringify(serverActionError)}`
-                        });
-                    }
-                }
-
-            } catch (fetchError) {
+            let response: Response;
+            try {
+                response = await fetchWithAuth('/api/upload-study', {
+                    method: 'POST',
+                    body: formData
+                });
+            } catch (apiErr) {
+                const err = apiErr instanceof Error ? apiErr : new Error(String(apiErr));
+                const isNetwork = err.message === 'Failed to fetch' || err.name === 'TypeError';
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: isNetwork ? 'Error de conexión. Verifica que el servidor esté activo.' : err.message
+                });
                 setIsUploading(false);
-                console.error('Fetch upload error:', fetchError);
-                toast({ 
-                    variant: 'destructive', 
-                    title: "Error de Subida", 
-                    description: fetchError instanceof Error ? fetchError.message : 'Error desconocido durante la subida'
+                return;
+            }
+
+            setIsUploading(false);
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: errData.error || `Error ${response.status}`
                 });
                 return;
+            }
+
+            const responseData = await response.json();
+            if (!responseData.success) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: responseData.error || 'Error al guardar el estudio'
+                });
+                return;
+            }
+
+            const result = responseData.result;
+            if (result && result.status === 'success') {
+                toast({
+                    title: 'Estudio Guardado',
+                    description: result.message,
+                });
+                setVideoFile(null);
+                setUploadProgress(0);
+                if (result.data?.studyId) {
+                    setTimeout(() => router.push(`/dashboard/studies/${result.data.studyId}`), 1500);
+                } else {
+                    setTimeout(() => router.push('/dashboard/studies'), 1500);
+                }
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: result?.message || 'Error al guardar'
+                });
             }
 
         } catch (error) {
             setIsUploading(false);
             console.error('Upload process error:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido durante la subida';
+            const err = error instanceof Error ? error : new Error(String(error));
+            const isNetwork = err.message === 'Failed to fetch' || err.name === 'TypeError';
             toast({ 
                 variant: 'destructive', 
                 title: "Error de Subida", 
-                description: errorMessage
+                description: isNetwork ? 'Error de conexión. Verifica tu conexión a internet.' : err.message
             });
         }
     };
@@ -371,7 +316,7 @@ export function UploadStudyForm() {
 
             <div className="grid gap-2">
                 <Label htmlFor="patientName">Nombre Completo del Paciente</Label>
-                <Select name="patientName" required>
+                <Select name="patientName" required value={selectedPatientName || undefined} onValueChange={setSelectedPatientName}>
                     <SelectTrigger id="patientName">
                         <SelectValue placeholder="Seleccionar paciente" />
                     </SelectTrigger>
@@ -387,18 +332,27 @@ export function UploadStudyForm() {
 
             <div className="grid gap-2">
                 <Label htmlFor="requestingDoctorName">Nombre del Médico Solicitante</Label>
-                <Select name="requestingDoctorName" required>
-                    <SelectTrigger id="requestingDoctorName">
-                        <SelectValue placeholder="Seleccionar médico solicitante" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {users.map(user => (
-                            <SelectItem key={user.id} value={user.name}>
-                                {user.name} - {user.specialty || 'Médico'}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                {users.length === 0 ? (
+                    <div className="rounded-md border border-dashed border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4 text-sm text-amber-800 dark:text-amber-200">
+                        <p className="font-medium">No hay médicos solicitantes disponibles</p>
+                        <p className="mt-1 text-muted-foreground">
+                            Agrega médicos en <Link href="/dashboard/requesters" className="underline font-medium">Médicos Solicitantes</Link> para poder asignar estudios.
+                        </p>
+                    </div>
+                ) : (
+                    <Select name="requestingDoctorName" required value={selectedRequestingDoctorName || undefined} onValueChange={setSelectedRequestingDoctorName}>
+                        <SelectTrigger id="requestingDoctorName">
+                            <SelectValue placeholder="Seleccionar médico solicitante" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {users.map(user => (
+                                <SelectItem key={user.id} value={user.name}>
+                                    {user.name} - {user.specialty || 'Médico'}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
             </div>
 
             <div className="grid gap-2">

@@ -50,36 +50,6 @@ export default function DebugPage() {
         }
     };
 
-    const testCreateDoctor = async () => {
-        console.log("🔍 Testing doctor creation...");
-        try {
-            const response = await fetch('/api/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: 'Dr. Debug Test',
-                    email: 'debug@test.com',
-                    phone: '+54 9 11 1111-1111',
-                    role: 'Cardiólogo'
-                })
-            });
-
-            console.log("Create doctor response:", response.status);
-            const result = await response.json();
-            console.log("Create doctor result:", result);
-
-            if (response.ok) {
-                alert("Doctor created successfully!");
-                testAPIs(); // Refresh data
-            } else {
-                alert(`Error creating doctor: ${result.error || 'Unknown error'}`);
-            }
-        } catch (err) {
-            console.error("Create doctor error:", err);
-            alert(`Error: ${err}`);
-        }
-    };
-
     useEffect(() => {
         testAPIs();
     }, []);
@@ -91,9 +61,6 @@ export default function DebugPage() {
             <div className="flex gap-4">
                 <Button onClick={testAPIs} disabled={loading}>
                     {loading ? "Testing..." : "Test APIs"}
-                </Button>
-                <Button onClick={testCreateDoctor} variant="outline">
-                    Test Create Doctor
                 </Button>
             </div>
 

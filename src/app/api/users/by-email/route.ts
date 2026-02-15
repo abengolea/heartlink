@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail } from '@/lib/firestore';
+import { getAuthenticatedUser } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   console.log('📧 [API] Getting user by email...');
   
   try {
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const url = new URL(request.url);
     const email = url.searchParams.get('email');
 
     if (!email) {
-      console.log('❌ [API] Email parameter is required');
       return NextResponse.json(
         { error: 'Email parameter is required' },
         { status: 400 }
       );
+    }
+
+    // Solo puede consultar su propio email
+    if (email !== authUser.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
     console.log('🔍 [API] Searching for user with email:', email);

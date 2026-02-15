@@ -81,8 +81,8 @@ else
     # Test the configuration
     print_step "Probando configuración..."
     
-    if npm run dev -- --turbopack -p 9002 & sleep 5; then
-        print_success "Servidor iniciado correctamente en puerto 9002"
+    if npm run dev -- --turbopack -p 4000 & sleep 5; then
+        print_success "Servidor iniciado correctamente en puerto 4000"
         print_success "Puedes probar subir un video ahora"
     else
         print_error "Error al iniciar el servidor"

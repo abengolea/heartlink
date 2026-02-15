@@ -1,51 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { getUserByEmail } from '@/lib/firestore';
+import { getUserByEmail, createUser, addDoctorToOperator } from '@/lib/firestore';
 import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
 
 export async function POST(request: NextRequest) {
-  console.log('👤 [Auth API] Creating Firebase Auth user...');
+  console.log('👤 [Auth API] Registering new doctor (self-registration)...');
   
   try {
     const body = await request.json();
-    console.log('📝 [Auth API] Request body received:', { email: body.email, hasPassword: !!body.password, name: body.name });
+    console.log('📝 [Auth API] Request body received:', { email: body.email, hasPassword: !!body.password, name: body.name, operatorId: body.operatorId });
     
-    const { email, password, name } = body;
+    const { email, password, name, operatorId } = body;
 
-    if (!email || !password) {
+    if (!email || !password || !name) {
       console.log('❌ [Auth API] Missing required fields');
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Email, password and name are required' },
         { status: 400 }
       );
     }
 
-    console.log('🔍 [Auth API] Checking if user exists in Firestore:', email);
-    
-    // Check if user exists in Firestore
-    let dbUser;
-    try {
-      dbUser = await getUserByEmail(email);
-      console.log('✅ [Auth API] Firestore query completed, user found:', !!dbUser);
-    } catch (firestoreError) {
-      console.error('❌ [Auth API] Firestore error:', firestoreError);
+    // Verificar si ya existe en Firestore (email duplicado)
+    const existingUser = await getUserByEmail(email);
+    if (existingUser) {
+      console.log('⚠️ [Auth API] Email already registered in Firestore:', email);
       return NextResponse.json(
-        { error: 'Database error while checking user' },
-        { status: 500 }
-      );
-    }
-    
-    if (!dbUser) {
-      console.log('❌ [Auth API] User not found in Firestore');
-      return NextResponse.json(
-        { error: 'User not found in database. Contact administrator to create your profile first.' },
-        { status: 404 }
+        { error: 'Ya existe una cuenta con este email. Intenta iniciar sesión.' },
+        { status: 409 }
       );
     }
 
-    console.log('✅ [Auth API] User found in Firestore:', dbUser.id);
-
-    // Create user in Firebase Authentication
+    // Crear usuario en Firebase Authentication primero
     console.log('🔥 [Auth API] Initializing Firebase Admin...');
     let app;
     try {
@@ -79,7 +64,7 @@ export async function POST(request: NextRequest) {
         const existingUser = await auth.getUserByEmail(email);
         console.log('⚠️ [Auth API] User already exists in Firebase Auth:', existingUser.uid);
         return NextResponse.json(
-          { error: 'User already exists in Firebase Authentication. Try logging in instead.' },
+          { error: 'Ya existe una cuenta con este email. Intenta iniciar sesión.' },
           { status: 409 }
         );
       } catch (userNotFoundError: any) {
@@ -89,7 +74,7 @@ export async function POST(request: NextRequest) {
         } else {
           console.error('❌ [Auth API] Unexpected error checking user:', userNotFoundError);
           return NextResponse.json(
-            { error: 'Error checking existing user', details: userNotFoundError.message },
+            { error: 'Error al verificar si el usuario ya existe. Por favor, intenta nuevamente.', details: userNotFoundError.message },
             { status: 500 }
           );
         }
@@ -99,36 +84,56 @@ export async function POST(request: NextRequest) {
       const userRecord = await auth.createUser({
         email: email,
         password: password,
-        displayName: name || dbUser.name,
-        emailVerified: true, // Skip email verification for admin-created users
+        displayName: name,
+        emailVerified: false, // El médico se auto-registra
       });
 
       console.log('✅ [Auth API] User created in Firebase Auth:', userRecord.uid);
 
+      // Crear perfil en Firestore con estado pendiente de aprobación
+      const dbUserId = await createUser({
+        name: name.trim(),
+        email: email,
+        role: 'medico_solicitante',
+        status: 'pending_approval', // El admin debe autorizar
+      });
+
+      console.log('✅ [Auth API] User profile created in Firestore (pending approval):', dbUserId);
+
+      // Si el solicitante indicó con qué operador trabaja, crear el vínculo
+      if (operatorId) {
+        try {
+          await addDoctorToOperator(operatorId, dbUserId);
+          console.log('✅ [Auth API] Linked solicitante to operator:', operatorId);
+        } catch (linkError) {
+          console.warn('⚠️ [Auth API] Could not link to operator (non-fatal):', linkError);
+        }
+      }
+
       return NextResponse.json({
         success: true,
-        message: 'User created successfully in Firebase Authentication',
+        message: 'Cuenta creada exitosamente. Un administrador debe autorizar tu acceso.',
         uid: userRecord.uid,
         email: userRecord.email,
         name: userRecord.displayName,
         dbUser: {
-          id: dbUser.id,
-          name: dbUser.name,
-          role: dbUser.role,
-          specialty: dbUser.specialty
+          id: dbUserId,
+          name: name,
+          role: 'medico_solicitante',
+          status: 'pending_approval'
         }
       });
 
     } catch (authError: any) {
       console.error('❌ [Auth API] Error creating user in Firebase Auth:', authError);
       
-      let errorMessage = 'Failed to create user in Firebase Authentication';
+      let errorMessage = 'Error al crear la cuenta. Por favor, intenta nuevamente.';
       if (authError.code === 'auth/email-already-exists') {
-        errorMessage = 'User already exists in Firebase Authentication';
+        errorMessage = 'Ya existe una cuenta con este email. ¿Intentas iniciar sesión?';
       } else if (authError.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email format';
+        errorMessage = 'El formato del email no es válido.';
       } else if (authError.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak (minimum 6 characters)';
+        errorMessage = 'La contraseña debe tener al menos 6 caracteres.';
       }
 
       return NextResponse.json(

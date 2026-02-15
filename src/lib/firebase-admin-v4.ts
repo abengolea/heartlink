@@ -61,6 +61,9 @@ export function initializeFirebaseAdmin() {
   }
 }
 
+// Alias para compatibilidad con código que usa getFirestoreAdmin
+export const getFirestoreAdmin = initializeFirebaseAdmin;
+
 // Storage bucket getter with ADC support
 export function getStorageBucket() {
   try {

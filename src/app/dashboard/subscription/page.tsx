@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,8 +36,8 @@ function SubscriptionPageContent() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
-  // Usar el email del usuario autenticado
-  const userId = dbUser?.email || '';
+  // Usar el ID de Firestore del usuario (las suscripciones se guardan por userId = document id)
+  const userId = dbUser?.id || '';
 
   useEffect(() => {
     if (userId) {
@@ -48,10 +49,11 @@ function SubscriptionPageContent() {
 
   const loadPricingConfig = async () => {
     try {
-      const response = await fetch('/api/admin/pricing');
+      const response = await fetchWithAuth('/api/admin/pricing');
       const data = await response.json();
-      if (data.success) {
-        setPricingConfig(data.pricing);
+      if (response.ok && data) {
+        // GET devuelve el objeto pricing directamente o { success, pricing }
+        setPricingConfig(data.pricing || data);
       }
     } catch (error) {
       console.error('Error loading pricing:', error);
@@ -68,7 +70,7 @@ function SubscriptionPageContent() {
     try {
       console.log('📊 Loading subscription status for user:', userId);
       
-      const response = await fetch(`/api/subscription/status?userId=${encodeURIComponent(userId)}`);
+      const response = await fetchWithAuth(`/api/subscription/status?userId=${encodeURIComponent(userId)}`);
       const data = await response.json();
       
       console.log('📊 Subscription status:', data);
@@ -100,7 +102,7 @@ function SubscriptionPageContent() {
     try {
       console.log('💳 Creating subscription for:', userId, 'plan:', planType);
       
-      const response = await fetch('/api/subscription/create', {
+      const response = await fetchWithAuth('/api/subscription/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, planType }),
@@ -127,7 +129,7 @@ function SubscriptionPageContent() {
     try {
       console.log('🚫 Cancelling subscription for:', userId);
       
-      const response = await fetch('/api/subscription/cancel', {
+      const response = await fetchWithAuth('/api/subscription/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, reason: cancelReason || 'user_requested' }),
@@ -156,7 +158,7 @@ function SubscriptionPageContent() {
     try {
       console.log('🔄 Reactivating subscription for:', userId);
       
-      const response = await fetch('/api/subscription/reactivate', {
+      const response = await fetchWithAuth('/api/subscription/reactivate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),

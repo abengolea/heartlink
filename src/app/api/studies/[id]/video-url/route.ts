@@ -4,10 +4,10 @@ import { getPublicUrl } from '@/services/firebase';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const studyId = params.id;
+    const { id: studyId } = await params;
     
     console.log(`🎬 [VideoURL API] Getting video URL for study: ${studyId}`);
     

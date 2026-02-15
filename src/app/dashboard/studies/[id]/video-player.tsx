@@ -109,11 +109,11 @@ export default function VideoPlayer({ videoUrl }: VideoPlayerProps) {
     );
   }
 
-  // Show fallback for problematic browsers or if there's been a video error
-  if (showFallback && browserInfo.includes('⚠️')) {
+  // Show fallback para navegadores problemáticos o cuando hay error de reproducción
+  if (showFallback) {
     return (
       <div className="space-y-4">
-        <DownloadFallback videoUrl={signedUrl} browserInfo={browserInfo.replace('⚠️', '').trim()} />
+        <DownloadFallback videoUrl={signedUrl} browserInfo={browserInfo?.replace('⚠️', '').trim() || 'Tu navegador'} />
         <details className="text-sm">
           <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
             🔧 Intentar reproducir de todas formas
@@ -134,14 +134,14 @@ export default function VideoPlayer({ videoUrl }: VideoPlayerProps) {
     );
   }
 
-  // Dynamic container class based on video orientation
+  // Dynamic container class based on video orientation (responsive para mobile)
   const containerClass = isVertical 
-    ? "w-full max-w-sm mx-auto bg-muted rounded-lg overflow-hidden min-h-[400px] flex items-center justify-center" // Vertical: narrower, centered, min height
-    : "aspect-video bg-muted rounded-lg overflow-hidden"; // Horizontal: standard
+    ? "w-full max-w-full sm:max-w-md mx-auto bg-muted rounded-lg overflow-hidden min-h-[280px] sm:min-h-[320px] flex items-center justify-center px-1 sm:px-0" // Vertical: full width en mobile
+    : "aspect-video bg-muted rounded-lg overflow-hidden w-full"; // Horizontal: estándar
 
   const videoClass = isVertical
-    ? "w-full max-h-[500px] object-contain" // Vertical: maintain aspect ratio, max height
-    : "w-full h-full object-cover";  // Horizontal: fill container
+    ? "w-full max-h-[min(70vh,560px)] object-contain" // Vertical: usa altura disponible
+    : "w-full h-full object-cover";  // Horizontal: llena el contenedor
 
   return (
     <div className={containerClass}>
@@ -151,17 +151,14 @@ export default function VideoPlayer({ videoUrl }: VideoPlayerProps) {
         controls
         preload="metadata"
         onLoadedMetadata={handleLoadedMetadata}
-        crossOrigin="anonymous"
         playsInline
         webkit-playsinline="true"
-        onError={(e) => {
-          console.error('Video playback error:', e);
-          console.error('Error details:', {
-            networkState: videoRef.current?.networkState,
-            readyState: videoRef.current?.readyState,
-            error: videoRef.current?.error
-          });
-          setError('Error reproduciendo el video - prueba con otro navegador');
+        onError={() => {
+          const mediaError = videoRef.current?.error;
+          const errMsg = mediaError ? `Código ${mediaError.code}: ${mediaError.message || 'No se pudo cargar el video'}` : 'Error reproduciendo el video';
+          console.error('Video playback error:', mediaError?.code, mediaError?.message);
+          setError(errMsg);
+          setShowFallback(true);
         }}
         onLoadStart={() => console.log('Video started loading')}
         onCanPlay={() => console.log('Video can play')}
@@ -190,12 +187,12 @@ export default function VideoPlayer({ videoUrl }: VideoPlayerProps) {
           </a>
         </div>
       </video>
-      <div className="mt-2 text-xs text-gray-500 break-all space-y-1">
-        <div>
-          <strong>Orientación:</strong> {isVertical ? '📱 Vertical' : '🖥️ Horizontal'} | 
-          <strong> Navegador:</strong> {browserInfo}
+      <div className="mt-2 text-xs text-gray-500 break-all space-y-1 overflow-hidden">
+        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+          <span><strong>Orientación:</strong> {isVertical ? '📱 Vertical' : '🖥️ Horizontal'}</span>
+          <span><strong>Navegador:</strong> {browserInfo}</span>
         </div>
-        <div>
+        <div className="hidden sm:block">
           <strong>URL:</strong> {videoUrl.substring(0, 50)}...
         </div>
         {browserInfo.includes('⚠️') && (

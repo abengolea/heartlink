@@ -133,11 +133,11 @@ export default async function PublicStudyPage({
         }
 
         return (
-            <div className="min-h-screen bg-gray-50 py-8">
-                <div className="mx-auto w-full max-w-4xl px-4">
+            <div className="min-h-screen bg-gray-50 py-6 sm:py-8 overflow-x-hidden">
+                <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 min-w-0">
                     {/* Header */}
                     <div className="mb-6 text-center">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 px-2">
                             Estudio Médico Compartido
                         </h1>
                         <p className="text-gray-600">
@@ -148,16 +148,16 @@ export default async function PublicStudyPage({
                     {/* Video Card */}
                     <Card className="mb-6">
                         <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="flex items-center gap-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                                         <Video className="h-5 w-5"/> Video del Estudio
                                     </CardTitle>
                                     <CardDescription>
                                         Estudio médico - Visualización pública
                                     </CardDescription>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 shrink-0">
                                     {study.isUrgent ? (
                                         <Badge variant="destructive" className="w-fit">Urgente</Badge>
                                     ) : (

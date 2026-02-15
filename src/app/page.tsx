@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2, Key, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/logo";
 import { loginWithEmail, resetPassword } from "@/lib/firebase-client";
 import { toast } from "sonner";
@@ -35,9 +36,20 @@ export default function LoginPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    name: ""
+    name: "",
+    operatorId: "" as string
   });
+  const [operators, setOperators] = useState<{ id: string; name: string; specialty?: string }[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    if (showRegister) {
+      fetch("/api/operators")
+        .then((r) => (r.ok ? r.json() : []))
+        .then(setOperators)
+        .catch(() => setOperators([]));
+    }
+  }, [showRegister]);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -146,7 +158,8 @@ export default function LoginPage() {
         body: JSON.stringify({
           email: registerData.email,
           password: registerData.password,
-          name: registerData.name
+          name: registerData.name,
+          operatorId: registerData.operatorId || undefined
         }),
       });
 
@@ -154,25 +167,31 @@ export default function LoginPage() {
       
       if (response.ok) {
         console.log('✅ [Register] Account created successfully');
-        toast.success("¡Cuenta creada exitosamente! Ahora puedes iniciar sesión");
+        toast.success("¡Cuenta creada! Un administrador debe autorizar tu acceso. Te notificaremos cuando esté activa.");
         setShowRegister(false);
-        setRegisterData({ email: "", password: "", confirmPassword: "", name: "" });
+        setRegisterData({ email: "", password: "", confirmPassword: "", name: "", operatorId: "" });
         setEmail(registerData.email); // Pre-fill login email
       } else {
         console.error('❌ [Register] Registration failed:', result.error);
         
         let errorMessage = result.error;
-        if (result.error?.includes('not found in database')) {
-          errorMessage = "Tu email no está autorizado. Contacta al administrador para que cree tu perfil primero.";
-        } else if (result.error?.includes('already exists')) {
+        if (result.error?.includes('already exists')) {
           errorMessage = "Ya existe una cuenta con este email. ¿Intentas iniciar sesión?";
+        } else if (result.error?.includes('Error checking') || result.error?.includes('verificar si el usuario')) {
+          errorMessage = "Error al verificar si el usuario ya existe. Por favor, intenta nuevamente.";
         }
         
-        toast.error(errorMessage);
+        toast.error(errorMessage, {
+          duration: 6000,
+          style: { fontSize: '16px', minWidth: '320px', padding: '16px 20px' },
+        });
       }
     } catch (error) {
       console.error('❌ [Register] Unexpected error:', error);
-      toast.error("Error inesperado. Intenta nuevamente");
+      toast.error("Error inesperado. Intenta nuevamente", {
+        duration: 6000,
+        style: { fontSize: '16px', minWidth: '320px', padding: '16px 20px' },
+      });
     } finally {
       setRegisterLoading(false);
     }
@@ -184,12 +203,11 @@ export default function LoginPage() {
         <div className="flex flex-col h-full justify-between p-8">
             <Logo />
             <Image
-                src="https://placehold.co/800x600.png"
-                alt="Image"
+                src="/corazon.jpg"
+                alt="Imagen de portada - Cardiología"
                 width="800"
                 height="600"
                 className="mx-auto rounded-lg object-cover"
-                data-ai-hint="medical technology cardiology"
             />
             <div className="text-center">
                 <p className="text-lg font-semibold text-foreground">La plataforma líder para la gestión de estudios cardiológicos.</p>
@@ -331,7 +349,7 @@ export default function LoginPage() {
                       Crear cuenta
                     </DialogTitle>
                     <DialogDescription>
-                      Tu email debe estar autorizado por el administrador antes de crear la cuenta.
+                      Regístrate con tu email. Un administrador autorizará tu acceso a la plataforma.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -377,6 +395,28 @@ export default function LoginPage() {
                         onChange={(e) => setRegisterData({...registerData, confirmPassword: e.target.value})}
                         disabled={registerLoading}
                       />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="register-operator">¿Con qué operador trabajas?</Label>
+                      <Select
+                        value={registerData.operatorId}
+                        onValueChange={(v) => setRegisterData({...registerData, operatorId: v})}
+                        disabled={registerLoading}
+                      >
+                        <SelectTrigger id="register-operator">
+                          <SelectValue placeholder="Seleccionar operador (opcional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {operators.map((op) => (
+                            <SelectItem key={op.id} value={op.id}>
+                              {op.name}{op.specialty ? ` - ${op.specialty}` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Si trabajas con un médico operador, selecciónalo para que pueda verte en su lista.
+                      </p>
                     </div>
                   </div>
                   <DialogFooter>

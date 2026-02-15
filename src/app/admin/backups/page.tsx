@@ -19,8 +19,10 @@ import { MoreHorizontal } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
-import { backups } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
+
+// Sin API de backups implementada - mostrar lista vacía
+const backups: { id: string; date: string; firestoreSize: string; fileCount: number; destinationUrl: string; status: 'completed' | 'failed' | 'in-progress' }[] = [];
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function AdminBackupsPage() {
-  const getStatusBadge = (status: (typeof backups)[0]["status"]) => {
+  const getStatusBadge = (status: 'completed' | 'failed' | 'in-progress') => {
     switch (status) {
       case "completed":
         return (
@@ -93,7 +95,20 @@ export default function AdminBackupsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {backups.map((backup) => (
+              {backups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-16">
+                    <div className="flex flex-col items-center gap-3">
+                      <p className="text-muted-foreground">
+                        No hay copias de seguridad registradas.
+                      </p>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        Las copias automáticas se configuran en Firebase. Para backups manuales, usa la consola de Firebase o un script externo.
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : backups.map((backup) => (
                 <TableRow key={backup.id}>
                   <TableCell className="font-medium">
                     {format(parseISO(backup.date), "PPP p", { locale: es })}

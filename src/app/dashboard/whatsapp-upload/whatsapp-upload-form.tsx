@@ -8,6 +8,7 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 
 import { submitStudy } from "@/actions/whatsapp-study-upload";
+import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +17,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, UploadCloud, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { users } from "@/lib/data";
-
 
 const formSchema = z.object({
   video: z.any().refine((files) => files?.length > 0, "Se requiere un archivo de video."),
@@ -37,11 +36,32 @@ function SubmitButton() {
   );
 }
 
+interface Requester {
+  id: string;
+  name: string;
+  role?: string;
+}
+
 export function WhatsappUploadForm() {
     const [videoDataUri, setVideoDataUri] = useState('');
     const formRef = useRef<HTMLFormElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
-    const requesters = users.filter(u => u.role === 'solicitante');
+    const [requesters, setRequesters] = useState<Requester[]>([]);
+
+    useEffect(() => {
+        async function loadRequesters() {
+            try {
+                const res = await fetchWithAuth('/api/operators/me/doctors');
+                if (res.ok) {
+                    const doctors = await res.json();
+                    setRequesters(doctors);
+                }
+            } catch (error) {
+                console.error('Error loading requesters:', error);
+            }
+        }
+        loadRequesters();
+    }, []);
 
     const { register, handleSubmit, formState: { errors }, watch, reset, control } = useForm<FormFields>({
         resolver: zodResolver(formSchema),
