@@ -28,8 +28,8 @@ env:
     availability:
       - RUNTIME
 
-  # WhatsApp Business API
-  - variable: WHATSAPP_WEBHOOK_VERIFY_TOKEN
+  # WhatsApp Business API (el webhook usa WHATSAPP_VERIFY_TOKEN)
+  - variable: WHATSAPP_VERIFY_TOKEN
     value: heartlink_webhook_2025
     availability:
       - RUNTIME
