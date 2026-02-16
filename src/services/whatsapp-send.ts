@@ -7,6 +7,13 @@ const API_BASE = 'https://graph.facebook.com/v22.0';
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 
+const BOM = '\uFEFF';
+
+/** Elimina BOM y espacios que pueden venir de copiar/pegar secrets */
+function sanitize(str: string | undefined): string {
+  return (str ?? '').replace(new RegExp(BOM, 'g'), '').trim();
+}
+
 /** Normaliza número para WhatsApp (solo dígitos) */
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '');
@@ -17,8 +24,8 @@ function normalizePhone(phone: string): string {
  * @returns true si se envió correctamente, false en caso contrario
  */
 export async function sendWhatsAppText(to: string, text: string): Promise<boolean> {
-  const phoneNumberId = PHONE_NUMBER_ID?.trim();
-  const token = ACCESS_TOKEN?.trim();
+  const phoneNumberId = sanitize(PHONE_NUMBER_ID);
+  const token = sanitize(ACCESS_TOKEN);
 
   if (!phoneNumberId || !token) {
     console.error('[WhatsApp Send] WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN no configurados');
@@ -43,7 +50,7 @@ export async function sendWhatsAppText(to: string, text: string): Promise<boolea
         messaging_product: 'whatsapp',
         to: normalizedTo,
         type: 'text',
-        text: { body: text },
+        text: { body: (text ?? '').replace(/\uFEFF/g, '') },
       }),
     });
 

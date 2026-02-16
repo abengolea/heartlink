@@ -1,6 +1,9 @@
 const WHATSAPP_API_URL = 'https://graph.facebook.com/v18.0';
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+
+/** Elimina BOM (U+FEFF) que puede venir de secrets copiados/pegados */
+function sanitize(str: string | undefined): string {
+  return (str ?? '').replace(/\uFEFF/g, '').trim();
+}
 
 export class WhatsAppService {
   
@@ -21,13 +24,20 @@ export class WhatsAppService {
   
   static async sendTextMessage(to: string, text: string): Promise<boolean> {
     try {
+      const phoneId = sanitize(process.env.WHATSAPP_PHONE_NUMBER_ID);
+      const token = sanitize(process.env.WHATSAPP_ACCESS_TOKEN);
+      if (!phoneId || !token) {
+        console.error('[WhatsApp] WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN no configurados');
+        return false;
+      }
       const normalizedTo = this.normalizePhoneNumber(to);
-      console.log(`📱 [WhatsApp] Sending text to ${normalizedTo}: ${text.substring(0, 50)}...`);
+      const cleanText = (text ?? '').replace(/\uFEFF/g, '');
+      console.log(`📱 [WhatsApp] Sending text to ${normalizedTo}: ${cleanText.substring(0, 50)}...`);
       
-      const response = await fetch(`${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`, {
+      const response = await fetch(`${WHATSAPP_API_URL}/${phoneId}/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -35,7 +45,7 @@ export class WhatsAppService {
           to: normalizedTo,
           type: 'text',
           text: {
-            body: text
+            body: cleanText
           }
         })
       });
@@ -57,13 +67,19 @@ export class WhatsAppService {
 
   static async sendListMessage(to: string, headerText: string, bodyText: string, listItems: Array<{id: string, title: string, description?: string}>): Promise<boolean> {
     try {
+      const phoneId = sanitize(process.env.WHATSAPP_PHONE_NUMBER_ID);
+      const token = sanitize(process.env.WHATSAPP_ACCESS_TOKEN);
+      if (!phoneId || !token) {
+        console.error('[WhatsApp] WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN no configurados');
+        return false;
+      }
       const normalizedTo = this.normalizePhoneNumber(to);
       console.log(`📱 [WhatsApp] Sending list to ${normalizedTo}: ${listItems.length} items`);
       
-      const response = await fetch(`${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`, {
+      const response = await fetch(`${WHATSAPP_API_URL}/${phoneId}/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -74,10 +90,10 @@ export class WhatsAppService {
             type: 'list',
             header: {
               type: 'text',
-              text: headerText
+              text: (headerText ?? '').replace(/\uFEFF/g, '')
             },
             body: {
-              text: bodyText
+              text: (bodyText ?? '').replace(/\uFEFF/g, '')
             },
             action: {
               button: 'Ver opciones',
@@ -111,12 +127,17 @@ export class WhatsAppService {
 
   static async downloadMedia(mediaId: string): Promise<Buffer | null> {
     try {
+      const token = sanitize(process.env.WHATSAPP_ACCESS_TOKEN);
+      if (!token) {
+        console.error('[WhatsApp] WHATSAPP_ACCESS_TOKEN no configurado');
+        return null;
+      }
       console.log(`📱 [WhatsApp] Downloading media: ${mediaId}`);
       
       // First, get media URL
       const mediaResponse = await fetch(`${WHATSAPP_API_URL}/${mediaId}`, {
         headers: {
-          'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${token}`,
         }
       });
 
@@ -131,7 +152,7 @@ export class WhatsAppService {
       // Download the actual media file
       const fileResponse = await fetch(mediaUrl, {
         headers: {
-          'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${token}`,
         }
       });
 
