@@ -45,6 +45,7 @@ export async function POST(request: Request): Promise<Response> {
   let rawBody: string;
   try {
     rawBody = await request.text();
+    console.log('[WhatsApp Webhook] Body length:', rawBody?.length, 'hasEntry:', rawBody?.includes('"entry"'));
   } catch (error) {
     console.error('[WhatsApp Webhook] Error reading body:', error instanceof Error ? error.message : error);
     return NextResponse.json({ status: 'error' }, { status: 200 });

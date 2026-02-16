@@ -34,7 +34,8 @@
 3. **Configurar Webhook:**
    - **Webhook URL:** `https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/webhook`
    - **Verify Token:** `heartlink_webhook_2025`
-   - **Suscribir a eventos:** `messages`
+   - **Suscribir a eventos:** `messages` ← **IMPORTANTE: debe estar marcado**
+   - En "Configurar webhooks" → "Editar" → Suscripciones: marcar **messages**
 
 ### **2. Firebase Secrets (Ya configurado)**
 
@@ -47,6 +48,26 @@ firebase apphosting:secrets:set WHATSAPP_PHONE_NUMBER_ID --project heartlink-f4f
 firebase apphosting:secrets:grantaccess WHATSAPP_ACCESS_TOKEN --backend heartlink --project heartlink-f4ftq
 firebase apphosting:secrets:grantaccess WHATSAPP_PHONE_NUMBER_ID --backend heartlink --project heartlink-f4ftq
 ```
+
+---
+
+## ⚠️ NO RECIBO MENSAJES - CHECKLIST
+
+Si envías un mensaje y no hay respuesta:
+
+1. **Webhook suscrito a "messages"**
+   - Meta Developer Console → WhatsApp → Configuración → Webhooks
+   - Clic en el webhook configurado → Suscripciones
+   - Debe estar marcado **messages**
+
+2. **Número "Para" en modo prueba**
+   - En Configuración de la API, Paso 1 "Seleccionar números de teléfono"
+   - En "Para" agrega tu número (el que envía el mensaje)
+   - En modo desarrollo solo recibes de números que hayas agregado
+
+3. **Logs en Google Cloud**
+   - Si ves `[WhatsApp Webhook] POST RECIBIDO` → Meta está enviando, revisa el handler
+   - Si NO ves POST → Meta no envía; verifica suscripción y número "Para"
 
 ---
 
