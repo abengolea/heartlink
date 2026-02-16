@@ -5,7 +5,7 @@ import { upsertWhatsAppContact } from '@/lib/firestore/upsertWhatsAppContact';
 
 export const runtime = 'nodejs';
 
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'heartlink_webhook_2025';
 
 /**
  * GET - Verificación del webhook por Meta

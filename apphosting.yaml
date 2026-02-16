@@ -32,6 +32,7 @@ env:
   - variable: WHATSAPP_VERIFY_TOKEN
     value: heartlink_webhook_2025
     availability:
+      - BUILD
       - RUNTIME
   - variable: WHATSAPP_ACCESS_TOKEN
     secret: WHATSAPP_ACCESS_TOKEN
