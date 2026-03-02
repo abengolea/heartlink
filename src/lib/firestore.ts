@@ -330,9 +330,35 @@ function normalizePhoneForMatch(phone: string): string {
 }
 
 /**
+ * Variantes de un número para matching flexible (Argentina: con/sin 9 tras 54).
+ * Meta envía 5493364645357; el usuario puede tener 543364645357 en perfil.
+ */
+function getPhoneMatchVariants(digits: string): Set<string> {
+  const variants = new Set<string>([digits]);
+  // Argentina: 549XXXXXXXX (13) ↔ 54XXXXXXXX (12)
+  if (digits.startsWith('549') && digits.length === 13) {
+    variants.add('54' + digits.slice(3)); // quitar el 9
+  }
+  if (digits.startsWith('54') && !digits.startsWith('549') && digits.length === 12) {
+    variants.add('549' + digits.slice(2)); // agregar el 9
+  }
+  return variants;
+}
+
+function phonesMatch(digitsA: string, digitsB: string): boolean {
+  if (digitsA === digitsB) return true;
+  const va = getPhoneMatchVariants(digitsA);
+  const vb = getPhoneMatchVariants(digitsB);
+  for (const a of va) {
+    if (vb.has(a)) return true;
+  }
+  return false;
+}
+
+/**
  * Busca un operador (medico_operador/operator) por su número de WhatsApp.
  * El número debe estar guardado en User.phone o User (campo whatsappPhone si se agrega).
- * Usado para validar que quien envía videos por WhatsApp tiene licencia activa.
+ * Acepta 5493364645357 y 543364645357 como el mismo número (Argentina móvil).
  */
 export async function getOperatorByWhatsAppPhone(whatsappPhone: string): Promise<User | null> {
   const normalized = normalizePhoneForMatch(whatsappPhone);
@@ -347,7 +373,8 @@ export async function getOperatorByWhatsAppPhone(whatsappPhone: string): Promise
     for (const doc of usersSnapshot.docs) {
       const data = doc.data();
       const userPhone = data.phone || data.whatsappPhone || '';
-      if (userPhone && normalizePhoneForMatch(userPhone) === normalized) {
+      const storedDigits = normalizePhoneForMatch(userPhone);
+      if (userPhone && phonesMatch(normalized, storedDigits)) {
         return { id: doc.id, ...data } as User;
       }
     }
