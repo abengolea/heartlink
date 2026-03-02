@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:medico-operador": "tsx scripts/migrate-medico-operador-to-operator.ts"
   },
   "dependencies": {
     "@firebase/analytics": "^0.10.18",

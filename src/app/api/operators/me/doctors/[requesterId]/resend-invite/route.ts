@@ -20,7 +20,6 @@ export async function POST(
     const auth = await requireRole(request, [
       'admin',
       'operator',
-      'medico_operador',
     ]);
     const { requesterId } = await params;
 

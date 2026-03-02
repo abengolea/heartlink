@@ -9,20 +9,36 @@ import {
   getAllUsers,
   getDoctorsByOperator,
   getOperatorByWhatsAppPhone,
+  getSolicitanteByPhone,
   checkUserAccess,
   generateOrGetShareTokenAndUrl,
   findOrCreatePatient,
+  createUser,
+  addDoctorToOperator,
 } from '@/lib/firestore';
 import { studyUploadFlow, StudyUploadFlowInput } from '@/ai/flows/study-upload-flow';
 import { v4 as uuidv4 } from 'uuid';
 
 const DEV_MODE = process.env.WHATSAPP_DEV_MODE === 'true';
 
+/** Contacto compartido (vCard) - estructura del webhook de Meta */
+interface IncomingContact {
+  name?: { formatted_name?: string; first_name?: string };
+  phones?: Array<{ phone?: string; wa_id?: string }>;
+}
+
 export interface WhatsAppHandlerPayload {
   messageId: string;
   from: string;
   contactName: string;
-  message: { type?: string; text?: { body?: string }; video?: { id: string }; interactive?: { list_reply?: { id: string } }; [key: string]: unknown };
+  message: {
+    type?: string;
+    text?: { body?: string };
+    video?: { id: string };
+    interactive?: { list_reply?: { id: string } };
+    contacts?: IncomingContact[];
+    [key: string]: unknown;
+  };
   timestamp: string;
 }
 
@@ -32,7 +48,7 @@ const studySessions = new Map<string, {
   pendingPatientName?: string;
   requestingDoctorId?: string;
   operatorId?: string;
-  step: 'waiting_patient' | 'waiting_patient_name' | 'waiting_doctor' | 'completed';
+  step: 'waiting_patient' | 'waiting_patient_name' | 'waiting_doctor' | 'waiting_doctor_phone' | 'completed';
   sessionId: string;
 }>();
 
@@ -64,6 +80,9 @@ export async function handleWhatsAppMessage(data: WhatsAppHandlerPayload): Promi
         break;
       case 'interactive':
         await handleInteractiveMessage(from, message, contactName);
+        break;
+      case 'contacts':
+        await handleContactsMessage(from, message, contactName);
         break;
       default:
         await WhatsAppService.sendTextMessage(
@@ -97,9 +116,8 @@ async function handleVideoMessage(from: string, message: { video?: { id: string 
       );
       return;
     }
-    // Admin, operator y medico_operador pueden subir sin verificar suscripción individual
-    // (la licencia se gestiona a nivel organización)
-    const rolesWithAccess = ['admin', 'operator', 'medico_operador'];
+    // Admin y operator pueden subir sin verificar suscripción individual
+    const rolesWithAccess = ['admin', 'operator'];
     const accessResult = rolesWithAccess.includes(operator.role || '')
       ? { hasAccess: true }
       : await checkUserAccess(operator.id);
@@ -147,7 +165,7 @@ async function handleTextMessage(from: string, message: { text?: { body?: string
   if (text === 'ayuda' || text === 'help') {
     await WhatsAppService.sendTextMessage(
       from,
-      '📖 *Ayuda*\n\n1. Envía un video del estudio\n2. Selecciona paciente\n3. Selecciona médico solicitante\n4. ¡Listo!\n\n"cancelar" para cancelar.'
+      '📖 *Ayuda*\n\n1. Envía un video del estudio\n2. Selecciona paciente\n3. Selecciona médico o comparte su contacto\n4. ¡Listo!\n\n"cancelar" para cancelar.'
     );
     return;
   }
@@ -166,10 +184,101 @@ async function handleTextMessage(from: string, message: { text?: { body?: string
     return;
   }
 
+  if (session?.step === 'waiting_doctor_phone' && text) {
+    const phoneDigits = text.replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
+      await WhatsAppService.sendTextMessage(from, '❌ Número inválido. Envíalo con código de país, ej: 5491112345678');
+      return;
+    }
+    const phone = phoneDigits.startsWith('54') ? phoneDigits : `54${phoneDigits}`;
+    let solicitante = await getSolicitanteByPhone(phone);
+    if (!solicitante) {
+      const newId = await createUser({
+        name: 'Por completar',
+        phone,
+        role: 'medico_solicitante',
+        status: 'active',
+      });
+      if (session.operatorId) {
+        await addDoctorToOperator(session.operatorId, newId);
+      }
+      solicitante = { id: newId, name: 'Por completar', phone, role: 'medico_solicitante', status: 'active' };
+      await WhatsAppService.sendTextMessage(
+        phone,
+        `👋 *HeartLink*\n\nUn operador te agregó como médico solicitante. Recibirás los estudios por aquí.\n\nCompleta tu perfil en la app: ${process.env.NEXT_PUBLIC_APP_URL || 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app'}/dashboard`
+      ).catch(() => {});
+    }
+    session.requestingDoctorId = solicitante.id;
+    session.step = 'completed';
+    studySessions.set(from, session);
+    await createStudyFromWhatsApp(from, session, contactName);
+    return;
+  }
+
   await WhatsAppService.sendTextMessage(
     from,
     '🤔 Envía un video para crear un estudio, o "ayuda" para más información.'
   );
+}
+
+/** Extrae teléfono y nombre de un contacto compartido (vCard) */
+function extractPhoneFromContact(contact: IncomingContact): { phone?: string; name?: string } {
+  const phones = contact?.phones;
+  if (!phones?.length) return {};
+  const first = phones[0];
+  const phone = first?.wa_id || first?.phone || '';
+  const digits = phone.replace(/\D/g, '');
+  const phoneNorm = digits.length >= 10 ? (digits.startsWith('54') ? digits : `54${digits}`) : undefined;
+  const name = contact?.name?.formatted_name || contact?.name?.first_name || undefined;
+  return { phone: phoneNorm, name };
+}
+
+async function handleContactsMessage(from: string, message: { contacts?: IncomingContact[]; contact?: IncomingContact }, contactName: string): Promise<void> {
+  const session = studySessions.get(from);
+  if (session?.step !== 'waiting_doctor_phone') {
+    await WhatsAppService.sendTextMessage(
+      from,
+      '📱 Comparte el contacto cuando te lo pida el sistema (al agregar un médico solicitante). O envía un video para comenzar.'
+    );
+    return;
+  }
+
+  const contactsRaw = message?.contacts ?? (message?.contact ? [message.contact] : []);
+  const contacts = Array.isArray(contactsRaw) ? contactsRaw : [contactsRaw];
+  if (!contacts.length) {
+    await WhatsAppService.sendTextMessage(from, '❌ No se pudo leer el contacto. Intenta compartirlo de nuevo o escribe el número.');
+    return;
+  }
+
+  const { phone, name } = extractPhoneFromContact(contacts[0]);
+  if (!phone) {
+    await WhatsAppService.sendTextMessage(from, '❌ El contacto no tiene número. Escribe el número manualmente (ej: 5491112345678).');
+    return;
+  }
+
+  let solicitante = await getSolicitanteByPhone(phone);
+  if (!solicitante) {
+    const displayName = (name && name.trim()) || 'Por completar';
+    const newId = await createUser({
+      name: displayName,
+      phone,
+      role: 'medico_solicitante',
+      status: 'active',
+    });
+    if (session.operatorId) {
+      await addDoctorToOperator(session.operatorId, newId);
+    }
+    solicitante = { id: newId, name: displayName, phone, role: 'medico_solicitante', status: 'active' };
+    await WhatsAppService.sendTextMessage(
+      phone,
+      `👋 *HeartLink*\n\nUn operador te agregó como médico solicitante. Recibirás los estudios por aquí.\n\nCompleta tu perfil en la app: ${process.env.NEXT_PUBLIC_APP_URL || 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app'}/dashboard`
+    ).catch(() => {});
+  }
+
+  session.requestingDoctorId = solicitante.id;
+  session.step = 'completed';
+  studySessions.set(from, session);
+  await createStudyFromWhatsApp(from, session, contactName);
 }
 
 async function handleInteractiveMessage(from: string, message: { interactive?: { list_reply?: { id: string } } }, contactName: string): Promise<void> {
@@ -194,6 +303,15 @@ async function handleInteractiveMessage(from: string, message: { interactive?: {
     studySessions.set(from, session);
     await sendDoctorSelection(from, session.operatorId);
   } else if (session.step === 'waiting_doctor') {
+    if (selectedId === 'add_doctor_by_phone') {
+      session.step = 'waiting_doctor_phone';
+      studySessions.set(from, session);
+      await WhatsAppService.sendTextMessage(
+        from,
+        '📱 *Agregar médico solicitante*\n\nComparte el contacto del médico (desde tu libreta) o escribe su número con código de país (ej: 5491112345678):'
+      );
+      return;
+    }
     session.requestingDoctorId = selectedId;
     session.step = 'completed';
     studySessions.set(from, session);
@@ -223,21 +341,32 @@ async function sendDoctorSelection(from: string, operatorId?: string): Promise<v
     ? await getDoctorsByOperator(operatorId)
     : (await getAllUsers()).filter((u) => u.role === 'solicitante' || u.role === 'medico_solicitante');
 
-  const listItems = users.slice(0, 10).map((u) => ({
+  const listItems = users.slice(0, 9).map((u) => ({
     id: u.id,
     title: u.name,
-    description: u.specialty || 'Médico',
+    description: u.specialty || u.phone || 'Médico',
   }));
 
-  if (listItems.length === 0) {
+  listItems.push({
+    id: 'add_doctor_by_phone',
+    title: '➕ Agregar médico por teléfono',
+    description: 'Número de WhatsApp del médico',
+  });
+
+  if (listItems.length === 1) {
+    const session = studySessions.get(from);
+    if (session) {
+      session.step = 'waiting_doctor_phone';
+      studySessions.set(from, session);
+    }
     await WhatsAppService.sendTextMessage(
       from,
-      '❌ No hay médicos solicitantes configurados. Contacta al administrador.'
+      '👨‍⚕️ *Agregar médico solicitante*\n\nNo hay médicos en la lista. Comparte el contacto del médico (desde tu libreta) o escribe su número (ej: 5491112345678):'
     );
     return;
   }
 
-  await WhatsAppService.sendListMessage(from, '👨‍⚕️ Médico solicitante', 'Selecciona el médico:', listItems);
+  await WhatsAppService.sendListMessage(from, '👨‍⚕️ Médico solicitante', 'Selecciona el médico o agrega uno:', listItems);
 }
 
 async function createStudyFromWhatsApp(from: string, session: { videoUrl?: string; patientId?: string; pendingPatientName?: string; requestingDoctorId?: string }, contactName: string): Promise<void> {

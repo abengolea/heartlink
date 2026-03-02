@@ -49,7 +49,7 @@ Este documento explica en detalle qué queremos lograr desde el **médico operad
 **Flujo implementado en el handler:**
 
 1. **Video recibido** (`handleVideoMessage`):
-   - Valida operador: `getOperatorByWhatsAppPhone(from)` — busca en Firestore `users` con `role` in `['operator','medico_operador','admin']` donde `phone` coincide con el número de WhatsApp
+   - Valida operador: `getOperatorByWhatsAppPhone(from)` — busca en Firestore `users` con `role` in `['operator','admin']` donde `phone` coincide con el número de WhatsApp
    - Valida licencia: `checkUserAccess(operator.id)`
    - Descarga video: `WhatsAppService.downloadMedia(message.video.id)` → usa `WHATSAPP_TOKEN` o `WHATSAPP_ACCESS_TOKEN`
    - Sube a Storage: `uploadVideoFromBuffer(videoBuffer, ...)` → Firebase Storage
@@ -61,12 +61,15 @@ Este documento explica en detalle qué queremos lograr desde el **médico operad
    - Si paciente existente → `sendDoctorSelection(from, operatorId)` — médicos de `getDoctorsByOperator(operatorId)` (colección `operator_doctors`)
 
 3. **Selección médico** (`handleInteractiveMessage`, step `waiting_doctor`):
+   - Si selecciona "Agregar médico por teléfono" → step `waiting_doctor_phone`
+   - Puede compartir un **contacto (vCard)** o escribir el número. Tipo `contacts` → `handleContactsMessage`
    - Crea estudio: `studyUploadFlow(input)` → `createStudy`, `findOrCreatePatient`
    - Genera link público: `generateOrGetShareTokenAndUrl(studyId)`
    - Confirma al operador por WhatsApp
    - **Notifica al médico solicitante** si tiene `phone`: `WhatsAppService.sendTextMessage(requestingDoctor.phone, ...)`
 
 **Comandos de texto:** `hola`, `ayuda`, `cancelar` — en `handleTextMessage`.
+**Mensaje contacts:** cuando el operador comparte un contacto en `waiting_doctor_phone` → `handleContactsMessage`.
 
 ---
 
@@ -92,7 +95,7 @@ Este documento explica en detalle qué queremos lograr desde el **médico operad
 
 ### 3. Datos en Firestore (HeartLink)
 
-- **users**: `role` (`operator`, `medico_operador`, `admin`, `solicitante`, `medico_solicitante`), `phone` (para vincular WhatsApp)
+- **users**: `role` (`operator`, `admin`, `solicitante`, `medico_solicitante`), `phone` (para vincular WhatsApp)
 - **operator_doctors**: `operatorId`, `requesterId` — vínculos operador ↔ médico solicitante
 - **patients**: `requesterId` (médico solicitante dueño del paciente)
 - **studies**: `patientId`, `requestingDoctorId`, `videoUrl`, `shareToken`, etc.
@@ -148,7 +151,7 @@ NotificasHub reenvía mensajes de WhatsApp a `POST {HEARTLINK_URL}/api/whatsapp/
 En Firestore de HeartLink, colección `users`, el documento del operador debe tener:
 ```
 phone: "543364645357"    // sin + ni espacios; debe coincidir con número de WhatsApp
-role: "medico_operador"  // o "operator" o "admin"
+role: "operator"  // o "admin"
 ```
 
 ### 6. Template en Meta

@@ -86,7 +86,7 @@ export default function OperatorsPage() {
         const users = await response.json();
         const operadores = users.filter(
           (user: User) =>
-            user.role === "operator" || user.role === "medico_operador"
+            user.role === "operator"
         );
         setOperators(operadores);
       } else {

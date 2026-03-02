@@ -41,7 +41,7 @@ export function EditPatientForm({ patientId }: { patientId: string }) {
     const { dbUser } = useAuth();
 
     const isSolicitante = dbUser?.role === 'medico_solicitante' || dbUser?.role === 'solicitante';
-    const isOperadorOAdmin = dbUser?.role === 'medico_operador' || dbUser?.role === 'operator' || dbUser?.role === 'admin';
+    const isOperadorOAdmin = dbUser?.role === 'operator' || dbUser?.role === 'admin';
 
     // Cargar paciente; solo operadores/admin cargan la lista de médicos para el selector
     useEffect(() => {

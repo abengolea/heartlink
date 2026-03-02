@@ -8,7 +8,7 @@ import { getAllUsers, getDoctorsByOperator } from '@/lib/firestore';
  */
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireRole(request, ['admin', 'operator', 'medico_operador']);
+    const auth = await requireRole(request, ['admin', 'operator']);
     const operatorId = auth.dbUser.id;
 
     const [allUsers, myDoctors] = await Promise.all([

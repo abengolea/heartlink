@@ -28,7 +28,6 @@ export default function EnviarEstudioWhatsApp({
   const { dbUser } = useAuth();
   const isOperator =
     dbUser?.role === "operator" ||
-    dbUser?.role === "medico_operador" ||
     dbUser?.role === "admin";
 
   const [telefono, setTelefono] = useState(defaultTelefono);

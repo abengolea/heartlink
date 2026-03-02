@@ -12,5 +12,5 @@ Al trabajar en WhatsApp o NotificasHub, consulta `docs/CURSOR_WHATSAPP_NOTIFICAS
 - **Arquitectura:** HeartLink solo envía; el webhook (WHATSAPP_VERIFY_TOKEN) es solo para NotificasHub.
 - **Variables HeartLink:** `PHONE_NUMBER_ID`, `WHATSAPP_TOKEN`, `NOTIFICASHUB_PROJECT_ID`, `NOTIFICASHUB_CLIENT_EMAIL`, `NOTIFICASHUB_PRIVATE_KEY`. No requiere WHATSAPP_VERIFY_TOKEN.
 - **NotificasHub:** Colección `sends` con `appId: "heartlink"`. HeartLink usa `getNotificasHubDb()` y escribe allí al enviar por `/api/whatsapp/send`.
-- **Flujo operador:** `whatsapp-handler.ts` → video → paciente → médico → `studyUploadFlow` → notificación si médico tiene `phone`.
-- **Operador válido:** `getOperatorByWhatsAppPhone` (users con role operator/medico_operador/admin y phone coincidente) + `checkUserAccess`.
+- **Flujo operador:** `whatsapp-handler.ts` → video → paciente → médico (puede compartir contacto vCard o escribir número) → `studyUploadFlow` → notificación si médico tiene `phone`. Mensaje tipo `contacts` → `handleContactsMessage`.
+- **Operador válido:** `getOperatorByWhatsAppPhone` (users con role operator/admin y phone coincidente) + `checkUserAccess`.

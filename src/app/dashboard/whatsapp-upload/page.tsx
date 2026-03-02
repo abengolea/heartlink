@@ -13,7 +13,6 @@ export default function WhatsappUploadPage() {
     const { dbUser } = useAuth();
     const isOperator =
         dbUser?.role === "operator" ||
-        dbUser?.role === "medico_operador" ||
         dbUser?.role === "admin";
 
     useEffect(() => {

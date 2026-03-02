@@ -7,7 +7,7 @@ export async function DELETE(
   { params }: { params: Promise<{ requesterId: string }> }
 ) {
   try {
-    const auth = await requireRole(request, ['admin', 'operator', 'medico_operador']);
+    const auth = await requireRole(request, ['admin', 'operator']);
     const { requesterId } = await params;
 
     await removeDoctorFromOperator(auth.dbUser.id, requesterId);

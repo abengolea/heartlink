@@ -9,7 +9,6 @@ export function DashboardSidebar() {
   const { dbUser } = useAuth();
   const isOperator =
     dbUser?.role === "operator" ||
-    dbUser?.role === "medico_operador" ||
     dbUser?.role === "admin";
   const isAdmin = dbUser?.role === "admin";
 

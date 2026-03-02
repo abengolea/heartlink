@@ -116,7 +116,7 @@ export default function CommentsPanel({ studyId, initialComments }: CommentsPane
                     <p className="font-semibold text-sm">
                       {comment.userName}{' '}
                       <span className="text-xs font-normal text-muted-foreground ml-1">
-                        {(comment.role === 'operator' || comment.role === 'medico_operador')
+                        {comment.role === 'operator'
                           ? 'Operador'
                           : 'Solicitante'}
                       </span>

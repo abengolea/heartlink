@@ -8,7 +8,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthGuard requireAuth={true} allowedRoles={['operator', 'medico_operador', 'medico_solicitante', 'solicitante', 'admin']}>
+    <AuthGuard requireAuth={true} allowedRoles={['operator', 'medico_solicitante', 'solicitante', 'admin']}>
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] min-w-0">
       <DashboardSidebar />
         <div className="flex flex-col min-w-0 overflow-x-hidden">

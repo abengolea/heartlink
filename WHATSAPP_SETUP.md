@@ -199,7 +199,7 @@ Para que un médico operador pueda subir estudios por WhatsApp:
 
 1. **Perfil del operador en Firestore:** Colección `users`, documento del operador:
    - `phone`: `"543364645357"` (sin + ni espacios; debe coincidir con número de WhatsApp)
-   - `role`: `"medico_operador"` (o `"operator"` o `"admin"`)
+   - `role`: `"operator"` o `"admin"`
 2. **Licencia activa:** Debe tener suscripción mensual activa en la plataforma
 3. **Médicos solicitantes:** Vincular médicos en "Médicos Solicitantes" para que aparezcan en la lista
 

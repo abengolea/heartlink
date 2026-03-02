@@ -20,7 +20,7 @@ interface SendRequestBody {
 export async function POST(request: NextRequest) {
   try {
     // Solo operadores pueden enviar estudios por WhatsApp
-    await requireRole(request, ["admin", "operator", "medico_operador"]);
+    await requireRole(request, ["admin", "operator"]);
 
     if (!PHONE_NUMBER_ID || !WHATSAPP_TOKEN) {
       console.error("[whatsapp/send] PHONE_NUMBER_ID o WHATSAPP_TOKEN no configurados");

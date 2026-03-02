@@ -44,7 +44,6 @@ const adminNavItems = [
 const roleLabels: Record<string, string> = {
   admin: "Admin",
   operator: "Operador",
-  medico_operador: "Operador",
   solicitante: "Solicitante",
   medico_solicitante: "Médico Solicitante",
 };
@@ -57,7 +56,6 @@ export function DashboardHeader() {
   const roleLabel = dbUser?.role ? roleLabels[dbUser.role] ?? dbUser.role : null;
   const isOperator =
     dbUser?.role === "operator" ||
-    dbUser?.role === "medico_operador" ||
     dbUser?.role === "admin";
   const navItems = isOperator
     ? [...baseNavItems, operatorNavItem]

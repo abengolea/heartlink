@@ -4,6 +4,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { requireRole } from '@/lib/api-auth';
 import {
   getUserByEmail,
+  getSolicitanteByPhone,
   createUser,
   addDoctorToOperator,
   getUserById,
@@ -13,29 +14,64 @@ import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:4000';
 
 /**
- * POST: Invita a un médico solicitante. Crea cuenta en Firebase Auth + Firestore,
- * lo vincula al operador y envía email para que genere su contraseña.
+ * POST: Invita a un médico solicitante.
+ * - Solo teléfono: crea registro mínimo (nombre "Por completar"), el médico completa después en la app.
+ * - Datos completos: crea cuenta Firebase Auth + Firestore, envía email para contraseña.
  */
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireRole(request, [
       'admin',
       'operator',
-      'medico_operador',
     ]);
     const body = await request.json();
     const { name, email, phone, specialty } = body;
 
+    const phoneDigits = (phone || '').toString().replace(/\D/g, '');
+    const phoneNormalized = phoneDigits.length >= 10
+      ? (phoneDigits.startsWith('54') ? phoneDigits : `54${phoneDigits}`)
+      : '';
+
+    // Flujo rápido: solo teléfono (el médico completa después en la app)
+    if (phoneNormalized && (!email || !email.trim())) {
+      const existing = await getSolicitanteByPhone(phoneNormalized);
+      if (existing) {
+        return NextResponse.json(
+          { error: 'Ya existe un médico solicitante con este teléfono', userId: existing.id },
+          { status: 409 }
+        );
+      }
+      const dbUserId = await createUser({
+        name: (name && String(name).trim()) || 'Por completar',
+        phone: phoneNormalized,
+        role: 'solicitante',
+        status: 'active',
+        specialty: specialty || undefined,
+      });
+      const operatorId =
+        body.operatorId ||
+        (auth.dbUser.role === 'operator' ? auth.dbUser.id : null);
+      if (operatorId) {
+        await addDoctorToOperator(operatorId, dbUserId);
+      }
+      return NextResponse.json({
+        success: true,
+        message: 'Solicitante creado. El médico puede completar su perfil en la app.',
+        userId: dbUserId,
+      });
+    }
+
+    // Flujo completo: email + todos los datos
     if (!name || !email || !phone || !specialty) {
       return NextResponse.json(
-        { error: 'Faltan campos: name, email, phone, specialty' },
+        { error: 'Faltan campos: name, email, phone, specialty (o solo phone para crear rápido)' },
         { status: 400 }
       );
     }
 
     const operatorId =
       body.operatorId ||
-      (auth.dbUser.role === 'operator' || auth.dbUser.role === 'medico_operador'
+      (auth.dbUser.role === 'operator'
         ? auth.dbUser.id
         : null);
 

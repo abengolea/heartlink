@@ -45,7 +45,7 @@ export default function DoctorsPage() {
   const [resendingId, setResendingId] = useState<string | null>(null);
 
   const isOperator =
-    dbUser?.role === "operator" || dbUser?.role === "medico_operador";
+    dbUser?.role === "operator";
   const isSolicitante =
     dbUser?.role === "medico_solicitante" || dbUser?.role === "solicitante";
 

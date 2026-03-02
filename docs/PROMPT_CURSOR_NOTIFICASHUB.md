@@ -28,6 +28,12 @@ Meta envía algo como:
 { "object": "whatsapp_business_account", "entry": [{ "id": "...", "changes": [{ "value": { "messaging_product": "whatsapp", "metadata": {...}, "contacts": [{ "profile": { "name": "Juan" }, "wa_id": "5493364645357" }], "messages": [{ "from": "5493364645357", "id": "wamid.xxx", "timestamp": "1234567890", "type": "text", "text": { "body": "hola" } }] }, "field": "messages" }] }] }
 ```
 
+Cuando el usuario COMPARTE UN CONTACTO (vCard), el mensaje tiene type "contacts":
+```
+"messages": [{ "from": "54933...", "id": "wamid.xxx", "timestamp": "...", "type": "contacts", "contacts": [{ "name": { "formatted_name": "Dr. Juan" }, "phones": [{ "phone": "5491112345678", "wa_id": "5491112345678" }] }] }]
+```
+Debés reenviar el objeto message completo (incluido contacts) a HeartLink.
+
 ## 4. CÓDIGO DE REENVÍO
 Dentro del handler POST, cuando procesás el body:
 - Extraer: const entry = body?.entry?.[0]; const value = entry?.changes?.[0]?.value; const message = value?.messages?.[0];

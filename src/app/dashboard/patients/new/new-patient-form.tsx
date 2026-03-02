@@ -31,7 +31,7 @@ export function NewPatientForm() {
     const { dbUser } = useAuth();
 
     const isSolicitante = dbUser?.role === 'medico_solicitante' || dbUser?.role === 'solicitante';
-    const isOperadorOAdmin = dbUser?.role === 'medico_operador' || dbUser?.role === 'operator' || dbUser?.role === 'admin';
+    const isOperadorOAdmin = dbUser?.role === 'operator' || dbUser?.role === 'admin';
 
     // Solo operadores y admin cargan la lista de médicos solicitantes (para indicar a quién corresponde el paciente)
     useEffect(() => {

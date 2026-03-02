@@ -30,7 +30,6 @@ export default function ShareButton({ studyId, requesterPhone, requesterName }: 
   const { dbUser } = useAuth();
   const isOperator =
     dbUser?.role === "operator" ||
-    dbUser?.role === "medico_operador" ||
     dbUser?.role === "admin";
 
   const [copied, setCopied] = useState(false);

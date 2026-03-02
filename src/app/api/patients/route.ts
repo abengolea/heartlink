@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
     const role = authUser.dbUser.role;
-    const allowedRoles = ['admin', 'operator', 'medico_operador', 'solicitante', 'medico_solicitante'];
+    const allowedRoles = ['admin', 'operator', 'solicitante', 'medico_solicitante'];
     if (!allowedRoles.includes(role)) {
       return NextResponse.json({ error: 'Sin permisos para registrar pacientes' }, { status: 403 });
     }
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (role === 'medico_operador' || role === 'operator') {
+    if (role === 'operator') {
       const isValid = await validateRequesterIdForOperator(requesterId, authUser.dbUser.id);
       if (!isValid) {
         return NextResponse.json(

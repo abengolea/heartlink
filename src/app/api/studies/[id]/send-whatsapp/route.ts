@@ -15,7 +15,7 @@ export async function POST(
 ) {
   try {
     // Solo operadores pueden enviar estudios por WhatsApp
-    await requireRole(request, ['admin', 'operator', 'medico_operador']);
+    await requireRole(request, ['admin', 'operator']);
 
     const { id } = await params;
     const study = await getStudyById(id);

@@ -19,6 +19,12 @@ export interface ParsedWebhookMessage {
   contactName?: string;
 }
 
+/** Contacto compartido (vCard) en mensaje type=contacts */
+interface SharedContact {
+  name?: { formatted_name?: string; first_name?: string };
+  phones?: Array<{ phone?: string; wa_id?: string }>;
+}
+
 /** Estructura del mensaje según WhatsApp Cloud API */
 interface WhatsAppCloudMessage {
   from: string;
@@ -31,6 +37,7 @@ interface WhatsAppCloudMessage {
   audio?: { id: string };
   document?: { id: string };
   interactive?: { type: string; list_reply?: { id: string }; button_reply?: { id: string } };
+  contacts?: SharedContact[];
   [key: string]: unknown;
 }
 
@@ -68,6 +75,11 @@ function extractMessageBody(msg: WhatsAppCloudMessage): string {
   if (msg.type === 'audio') return '[audio]';
   if (msg.type === 'document') return '[document]';
   if (msg.type === 'reaction') return '[reaction]';
+  if (msg.type === 'contacts') {
+    const c = msg.contacts?.[0];
+    const phone = c?.phones?.[0]?.wa_id || c?.phones?.[0]?.phone;
+    return phone ? `[contacto: ${phone}]` : '[contacto]';
+  }
   return `[${msg.type ?? 'unknown'}]`;
 }
 

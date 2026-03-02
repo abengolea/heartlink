@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     if (!accessResult.hasAccess) {
       // En desarrollo: permitir bypass a admin/operador sin suscripción o si hubo error técnico
       const isDev = process.env.NODE_ENV === 'development';
-      const isOperatorOrAdmin = ['admin', 'operator', 'medico_operador'].includes(authUser.dbUser.role || '');
+      const isOperatorOrAdmin = ['admin', 'operator'].includes(authUser.dbUser.role || '');
       const canBypass = isDev && isOperatorOrAdmin && (accessResult.reason === 'error' || accessResult.reason === 'no_subscription');
       if (canBypass) {
         console.log('⚠️ [UPLOAD-STUDY] Bypass en desarrollo: operador/admin sin suscripción');

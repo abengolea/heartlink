@@ -44,8 +44,7 @@ export interface User {
   name: string;
   email?: string;
   phone?: string;
-  /** operator y medico_operador son equivalentes: médico que realiza estudios */
-  role: 'admin' | 'operator' | 'medico_operador' | 'solicitante' | 'medico_solicitante';
+  role: 'admin' | 'operator' | 'solicitante' | 'medico_solicitante';
   specialty?: string;
   status?: 'active' | 'inactive' | 'pending_approval';
   subscriptionStatus?: 'active' | 'inactive' | 'suspended' | 'trial';

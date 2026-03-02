@@ -14,7 +14,7 @@ import {
  */
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireRole(request, ['admin', 'operator', 'medico_operador', 'medico_solicitante', 'solicitante']);
+    const auth = await requireRole(request, ['admin', 'operator', 'medico_solicitante', 'solicitante']);
 
     const role = auth.dbUser.role;
 
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireRole(request, ['admin', 'operator', 'medico_operador']);
+    const auth = await requireRole(request, ['admin', 'operator']);
     const operatorId = auth.dbUser.id;
 
     const body = await request.json();

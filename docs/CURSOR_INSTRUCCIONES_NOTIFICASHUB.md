@@ -78,6 +78,12 @@ HeartLink acepta:
 - `message` y `from` son obligatorios.
 - `contactName`, `messageId`, `timestamp` son opcionales (HeartLink usa valores por defecto si faltan).
 
+**Importante:** Reenviar el objeto `message` completo tal como lo envía Meta. HeartLink necesita estos tipos:
+- `text` – mensajes de texto
+- `video` – videos (estudios)
+- `interactive` – respuestas a listas (paciente, médico)
+- `contacts` – cuando el usuario comparte un contacto (vCard). El mensaje incluye `message.contacts` con nombre y teléfono.
+
 ---
 
 ## 4. Comportamiento esperado

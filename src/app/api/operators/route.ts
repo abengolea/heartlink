@@ -11,8 +11,7 @@ export async function GET() {
     const operators = users
       .filter(
         (u) =>
-          u.role === 'operator' ||
-          u.role === 'medico_operador'
+          u.role === 'operator'
       )
       .map((u) => ({ id: u.id, name: u.name, specialty: u.specialty }))
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''));

@@ -356,7 +356,7 @@ function phonesMatch(digitsA: string, digitsB: string): boolean {
 }
 
 /**
- * Busca un operador (medico_operador/operator) por su número de WhatsApp.
+ * Busca un operador por su número de WhatsApp.
  * El número debe estar guardado en User.phone o User (campo whatsappPhone si se agrega).
  * Acepta 5493364645357 y 543364645357 como el mismo número (Argentina móvil).
  */
@@ -367,7 +367,7 @@ export async function getOperatorByWhatsAppPhone(whatsappPhone: string): Promise
   try {
     const db = getFirestoreAdmin();
     const usersSnapshot = await db.collection('users')
-      .where('role', 'in', ['operator', 'medico_operador', 'admin'])
+      .where('role', 'in', ['operator', 'admin'])
       .get();
 
     for (const doc of usersSnapshot.docs) {
@@ -381,6 +381,35 @@ export async function getOperatorByWhatsAppPhone(whatsappPhone: string): Promise
     return null;
   } catch (error) {
     console.error('❌ [Firestore] Error getting operator by WhatsApp phone:', error);
+    return null;
+  }
+}
+
+/**
+ * Busca un médico solicitante por número de teléfono.
+ * Útil para crear/obtener solicitantes desde WhatsApp con solo el teléfono.
+ */
+export async function getSolicitanteByPhone(phone: string): Promise<User | null> {
+  const normalized = normalizePhoneForMatch(phone);
+  if (!normalized || normalized.length < 10) return null;
+
+  try {
+    const db = getFirestoreAdmin();
+    const usersSnapshot = await db.collection('users')
+      .where('role', 'in', ['solicitante', 'medico_solicitante'])
+      .get();
+
+    for (const doc of usersSnapshot.docs) {
+      const data = doc.data();
+      const userPhone = data.phone || '';
+      const storedDigits = normalizePhoneForMatch(userPhone);
+      if (userPhone && phonesMatch(normalized, storedDigits)) {
+        return { id: doc.id, ...data } as User;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting solicitante by phone:', error);
     return null;
   }
 }

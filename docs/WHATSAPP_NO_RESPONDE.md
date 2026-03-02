@@ -42,7 +42,7 @@ Variables en NotificasHub:
 En **Firestore** (HeartLink), colección `users`, tu usuario debe tener:
 
 - `phone`: número con código de país (ej: `543364645357` o `5493364645357`)
-- `role`: `medico_operador`, `operator` o `admin`
+- `role`: `operator` o `admin`
 
 **El sistema acepta ambos formatos para Argentina:** `543364645357` y `5493364645357` se consideran el mismo número.
 

@@ -155,8 +155,7 @@ export default function AdminUsersPage() {
   const getRoleName = (role: User["role"]) => {
       switch (role) {
         case "admin": return "Admin";
-        case "operator":
-        case "medico_operador": return "Operador";
+        case "operator": return "Operador";
         case "solicitante": return "Solicitante";
         case "medico_solicitante": return "Médico Solicitante";
         default: return role;
@@ -253,7 +252,7 @@ export default function AdminUsersPage() {
                   <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{user.email || '-'}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={(user.role === "operator" || user.role === "medico_operador") ? "default" : "secondary"}
+                      variant={user.role === "operator" ? "default" : "secondary"}
                       className={cn(
                         user.role === "admin" && "bg-destructive/80"
                       )}
@@ -265,7 +264,7 @@ export default function AdminUsersPage() {
                     {getStatusBadge(user.status)}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    {(user.role === "operator" || user.role === "medico_operador")
+                    {user.role === "operator"
                       ? getSubscriptionBadge(user.subscriptionStatus)
                       : "N/A"}
                   </TableCell>
@@ -360,10 +359,8 @@ function EditUserForm({
 }) {
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email || "");
-  const validRoles: User["role"][] = ["admin", "operator", "medico_operador", "solicitante", "medico_solicitante"];
-  // Normalizar roles equivalentes al editar
+  const validRoles: User["role"][] = ["admin", "operator", "solicitante", "medico_solicitante"];
   const normalizedRole = (): User["role"] => {
-    if (user.role === "medico_operador") return "operator";
     if (user.role === "medico_solicitante") return "solicitante";
     return validRoles.includes(user.role) ? user.role : "operator";
   };

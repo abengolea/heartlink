@@ -111,7 +111,7 @@ export default function ConfiguracionPage() {
     updatePref({ language: value });
   };
 
-  const isOperator = dbUser?.role === "operator" || dbUser?.role === "medico_operador" || dbUser?.role === "admin";
+  const isOperator = dbUser?.role === "operator" || dbUser?.role === "admin";
 
   const handleSavePhone = async () => {
     if (!dbUser || phoneSaving) return;
@@ -168,12 +168,15 @@ export default function ConfiguracionPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
+              <div className="flex-1 space-y-1">
                 <PhoneInputWithCountry
                   value={myPhone}
                   onChange={setMyPhone}
-                  placeholder="9 336 451-3355"
+                  placeholder="336 451-3355"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Argentina: ingresá solo código de área + número (ej. 336 451-3355). El 9 se agrega automáticamente.
+                </p>
               </div>
               <Button onClick={handleSavePhone} disabled={phoneSaving}>
                 {phoneSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}

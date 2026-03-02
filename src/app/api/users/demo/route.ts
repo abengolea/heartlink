@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const demoUserData = {
       name: 'Dr. Abel Bengolea',
       email: email,
-      role: 'medico_operador',
+      role: 'operator',
       specialty: 'Cardiología',
       status: 'active',
       subscriptionStatus: 'inactive', // No subscription initially

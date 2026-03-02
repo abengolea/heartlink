@@ -10,20 +10,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+/** Lista ampliada de países, Argentina primero por defecto para operadores */
 const COUNTRIES = [
   { code: "AR", dial: "+54", name: "Argentina" },
-  { code: "MX", dial: "+52", name: "México" },
-  { code: "ES", dial: "+34", name: "España" },
-  { code: "CL", dial: "+56", name: "Chile" },
-  { code: "CO", dial: "+57", name: "Colombia" },
-  { code: "PE", dial: "+51", name: "Perú" },
   { code: "UY", dial: "+598", name: "Uruguay" },
   { code: "PY", dial: "+595", name: "Paraguay" },
   { code: "BO", dial: "+591", name: "Bolivia" },
-  { code: "EC", dial: "+593", name: "Ecuador" },
-  { code: "VE", dial: "+58", name: "Venezuela" },
+  { code: "CL", dial: "+56", name: "Chile" },
   { code: "BR", dial: "+55", name: "Brasil" },
+  { code: "PE", dial: "+51", name: "Perú" },
+  { code: "EC", dial: "+593", name: "Ecuador" },
+  { code: "CO", dial: "+57", name: "Colombia" },
+  { code: "VE", dial: "+58", name: "Venezuela" },
+  { code: "MX", dial: "+52", name: "México" },
+  { code: "ES", dial: "+34", name: "España" },
   { code: "US", dial: "+1", name: "Estados Unidos" },
+  { code: "CR", dial: "+506", name: "Costa Rica" },
+  { code: "PA", dial: "+507", name: "Panamá" },
+  { code: "CU", dial: "+53", name: "Cuba" },
+  { code: "IT", dial: "+39", name: "Italia" },
+  { code: "DE", dial: "+49", name: "Alemania" },
+  { code: "FR", dial: "+33", name: "Francia" },
+  { code: "GB", dial: "+44", name: "Reino Unido" },
 ];
 
 function parsePhone(value: string): { countryCode: string; numberPart: string } {
@@ -42,11 +50,23 @@ function parsePhone(value: string): { countryCode: string; numberPart: string } 
   return { countryCode: "+54", numberPart: trimmed };
 }
 
+/**
+ * Construye el número completo para guardar (formato WhatsApp).
+ * Argentina: si el usuario ingresa "336 451-3355" (sin el 9), lo agregamos automáticamente.
+ * El 9 es obligatorio para móviles en formato internacional (+54 9 XXX XXX XXXX).
+ */
 function buildFullPhone(countryCode: string, numberPart: string): string {
-  const num = (numberPart ?? "").trim();
-  if (!num) return "";
-  if (!countryCode) return num;
-  return `${countryCode} ${num}`;
+  const raw = (numberPart ?? "").trim();
+  if (!raw) return "";
+  if (!countryCode) return raw;
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  let normalized = digits;
+  // Argentina (+54): móviles requieren 9. Usuario puede ingresar "3364513355" → "93364513355"
+  if (countryCode === "+54" && (digits.length === 9 || digits.length === 10) && !digits.startsWith("9")) {
+    normalized = "9" + digits;
+  }
+  return `${countryCode} ${normalized}`;
 }
 
 interface PhoneInputWithCountryProps {
@@ -60,15 +80,19 @@ interface PhoneInputWithCountryProps {
   disabled?: boolean;
 }
 
+/** Placeholder para Argentina: ingresa solo código de área + número (sin el 9) */
+const PLACEHOLDER_AR = "336 451-3355";
+
 export function PhoneInputWithCountry({
   value = "",
   onChange,
   name,
-  placeholder = "9 336 451-3355",
+  placeholder,
   id = "phone",
   required,
   disabled,
 }: PhoneInputWithCountryProps) {
+  const effectivePlaceholder = placeholder ?? PLACEHOLDER_AR;
   const [internalValue, setInternalValue] = useState(value);
   useEffect(() => {
     if (onChange === undefined && value !== undefined) setInternalValue(value);
@@ -114,7 +138,7 @@ export function PhoneInputWithCountry({
         type="tel"
         value={numberPart}
         onChange={handleNumberChange}
-        placeholder={placeholder}
+        placeholder={effectivePlaceholder}
         required={required}
         disabled={disabled}
         className="flex-1"

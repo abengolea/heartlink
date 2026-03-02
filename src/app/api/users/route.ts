@@ -21,11 +21,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Solo admin y operador (operator = medico_operador) pueden crear médicos
-    await requireRole(request, ['admin', 'operator', 'medico_operador']);
+    await requireRole(request, ['admin', 'operator']);
     const userData = await request.json();
     const role = userData.role || '';
-    const needsPhone = ['operator', 'medico_operador', 'solicitante', 'medico_solicitante'].includes(role);
+    const needsPhone = ['operator', 'solicitante', 'medico_solicitante'].includes(role);
     if (needsPhone && (!userData.phone || !String(userData.phone).trim())) {
       return NextResponse.json(
         { error: 'El teléfono (WhatsApp) es obligatorio para médicos operadores y solicitantes.' },
