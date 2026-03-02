@@ -19,13 +19,13 @@ import Logo from "./logo";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+const baseNavItems = [
     { href: "/dashboard", label: "Panel de control" },
     { href: "/dashboard/patients", label: "Pacientes" },
     { href: "/dashboard/doctors", label: "Médicos" },
     { href: "/dashboard/studies", label: "Estudios" },
-    { href: "/dashboard/whatsapp-upload", label: "Subir por WhatsApp" },
 ];
+const operatorNavItem = { href: "/dashboard/whatsapp-upload", label: "Subir por WhatsApp" };
 
 const adminNavItems = [
     { href: "/admin", label: "Admin", icon: Shield },
@@ -55,6 +55,13 @@ export function DashboardHeader() {
   const { signOut, dbUser } = useAuth();
   const isAdminSection = pathname.startsWith('/admin');
   const roleLabel = dbUser?.role ? roleLabels[dbUser.role] ?? dbUser.role : null;
+  const isOperator =
+    dbUser?.role === "operator" ||
+    dbUser?.role === "medico_operador" ||
+    dbUser?.role === "admin";
+  const navItems = isOperator
+    ? [...baseNavItems, operatorNavItem]
+    : baseNavItems;
 
   const handleSignOut = async () => {
     await signOut();

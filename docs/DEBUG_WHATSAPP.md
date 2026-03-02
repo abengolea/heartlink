@@ -1,6 +1,37 @@
 # Debug: WhatsApp no responde
 
-## 1. Ver logs en Firebase
+## PASO 0: ¿HeartLink puede enviar por WhatsApp?
+
+Probar si la app puede enviar mensajes (sin pasar por NotificasHub):
+
+```powershell
+Invoke-RestMethod -Uri "https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/test" -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"to":"5493364645357"}'
+```
+
+- **200 + success: true** → Deberías recibir un WhatsApp. Si no llega, revisar logs (Meta puede rechazar).
+- **500 / Failed** → `PHONE_NUMBER_ID` o `WHATSAPP_TOKEN` mal configurados en producción.
+
+Si este test NO envía WhatsApp, el resto no va a funcionar. Arreglar primero los secrets de WhatsApp en Firebase.
+
+---
+
+## PASO 1: ¿Llega algo a HeartLink?
+
+Probar el endpoint incoming directo (sin NotificasHub):
+
+```powershell
+Invoke-RestMethod -Uri "https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/incoming" -Method POST -Headers @{"Content-Type"="application/json"; "x-internal-token"="heartlink_internal_2026"} -Body '{"from":"5493364645357","message":{"type":"text","text":{"body":"hola"}}}'
+```
+
+- **200 + ok: true** → HeartLink procesó. ¿Recibiste WhatsApp? Si no, el problema es enviar (PASO 0).
+- **401** → Hacer nuevo rollout para que producción use el secret actualizado:
+  ```powershell
+  firebase apphosting:rollouts:create heartlink --project heartlink-f4ftq --git-branch main --force
+  ```
+
+---
+
+## PASO 2: Ver logs en Firebase
 
 Firebase Console → App Hosting → heartlink → **Logs**
 

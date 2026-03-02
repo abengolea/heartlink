@@ -1,9 +1,35 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WhatsappUploadForm } from "./whatsapp-upload-form";
 import { MessageCircle, Video, List, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function WhatsappUploadPage() {
+    const router = useRouter();
+    const { dbUser } = useAuth();
+    const isOperator =
+        dbUser?.role === "operator" ||
+        dbUser?.role === "medico_operador" ||
+        dbUser?.role === "admin";
+
+    useEffect(() => {
+        if (dbUser && !isOperator) {
+            router.replace("/dashboard");
+        }
+    }, [dbUser, isOperator, router]);
+
+    if (!dbUser || !isOperator) {
+        return (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+                Cargando...
+            </div>
+        );
+    }
+
     return (
         <div className="mx-auto grid w-full max-w-4xl gap-6">
              <div className="flex-1">

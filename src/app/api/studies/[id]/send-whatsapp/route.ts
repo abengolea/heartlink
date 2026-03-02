@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStudyById, updateStudy, getPatientById, getUserById } from '@/lib/firestore';
-import { getAuthenticatedUser } from '@/lib/api-auth';
+import { requireRole } from '@/lib/api-auth';
 import { randomBytes } from 'crypto';
 import { WhatsAppService } from '@/services/whatsapp';
 import { toWhatsAppFormat } from '@/lib/phone-format';
@@ -14,10 +14,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authUser = await getAuthenticatedUser(request);
-    if (!authUser) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    // Solo operadores pueden enviar estudios por WhatsApp
+    await requireRole(request, ['admin', 'operator', 'medico_operador']);
 
     const { id } = await params;
     const study = await getStudyById(id);
@@ -59,6 +57,17 @@ export async function POST(
 
     return NextResponse.json({ success: true, message: 'Mensaje enviado correctamente' });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'UNAUTHORIZED') {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+      }
+      if (error.message === 'FORBIDDEN') {
+        return NextResponse.json(
+          { error: 'Solo los médicos operadores pueden enviar estudios por WhatsApp' },
+          { status: 403 }
+        );
+      }
+    }
     console.error('[send-whatsapp] Error:', error);
     return NextResponse.json(
       { error: 'Error al enviar por WhatsApp' },

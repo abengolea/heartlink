@@ -2,20 +2,21 @@
 
 El endpoint `/api/whatsapp/incoming` requiere `INTERNAL_SECRET`. Sin este secret, el deploy falla con "Secret mal configurado".
 
-## Opción 1: Script automático (recomendado)
+## Opción 1: Script con valor desde .env.local
 
-1. Agregá en `.env.local`:
-   ```
-   INTERNAL_SECRET=el_mismo_secreto_que_en_NotificasHub
-   ```
+Si tenés `INTERNAL_SECRET=tu_valor` en `.env.local`, ejecutá:
+```powershell
+.\scripts\setup-internal-secret.ps1
+```
 
-2. Ejecutá:
-   ```powershell
-   .\scripts\setup-internal-secret.ps1
-   ```
-   El script lee el valor de `.env.local` y configura Firebase.
+## Opción 1b: Script pasando el valor manualmente
 
-3. Si no tenés INTERNAL_SECRET en `.env.local`, el script te pedirá ingresarlo.
+Si el script no lo detecta, pasalo como parámetro:
+```powershell
+.\scripts\setup-internal-secret.ps1 -Secret "el_valor_que_tenes_en_env_local"
+```
+
+(Reemplazá por el valor real de tu `.env.local`)
 
 ## Opción 2: Manual
 

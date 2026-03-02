@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,12 @@ export default function EnviarEstudioWhatsApp({
   defaultEstudio = "",
   defaultLink = "",
 }: EnviarEstudioWhatsAppProps) {
+  const { dbUser } = useAuth();
+  const isOperator =
+    dbUser?.role === "operator" ||
+    dbUser?.role === "medico_operador" ||
+    dbUser?.role === "admin";
+
   const [telefono, setTelefono] = useState(defaultTelefono);
   const [medicoNombre, setMedicoNombre] = useState(defaultMedicoNombre);
   const [estudio, setEstudio] = useState(defaultEstudio);
@@ -74,6 +81,8 @@ export default function EnviarEstudioWhatsApp({
       setLoading(false);
     }
   };
+
+  if (!isOperator) return null;
 
   return (
     <Card>

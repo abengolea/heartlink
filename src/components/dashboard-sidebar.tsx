@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard, FileText, Home, Settings, Stethoscope, Upload, Users, Workflow } from "lucide-react";
+import { CreditCard, FileText, Home, Settings, Stethoscope, Upload, Users, UserPlus, Workflow } from "lucide-react";
 import Logo from "@/components/logo";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -11,6 +11,7 @@ export function DashboardSidebar() {
     dbUser?.role === "operator" ||
     dbUser?.role === "medico_operador" ||
     dbUser?.role === "admin";
+  const isAdmin = dbUser?.role === "admin";
 
   return (
     <div className="hidden border-r bg-muted/40 md:block">
@@ -38,7 +39,17 @@ export function DashboardSidebar() {
               <Users className="h-4 w-4" />
               Pacientes
             </Link>
-            {/* Operadores van directo a Médicos Solicitantes; solicitantes ven sus médicos operadores */}
+            {/* Admin ve ambos: Operadores y Solicitantes; Operadores solo Solicitantes; Solicitantes ven sus operadores */}
+            {isAdmin && (
+              <Link
+                href="/dashboard/operators"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <UserPlus className="h-4 w-4" />
+                Médicos Operadores
+              </Link>
+            )}
             {isOperator ? (
               <Link
                 href="/dashboard/requesters"
@@ -76,14 +87,16 @@ export function DashboardSidebar() {
                 Subir Estudio
               </Link>
             )}
-            <Link
-              href="/dashboard/whatsapp-upload"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
-              <Workflow className="h-4 w-4" />
-              Subir por WhatsApp
-            </Link>
+            {isOperator && (
+              <Link
+                href="/dashboard/whatsapp-upload"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <Workflow className="h-4 w-4" />
+                Subir por WhatsApp
+              </Link>
+            )}
             <Link
               href="/dashboard/subscription"
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"

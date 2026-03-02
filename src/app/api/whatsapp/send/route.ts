@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthenticatedUser } from "@/lib/api-auth";
+import { requireRole } from "@/lib/api-auth";
 import { getNotificasHubDb } from "@/lib/notificashub";
 
 const META_GRAPH_URL = "https://graph.facebook.com/v21.0";
@@ -19,10 +19,8 @@ interface SendRequestBody {
  */
 export async function POST(request: NextRequest) {
   try {
-    const authUser = await getAuthenticatedUser(request);
-    if (!authUser) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    // Solo operadores pueden enviar estudios por WhatsApp
+    await requireRole(request, ["admin", "operator", "medico_operador"]);
 
     if (!PHONE_NUMBER_ID || !WHATSAPP_TOKEN) {
       console.error("[whatsapp/send] PHONE_NUMBER_ID o WHATSAPP_TOKEN no configurados");
@@ -116,6 +114,17 @@ export async function POST(request: NextRequest) {
       message: "Mensaje enviado correctamente",
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      }
+      if (error.message === "FORBIDDEN") {
+        return NextResponse.json(
+          { error: "Solo los médicos operadores pueden enviar estudios por WhatsApp" },
+          { status: 403 }
+        );
+      }
+    }
     console.error("[whatsapp/send] Error:", error);
     return NextResponse.json(
       { error: "Error al enviar por WhatsApp" },

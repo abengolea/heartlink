@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,12 @@ interface ShareButtonProps {
 }
 
 export default function ShareButton({ studyId, requesterPhone, requesterName }: ShareButtonProps) {
+  const { dbUser } = useAuth();
+  const isOperator =
+    dbUser?.role === "operator" ||
+    dbUser?.role === "medico_operador" ||
+    dbUser?.role === "admin";
+
   const [copied, setCopied] = useState(false);
   const [showLink, setShowLink] = useState(false);
   const [publicLink, setPublicLink] = useState('');
@@ -126,6 +133,7 @@ export default function ShareButton({ studyId, requesterPhone, requesterName }: 
         )}
       </Button>
 
+      {isOperator && (
       <Dialog open={whatsappOpen} onOpenChange={setWhatsappOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" className="w-full">
@@ -192,7 +200,8 @@ export default function ShareButton({ studyId, requesterPhone, requesterName }: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+      )}
+
       {showLink && (
         <div className="bg-gray-50 border rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">

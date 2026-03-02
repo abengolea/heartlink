@@ -7,12 +7,22 @@ param(
 )
 
 if (-not $Secret) {
-    # Intentar leer de .env.local
-    $envFile = Join-Path $PSScriptRoot "..\\.env.local"
-    if (Test-Path $envFile) {
-        $line = Get-Content $envFile | Where-Object { $_ -match "^\s*INTERNAL_SECRET=(.+)$" }
-        if ($line) {
-            $Secret = ($line -replace "^\s*INTERNAL_SECRET=", "").Trim().Trim('"').Trim("'")
+    # Intentar leer de .env.local (buscar en raíz del proyecto y en cwd)
+    $paths = @(
+        (Join-Path (Split-Path $PSScriptRoot -Parent) ".env.local"),
+        (Join-Path (Get-Location) ".env.local")
+    )
+    foreach ($envFile in $paths) {
+        if ((Test-Path $envFile) -and $Secret) { break }
+        if (Test-Path $envFile) {
+            $content = Get-Content $envFile -Encoding UTF8 -ErrorAction SilentlyContinue
+            foreach ($line in $content) {
+                if ($line -match '^\s*INTERNAL_SECRET\s*=\s*(.+)$') {
+                    $Secret = $Matches[1].Trim().Trim('"').Trim("'")
+                    if ($Secret -match '#') { $Secret = ($Secret -split '#')[0].Trim() }
+                    break
+                }
+            }
         }
     }
 }
