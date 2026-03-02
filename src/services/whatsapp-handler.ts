@@ -97,7 +97,10 @@ async function handleVideoMessage(from: string, message: { video?: { id: string 
       );
       return;
     }
-    const accessResult = operator.role === 'admin'
+    // Admin, operator y medico_operador pueden subir sin verificar suscripción individual
+    // (la licencia se gestiona a nivel organización)
+    const rolesWithAccess = ['admin', 'operator', 'medico_operador'];
+    const accessResult = rolesWithAccess.includes(operator.role || '')
       ? { hasAccess: true }
       : await checkUserAccess(operator.id);
     if (!accessResult.hasAccess) {
