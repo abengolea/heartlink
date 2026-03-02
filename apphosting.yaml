@@ -28,7 +28,12 @@ env:
     availability:
       - RUNTIME
 
-  # WhatsApp Business API (HeartLink solo envía; el verify token es solo para NotificasHub)
+  # WhatsApp - Webhook directo de Meta (para recibir mensajes sin pasar por NotificasHub)
+  - variable: WHATSAPP_VERIFY_TOKEN
+    value: heartlink_webhook_2025
+    availability:
+      - RUNTIME
+  # WhatsApp Business API
   - variable: INTERNAL_SECRET
     secret: INTERNAL_SECRET
     availability:
