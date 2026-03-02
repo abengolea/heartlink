@@ -8,16 +8,11 @@ function sanitize(str: string | undefined): string {
 export class WhatsAppService {
   
   // Normalize phone number format for WhatsApp API
+  // Argentina: 549 + área (2–4 dígitos) + número. Ej: 5493364645357 (549 + 3364 + 645357)
   private static normalizePhoneNumber(phoneNumber: string): string {
     // Remove all non-digit characters
-    let cleaned = phoneNumber.replace(/\D/g, '');
-    
-    // For Argentina numbers that start with 549, keep as is
-    // For numbers that start with 5493364, remove the extra 9
-    if (cleaned.startsWith('5493364')) {
-      cleaned = '549336' + cleaned.substring(7);
-    }
-    
+    const cleaned = phoneNumber.replace(/\D/g, '');
+    // Números argentinos 549... ya están en formato correcto, no modificar
     console.log(`📱 [WhatsApp] Phone normalized: ${phoneNumber} → ${cleaned}`);
     return cleaned;
   }
