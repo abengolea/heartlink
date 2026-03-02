@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { handleIncomingMessage } from '@/services/whatsapp-handler';
+import { handleWhatsAppMessage } from '@/services/whatsapp-handler';
 
 /**
  * POST: Recibe mensajes de WhatsApp reenviados desde NotificasHub.
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { message, from } = body;
+  const { message, from, contactName, messageId, timestamp } = body;
   const fromResolved = from ?? (message as { from?: string })?.from;
   const msgType = (message as { type?: string })?.type ?? 'unknown';
   console.log('[whatsapp/incoming] Request received', { from: fromResolved, msgType });
@@ -38,8 +38,16 @@ export async function POST(req: Request) {
     );
   }
 
+  const payload = {
+    messageId: messageId ?? (message as { id?: string })?.id ?? `incoming-${Date.now()}`,
+    from: String(fromResolved),
+    contactName: contactName ?? 'Unknown',
+    message: message as Parameters<typeof handleWhatsAppMessage>[0]['message'],
+    timestamp: String(timestamp ?? (message as { timestamp?: string })?.timestamp ?? Date.now()),
+  };
+
   try {
-    await handleIncomingMessage(String(fromResolved), message as Parameters<typeof handleIncomingMessage>[1]);
+    await handleWhatsAppMessage(payload);
     console.log('[whatsapp/incoming] Processed OK', { from: fromResolved });
     return NextResponse.json({ ok: true });
   } catch (error) {

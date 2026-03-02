@@ -1,6 +1,6 @@
-# Webhook de Meta apuntando directo a HeartLink
+# [ALTERNATIVA] Webhook de Meta apuntando directo a HeartLink
 
-Para que el robot responda al enviar "hola", el webhook de Meta debe apuntar **directamente a HeartLink** (sin NotificasHub).
+El plan original es: **Meta → NotificasHub → HeartLink**. Si preferís omitir NotificasHub, podés apuntar el webhook directo a HeartLink.
 
 ---
 
