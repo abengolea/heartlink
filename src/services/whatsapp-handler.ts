@@ -349,7 +349,7 @@ async function sendDoctorSelection(from: string, operatorId?: string): Promise<v
 
   listItems.push({
     id: 'add_doctor_by_phone',
-    title: '➕ Agregar médico por teléfono',
+    title: '➕ Agregar médico por tel',
     description: 'Número de WhatsApp del médico',
   });
 

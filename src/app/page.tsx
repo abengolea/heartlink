@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Loader2, Key, UserPlus } from "lucide-react";
+import { Eye, EyeOff, Loader2, Key, UserPlus, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/logo";
-import { loginWithEmail, loginWithEmailViaBackend, resetPassword } from "@/lib/firebase-client";
+import { loginWithEmail, loginWithEmailViaBackend, resetPassword, resetPasswordViaBackend } from "@/lib/firebase-client";
 import { toast } from "sonner";
 
 export default function LoginPage() {
@@ -32,6 +32,7 @@ export default function LoginPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [resetLinkResult, setResetLinkResult] = useState<string | null>(null);
   const [registerData, setRegisterData] = useState({
     email: "",
     password: "",
@@ -118,19 +119,34 @@ export default function LoginPage() {
     }
 
     setResetLoading(true);
+    setResetLinkResult(null);
     
     try {
       console.log('🔑 [Reset] Sending password reset for:', resetEmail);
       
-      const result = await resetPassword(resetEmail);
+      let result = await resetPassword(resetEmail);
+      
+      // Si falla (dominio no autorizado, red bloqueada, etc.), intentar vía backend
+      if (!result.success) {
+        console.log('🔄 [Reset] Retrying via backend...');
+        result = await resetPasswordViaBackend(resetEmail);
+      }
       
       if (result.success) {
-        console.log('✅ [Reset] Password reset email sent');
-        toast.success("Se ha enviado un enlace de recuperación a tu email");
-        setShowForgotPassword(false);
-        setResetEmail("");
+        const backendResult = result as { success: true; resetLink?: string };
+        if (backendResult.resetLink) {
+          // Backend devolvió el enlace: mostrarlo para que el usuario lo copie
+          setResetLinkResult(backendResult.resetLink);
+          toast.success("Enlace generado. Cópialo y ábrelo en tu navegador.");
+        } else {
+          console.log('✅ [Reset] Password reset email sent');
+          toast.success("Se ha enviado un enlace de recuperación a tu email");
+          setShowForgotPassword(false);
+          setResetEmail("");
+          setResetLinkResult(null);
+        }
       } else {
-        console.error('❌ [Reset] Password reset failed:', result.error);
+        console.error('❌ [Reset] Reset failed:', result.error);
         toast.error("Error al enviar el enlace de recuperación");
       }
     } catch (error) {
@@ -138,6 +154,18 @@ export default function LoginPage() {
       toast.error("Error inesperado. Intenta nuevamente");
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleCloseForgotPassword = (open: boolean) => {
+    if (!open) setResetLinkResult(null);
+    setShowForgotPassword(open);
+  };
+
+  const copyResetLink = () => {
+    if (resetLinkResult) {
+      navigator.clipboard.writeText(resetLinkResult);
+      toast.success("Enlace copiado al portapapeles");
     }
   };
 
@@ -255,7 +283,7 @@ export default function LoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Contraseña</Label>
-                  <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+                  <Dialog open={showForgotPassword} onOpenChange={handleCloseForgotPassword}>
                     <DialogTrigger asChild>
                       <Button
                         variant="link"
@@ -272,43 +300,65 @@ export default function LoginPage() {
                           Recuperar contraseña
                         </DialogTitle>
                         <DialogDescription>
-                          Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña.
+                          {resetLinkResult
+                            ? "Copia el enlace y ábrelo en tu navegador para restablecer tu contraseña."
+                            : "Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña."}
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="reset-email">Email</Label>
-                          <Input
-                            id="reset-email"
-                            type="email"
-                            placeholder="tu@email.com"
-                            value={resetEmail}
-                            onChange={(e) => setResetEmail(e.target.value)}
-                            disabled={resetLoading}
-                          />
+                      {resetLinkResult ? (
+                        <div className="grid gap-4 py-4">
+                          <div className="flex gap-2">
+                            <Input
+                              readOnly
+                              value={resetLinkResult}
+                              className="font-mono text-xs"
+                            />
+                            <Button variant="outline" size="icon" onClick={copyResetLink} title="Copiar enlace">
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            El enlace expira en aproximadamente 1 hora.
+                          </p>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="grid gap-4 py-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="reset-email">Email</Label>
+                            <Input
+                              id="reset-email"
+                              type="email"
+                              placeholder="tu@email.com"
+                              value={resetEmail}
+                              onChange={(e) => setResetEmail(e.target.value)}
+                              disabled={resetLoading}
+                            />
+                          </div>
+                        </div>
+                      )}
                       <DialogFooter>
                         <Button
                           variant="outline"
-                          onClick={() => setShowForgotPassword(false)}
+                          onClick={() => handleCloseForgotPassword(false)}
                           disabled={resetLoading}
                         >
-                          Cancelar
+                          {resetLinkResult ? "Cerrar" : "Cancelar"}
                         </Button>
-                        <Button onClick={handleForgotPassword} disabled={resetLoading}>
-                          {resetLoading ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Enviando...
-                            </>
-                          ) : (
-                            <>
-                              <Key className="h-4 w-4 mr-2" />
-                              Enviar enlace
-                            </>
-                          )}
-                        </Button>
+                        {!resetLinkResult && (
+                          <Button onClick={handleForgotPassword} disabled={resetLoading}>
+                            {resetLoading ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Enviando...
+                              </>
+                            ) : (
+                              <>
+                                <Key className="h-4 w-4 mr-2" />
+                                Enviar enlace
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>

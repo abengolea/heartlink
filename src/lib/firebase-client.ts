@@ -90,4 +90,31 @@ export const resetPassword = async (email: string) => {
   }
 };
 
+/**
+ * Recuperar contraseña vía backend: evita fallos cuando sendPasswordResetEmail
+ * no puede conectar (dominio no autorizado, red bloqueada, etc.).
+ * Devuelve el enlace generado para que el usuario pueda copiarlo si Firebase no envía el email.
+ */
+export const resetPasswordViaBackend = async (email: string) => {
+  try {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data.error || 'Error al procesar la solicitud' };
+    }
+    return {
+      success: true,
+      resetLink: data.resetLink as string | undefined,
+      message: data.message,
+    };
+  } catch (error: any) {
+    console.error('Reset via backend error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export default app;

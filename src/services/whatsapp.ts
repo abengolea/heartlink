@@ -96,8 +96,8 @@ export class WhatsAppService {
                 title: 'Seleccionar',
                 rows: listItems.map(item => ({
                   id: item.id,
-                  title: item.title,
-                  description: item.description || ''
+                  title: (item.title || '').slice(0, 24),
+                  description: (item.description || '').slice(0, 72)
                 }))
               }]
             }
