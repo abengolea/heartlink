@@ -36,6 +36,18 @@ const studySessions = new Map<string, {
   sessionId: string;
 }>();
 
+/** Wrapper para uso desde /api/whatsapp/incoming (NotificasHub reenvía aquí) */
+export async function handleIncomingMessage(from: string, message: WhatsAppHandlerPayload['message']): Promise<void> {
+  const payload: WhatsAppHandlerPayload = {
+    messageId: (message as { id?: string })?.id ?? `incoming-${Date.now()}`,
+    from: String(from),
+    contactName: 'Unknown',
+    message,
+    timestamp: String((message as { timestamp?: string })?.timestamp ?? Date.now()),
+  };
+  return handleWhatsAppMessage(payload);
+}
+
 export async function handleWhatsAppMessage(data: WhatsAppHandlerPayload): Promise<void> {
   const { from, message, contactName } = data;
   const msgType = message?.type ?? 'text';

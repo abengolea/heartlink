@@ -1,0 +1,16 @@
+---
+description: WhatsApp, médico operador y NotificasHub - contexto y arquitectura
+globs: "**/whatsapp/**/*,**/*notificashub*,**/*whatsapp*.ts,**/EnviarEstudio*,**/share-button*"
+alwaysApply: false
+---
+
+# WhatsApp y NotificasHub
+
+Al trabajar en WhatsApp o NotificasHub, consulta `docs/CURSOR_WHATSAPP_NOTIFICASHUB.md` para:
+
+- **Objetivo:** Médico operador carga video por WhatsApp → estudio en Firestore → notificación al médico solicitante.
+- **Arquitectura:** HeartLink solo envía; el webhook (WHATSAPP_VERIFY_TOKEN) es solo para NotificasHub.
+- **Variables HeartLink:** `PHONE_NUMBER_ID`, `WHATSAPP_TOKEN`, `NOTIFICASHUB_PROJECT_ID`, `NOTIFICASHUB_CLIENT_EMAIL`, `NOTIFICASHUB_PRIVATE_KEY`. No requiere WHATSAPP_VERIFY_TOKEN.
+- **NotificasHub:** Colección `sends` con `appId: "heartlink"`. HeartLink usa `getNotificasHubDb()` y escribe allí al enviar por `/api/whatsapp/send`.
+- **Flujo operador:** `whatsapp-handler.ts` → video → paciente → médico → `studyUploadFlow` → notificación si médico tiene `phone`.
+- **Operador válido:** `getOperatorByWhatsAppPhone` (users con role operator/medico_operador/admin y phone coincidente) + `checkUserAccess`.

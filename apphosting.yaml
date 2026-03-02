@@ -29,12 +29,24 @@ env:
       - RUNTIME
 
   # WhatsApp Business API (HeartLink solo envía; el verify token es solo para NotificasHub)
+  - variable: INTERNAL_SECRET
+    secret: INTERNAL_SECRET
+    availability:
+      - RUNTIME
   - variable: WHATSAPP_ACCESS_TOKEN
     secret: WHATSAPP_ACCESS_TOKEN
     availability:
       - RUNTIME
   - variable: WHATSAPP_PHONE_NUMBER_ID
     secret: WHATSAPP_PHONE_NUMBER_ID
+    availability:
+      - RUNTIME
+  - variable: PHONE_NUMBER_ID
+    secret: WHATSAPP_PHONE_NUMBER_ID
+    availability:
+      - RUNTIME
+  - variable: WHATSAPP_TOKEN
+    secret: WHATSAPP_ACCESS_TOKEN
     availability:
       - RUNTIME
 
