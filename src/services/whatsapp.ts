@@ -24,10 +24,10 @@ export class WhatsAppService {
   
   static async sendTextMessage(to: string, text: string): Promise<boolean> {
     try {
-      const phoneId = sanitize(process.env.WHATSAPP_PHONE_NUMBER_ID);
-      const token = sanitize(process.env.WHATSAPP_ACCESS_TOKEN);
+      const phoneId = sanitize(process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.PHONE_NUMBER_ID);
+      const token = sanitize(process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN);
       if (!phoneId || !token) {
-        console.error('[WhatsApp] WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN no configurados');
+        console.error('[WhatsApp] WHATSAPP_PHONE_NUMBER_ID/PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN/WHATSAPP_TOKEN no configurados');
         return false;
       }
       const normalizedTo = this.normalizePhoneNumber(to);
@@ -67,10 +67,10 @@ export class WhatsAppService {
 
   static async sendListMessage(to: string, headerText: string, bodyText: string, listItems: Array<{id: string, title: string, description?: string}>): Promise<boolean> {
     try {
-      const phoneId = sanitize(process.env.WHATSAPP_PHONE_NUMBER_ID);
-      const token = sanitize(process.env.WHATSAPP_ACCESS_TOKEN);
+      const phoneId = sanitize(process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.PHONE_NUMBER_ID);
+      const token = sanitize(process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN);
       if (!phoneId || !token) {
-        console.error('[WhatsApp] WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN no configurados');
+        console.error('[WhatsApp] WHATSAPP_PHONE_NUMBER_ID/PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN/WHATSAPP_TOKEN no configurados');
         return false;
       }
       const normalizedTo = this.normalizePhoneNumber(to);
@@ -127,9 +127,9 @@ export class WhatsAppService {
 
   static async downloadMedia(mediaId: string): Promise<Buffer | null> {
     try {
-      const token = sanitize(process.env.WHATSAPP_ACCESS_TOKEN);
+      const token = sanitize(process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN);
       if (!token) {
-        console.error('[WhatsApp] WHATSAPP_ACCESS_TOKEN no configurado');
+        console.error('[WhatsApp] WHATSAPP_ACCESS_TOKEN/WHATSAPP_TOKEN no configurado');
         return null;
       }
       console.log(`📱 [WhatsApp] Downloading media: ${mediaId}`);

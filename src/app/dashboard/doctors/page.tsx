@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,7 @@ interface Doctor {
 }
 
 export default function DoctorsPage() {
+  const router = useRouter();
   const { dbUser } = useAuth();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,8 +50,13 @@ export default function DoctorsPage() {
     dbUser?.role === "medico_solicitante" || dbUser?.role === "solicitante";
 
   useEffect(() => {
+    if (!dbUser) return;
+    if (isOperator) {
+      router.replace("/dashboard/requesters");
+      return;
+    }
     loadMyDoctors();
-  }, []);
+  }, [dbUser, isOperator, router]);
 
   const loadMyDoctors = async () => {
     setIsLoading(true);

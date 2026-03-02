@@ -38,23 +38,24 @@ export function DashboardSidebar() {
               <Users className="h-4 w-4" />
               Pacientes
             </Link>
-            <Link
-              href="/dashboard/doctors"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
-              <Stethoscope className="h-4 w-4" />
-              Médicos
-            </Link>
-            {/* Solo operadores y admin ven "Médicos Solicitantes" (gestión del listado) */}
-            {isOperator && (
+            {/* Operadores van directo a Médicos Solicitantes; solicitantes ven sus médicos operadores */}
+            {isOperator ? (
               <Link
                 href="/dashboard/requesters"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                 prefetch={false}
               >
-                <Users className="h-4 w-4" />
+                <Stethoscope className="h-4 w-4" />
                 Médicos Solicitantes
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard/doctors"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <Stethoscope className="h-4 w-4" />
+                Médicos
               </Link>
             )}
             <Link

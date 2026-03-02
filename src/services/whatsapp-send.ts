@@ -4,8 +4,8 @@
  */
 
 const API_BASE = 'https://graph.facebook.com/v22.0';
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.PHONE_NUMBER_ID;
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN;
 
 const BOM = '\uFEFF';
 
@@ -28,7 +28,7 @@ export async function sendWhatsAppText(to: string, text: string): Promise<boolea
   const token = sanitize(ACCESS_TOKEN);
 
   if (!phoneNumberId || !token) {
-    console.error('[WhatsApp Send] WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN no configurados');
+    console.error('[WhatsApp Send] WHATSAPP_PHONE_NUMBER_ID/PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN/WHATSAPP_TOKEN no configurados');
     return false;
   }
 

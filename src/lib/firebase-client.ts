@@ -1,6 +1,6 @@
 // Firebase Client Configuration (for frontend authentication)
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithCustomToken, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -29,6 +29,33 @@ export const loginWithEmail = async (email: string, password: string) => {
     return { success: true, user: result.user };
   } catch (error: any) {
     console.error('Login error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Login vía backend: evita auth/network-request-failed cuando el navegador
+ * no puede conectar con Firebase. Usar como fallback.
+ */
+export const loginWithEmailViaBackend = async (email: string, password: string) => {
+  try {
+    const res = await fetch('/api/auth/login-via-backend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data.error || 'Error al iniciar sesión' };
+    }
+    const { customToken } = data;
+    if (!customToken) {
+      return { success: false, error: 'Respuesta inválida del servidor' };
+    }
+    const result = await signInWithCustomToken(auth, customToken);
+    return { success: true, user: result.user };
+  } catch (error: any) {
+    console.error('Login via backend error:', error);
     return { success: false, error: error.message };
   }
 };

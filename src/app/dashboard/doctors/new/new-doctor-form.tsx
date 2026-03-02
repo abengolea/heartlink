@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PhoneInputWithCountry } from "@/components/phone-input-with-country";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
@@ -109,12 +110,11 @@ export function NewDoctorForm() {
 
                     <div className="grid gap-2">
                         <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
-                        <Input 
-                            id="phone" 
-                            name="phone" 
-                            type="tel" 
-                            placeholder="+54 9 11 1234-5678" 
-                            required 
+                        <PhoneInputWithCountry
+                            name="phone"
+                            id="phone"
+                            placeholder="9 336 451-3355"
+                            required
                         />
                     </div>
 

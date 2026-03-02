@@ -1,6 +1,13 @@
 # 📱 WHATSAPP BUSINESS INTEGRATION - SETUP GUIDE
 
-## 🎯 FLUJO COMPLETO: Video WhatsApp → Estudio en Sistema
+> **📌 Regla para HeartLink:** HeartLink **solo envía** mensajes (notificaciones al médico cuando el estudio está listo).
+> No recibe mensajes ni tiene webhook propio. Las únicas variables que necesita en `.env.local` son:
+> `PHONE_NUMBER_ID`, `WHATSAPP_TOKEN`, `NOTIFICASHUB_PROJECT_ID`, `NOTIFICASHUB_CLIENT_EMAIL`, `NOTIFICASHUB_PRIVATE_KEY`.
+> El `WHATSAPP_VERIFY_TOKEN` / `MESSENGER_VERIFY_TOKEN` es **solo para NotificasHub** (el hub que recibe estados de entrega de Meta).
+
+---
+
+## 🎯 FLUJO RECEPCIÓN (en NotificasHub): Video WhatsApp → Estudio en Sistema
 
 ### **📱 PROCESO PASO A PASO:**
 
@@ -32,8 +39,11 @@
    - Generar **Access Token permanente** para producción
 
 3. **Configurar Webhook:**
-   - **Webhook URL:** `https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/webhook`
-   - **Verify Token:** `heartlink_webhook_2025`
+   - **Webhook URL:** `{NEXT_PUBLIC_APP_URL}/api/whatsapp/webhook`
+   - La URL base viene de `.env` / `.env.local` → `NEXT_PUBLIC_APP_URL`
+   - Meta **no puede acceder a localhost**: para desarrollo local usar ngrok u otro túnel (ej: `https://xxx.ngrok.io`)
+   - En producción: usar tu URL pública real (HTTPS)
+   - **Verify Token:** valor de `WHATSAPP_VERIFY_TOKEN` en tu `.env` (ej: `notificas_webhook_2026`)
    - **Suscribir a eventos:** `messages` ← **IMPORTANTE: debe estar marcado**
    - En "Configurar webhooks" → "Editar" → Suscripciones: marcar **messages**
 
@@ -75,20 +85,21 @@ Si envías un mensaje y no hay respuesta:
 
 ### **1. Verificar Webhook:**
 ```bash
-curl "https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=heartlink_webhook_2025&hub.challenge=test123"
+# Reemplaza $APP_URL por tu NEXT_PUBLIC_APP_URL (ej: http://localhost:4000)
+curl "$APP_URL/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=$WHATSAPP_VERIFY_TOKEN&hub.challenge=test123"
 # Debería devolver: test123
 ```
 
 ### **2. Test de Mensaje:**
 ```bash
-curl -X POST https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/test \
+curl -X POST $APP_URL/api/whatsapp/test \
   -H "Content-Type: application/json" \
   -d '{"to": "+5491234567890"}'
 ```
 
 ### **3. Estados del Sistema:**
 ```bash
-curl https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/test
+curl $APP_URL/api/whatsapp/test
 ```
 
 ---
@@ -127,7 +138,7 @@ Sistema: ✅ ¡Estudio creado exitosamente!
          👨‍⚕️ Médico solicitante: Dr. Carlos González
          🎥 Video: Subido correctamente
          
-         🌐 https://heartlink--heartlink-f4ftq.us-central1.hosted.app/dashboard/studies/ABC123
+         🌐 {NEXT_PUBLIC_APP_URL}/dashboard/studies/ABC123
          
          💬 Envía otro video para crear un nuevo estudio.
 ```

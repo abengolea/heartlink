@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/logo";
-import { loginWithEmail, resetPassword } from "@/lib/firebase-client";
+import { loginWithEmail, loginWithEmailViaBackend, resetPassword } from "@/lib/firebase-client";
 import { toast } from "sonner";
 
 export default function LoginPage() {
@@ -68,7 +68,13 @@ export default function LoginPage() {
     try {
       console.log('🔐 [Login] Attempting login for:', email);
       
-      const result = await loginWithEmail(email, password);
+      let result = await loginWithEmail(email, password);
+      
+      // Si falla por network-request-failed, intentar vía backend (evita bloqueos de red)
+      if (!result.success && result.error?.includes("network-request-failed")) {
+        console.log('🔄 [Login] Retrying via backend...');
+        result = await loginWithEmailViaBackend(email, password);
+      }
       
       if (result.success) {
         console.log('✅ [Login] Login successful:', result.user?.email);
@@ -79,16 +85,20 @@ export default function LoginPage() {
         
         // Friendly error messages
         let errorMessage = "Error al iniciar sesión";
-        if (result.error?.includes("user-not-found")) {
+        if (result.error?.includes("user-not-found") || result.error?.includes("EMAIL_NOT_FOUND")) {
           errorMessage = "No existe una cuenta con este email. ¿Necesitas registrarte?";
-        } else if (result.error?.includes("wrong-password")) {
+        } else if (result.error?.includes("wrong-password") || result.error?.includes("INVALID_PASSWORD")) {
           errorMessage = "Contraseña incorrecta";
-        } else if (result.error?.includes("invalid-email")) {
+        } else if (result.error?.includes("invalid-email") || result.error?.includes("INVALID_EMAIL")) {
           errorMessage = "Email inválido";
-        } else if (result.error?.includes("too-many-requests")) {
+        } else if (result.error?.includes("too-many-requests") || result.error?.includes("TOO_MANY_ATTEMPTS")) {
           errorMessage = "Demasiados intentos fallidos. Intenta más tarde";
-        } else if (result.error?.includes("invalid-credential")) {
+        } else if (result.error?.includes("invalid-credential") || result.error?.includes("INVALID_LOGIN_CREDENTIALS")) {
           errorMessage = "Email o contraseña incorrectos";
+        } else if (result.error?.includes("unauthorized-domain") || result.error?.includes("operation-not-allowed")) {
+          errorMessage = "Este dominio no está autorizado. Contacta al administrador.";
+        } else if (result.error?.includes("network-request-failed")) {
+          errorMessage = "Error de conexión. Revisa tu internet, desactiva VPN o bloqueadores de anuncios y vuelve a intentar.";
         }
         
         toast.error(errorMessage);

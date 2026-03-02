@@ -32,8 +32,8 @@ firebase apphosting:secrets:grantaccess WHATSAPP_PHONE_NUMBER_ID --backend heart
 
 1. **Ve a tu app de WhatsApp Business API**
 2. **Sección "Configuration" → "Webhooks":**
-   - **Callback URL:** `https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/webhook`
-   - **Verify Token:** `heartlink_webhook_2025`
+   - **Callback URL:** `{NEXT_PUBLIC_APP_URL}/api/whatsapp/webhook` (valor de tu `.env` / `.env.local`)
+   - **Verify Token:** solo si NotificasHub recibe el webhook (HeartLink no lo usa)
    - **Webhook fields:** Marcar `messages`
 
 3. **Click "Verify and Save"**
@@ -42,13 +42,14 @@ firebase apphosting:secrets:grantaccess WHATSAPP_PHONE_NUMBER_ID --backend heart
 
 ### **1. Verificar Webhook:**
 ```bash
-curl "https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=heartlink_webhook_2025&hub.challenge=test123"
+# Ejemplo: APP_URL=http://localhost:4000
+curl "$APP_URL/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=<token>&hub.challenge=test123"
 ```
 **Debería devolver:** `test123`
 
 ### **2. Test de Mensaje:**
 ```bash
-curl -X POST https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/whatsapp/test \
+curl -X POST $APP_URL/api/whatsapp/test \
   -H "Content-Type: application/json" \
   -d '{"to": "+5493364645357"}'
 ```

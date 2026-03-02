@@ -1,5 +1,4 @@
-import { getAllPatients, getAllUsers, getPatientById, getUserById } from "@/lib/firestore";
-import { getStudyById } from "@/lib/firestore";
+import { getAllPatients, getAllUsers, getPatientById, getUserById, getStudyById, generateOrGetShareTokenAndUrl } from "@/lib/firestore";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +7,7 @@ import { es } from "date-fns/locale";
 import { Video } from "lucide-react";
 import VideoPlayer from "./video-player";
 import ShareButton from "./share-button";
+import EnviarEstudioWhatsApp from "@/components/EnviarEstudioWhatsApp";
 import CommentsPanel from "./comments-panel";
 
 export default async function StudyDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,6 +35,16 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
     const requesterIdRaw = patient?.requesterId;
     const requesterId = typeof requesterIdRaw === 'string' ? requesterIdRaw : (requesterIdRaw as { id?: string })?.id;
     const requester = requesterId ? (users.find(u => u.id === requesterId) ?? await getUserById(requesterId)) : null;
+
+    let publicUrl = '';
+    try {
+      const { publicUrl: url } = await generateOrGetShareTokenAndUrl(id);
+      publicUrl = url;
+    } catch {
+      publicUrl = '';
+    }
+
+    const requesterPhoneForTemplate = requester?.phone?.replace(/\D/g, '').replace(/^0/, '') ?? '';
 
     return (
         <div className="mx-auto grid w-full max-w-6xl gap-6 min-w-0 px-2 sm:px-0">
@@ -106,9 +116,16 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                             <CardTitle>Compartir</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <ShareButton studyId={study.id} />
+                             <ShareButton studyId={study.id} requesterPhone={requester?.phone} requesterName={requester?.name} />
                         </CardContent>
                     </Card>
+
+                    <EnviarEstudioWhatsApp
+                        defaultTelefono={requesterPhoneForTemplate}
+                        defaultMedicoNombre={requester?.name ?? ''}
+                        defaultEstudio={(study as { description?: string }).description?.trim() || `Estudio - ${patient?.name ?? 'Cardiología'}`}
+                        defaultLink={publicUrl}
+                    />
                 </div>
             </div>
         </div>

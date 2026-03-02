@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInputWithCountry } from "@/components/phone-input-with-country";
 import { MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -475,11 +476,11 @@ function UserForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="phone">Teléfono (WhatsApp) *</Label>
-          <Input
+          <PhoneInputWithCountry
             id="phone"
             value={formData.phone}
-            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-            placeholder="+54 9 336 4123456"
+            onChange={(v) => setFormData(prev => ({ ...prev, phone: v }))}
+            placeholder="9 336 451-3355"
             required
           />
         </div>

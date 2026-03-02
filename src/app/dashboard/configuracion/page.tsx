@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, Bell, Globe, Loader2 } from "lucide-react";
+import { Bell, Globe, Loader2, MessageCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -21,6 +21,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { PhoneInputWithCountry } from "@/components/phone-input-with-country";
+import { Button } from "@/components/ui/button";
 
 interface UserPreferences {
   userId: string;
@@ -45,15 +47,26 @@ export default function ConfiguracionPage() {
   const [prefs, setPrefs] = useState<UserPreferences>(defaults);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [myPhone, setMyPhone] = useState("");
+  const [phoneSaving, setPhoneSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
       if (!dbUser) return;
       try {
-        const res = await fetchWithAuth("/api/users/me/preferences");
-        if (res.ok) {
-          const data = await res.json();
+        const [prefsRes, meRes] = await Promise.all([
+          fetchWithAuth("/api/users/me/preferences"),
+          fetchWithAuth("/api/users/me"),
+        ]);
+        if (prefsRes.ok) {
+          const data = await prefsRes.json();
           setPrefs({ ...defaults, ...data });
+        } else {
+          setPrefs({ ...defaults, userId: dbUser.id });
+        }
+        if (meRes.ok) {
+          const me = await meRes.json();
+          setMyPhone(me.phone ?? "");
         }
       } catch {
         setPrefs({ ...defaults, userId: dbUser.id });
@@ -98,6 +111,29 @@ export default function ConfiguracionPage() {
     updatePref({ language: value });
   };
 
+  const isOperator = dbUser?.role === "operator" || dbUser?.role === "medico_operador" || dbUser?.role === "admin";
+
+  const handleSavePhone = async () => {
+    if (!dbUser || phoneSaving) return;
+    setPhoneSaving(true);
+    try {
+      const res = await fetchWithAuth("/api/users/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: myPhone }),
+      });
+      if (res.ok) {
+        toast.success("Teléfono guardado. Ya puedes subir estudios por WhatsApp.");
+      } else {
+        toast.error("Error al guardar");
+      }
+    } catch {
+      toast.error("Error al guardar");
+    } finally {
+      setPhoneSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col gap-4">
@@ -118,6 +154,41 @@ export default function ConfiguracionPage() {
         <h1 className="font-semibold text-lg md:text-2xl">Configuración</h1>
         <p className="text-muted-foreground text-sm">Ajustes de tu cuenta y preferencias.</p>
       </div>
+
+      {isOperator && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Mi WhatsApp (subir estudios)
+            </CardTitle>
+            <CardDescription>
+              Vincula tu número para poder subir estudios enviando un video desde WhatsApp. El número debe coincidir con el que usas en WhatsApp.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <PhoneInputWithCountry
+                  value={myPhone}
+                  onChange={setMyPhone}
+                  placeholder="9 336 451-3355"
+                />
+              </div>
+              <Button onClick={handleSavePhone} disabled={phoneSaving}>
+                {phoneSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Luego ve a{" "}
+              <a href="/dashboard/whatsapp-upload" className="text-primary underline">
+                Subir por WhatsApp
+              </a>{" "}
+              para ver las instrucciones.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
