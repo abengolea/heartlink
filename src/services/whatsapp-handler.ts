@@ -17,6 +17,7 @@ import {
   addDoctorToOperator,
 } from '@/lib/firestore';
 import { studyUploadFlow, StudyUploadFlowInput } from '@/ai/flows/study-upload-flow';
+import { toWhatsAppFormat } from '@/lib/phone-format';
 import { v4 as uuidv4 } from 'uuid';
 
 const DEV_MODE = process.env.WHATSAPP_DEV_MODE === 'true';
@@ -69,6 +70,18 @@ export async function handleWhatsAppMessage(data: WhatsAppHandlerPayload): Promi
   const msgType = message?.type ?? 'text';
 
   console.log(`[WhatsApp Handler] Procesando ${msgType} de ${contactName} (${from})`);
+
+  // Verificar que el remitente sea un usuario registrado (operador/admin)
+  if (!DEV_MODE) {
+    const operator = await getOperatorByWhatsAppPhone(from);
+    if (!operator) {
+      await WhatsAppService.sendTextMessage(
+        from,
+        'Este canal es exclusivo para usuarios registrados.'
+      );
+      return;
+    }
+  }
 
   try {
     switch (msgType) {
@@ -221,15 +234,22 @@ async function handleTextMessage(from: string, message: { text?: { body?: string
   );
 }
 
-/** Extrae teléfono y nombre de un contacto compartido (vCard) */
+/** Extrae teléfono y nombre de un contacto compartido (vCard).
+ * Preferir wa_id (canónico de WhatsApp). Si solo hay phone del vCard, normalizar con toWhatsAppFormat.
+ */
 function extractPhoneFromContact(contact: IncomingContact): { phone?: string; name?: string } {
   const phones = contact?.phones;
   if (!phones?.length) return {};
-  const first = phones[0];
-  const phone = first?.wa_id || first?.phone || '';
-  const digits = phone.replace(/\D/g, '');
-  const phoneNorm = digits.length >= 10 ? (digits.startsWith('54') ? digits : `54${digits}`) : undefined;
+  const withWaId = phones.find((p) => p?.wa_id);
+  const raw = withWaId?.wa_id || phones[0]?.phone || '';
+  if (!raw || !raw.trim()) return {};
+  const phoneNorm = toWhatsAppFormat(raw);
   const name = contact?.name?.formatted_name || contact?.name?.first_name || undefined;
+  if (!phoneNorm || phoneNorm.length < 12) {
+    console.warn('[WhatsApp] Contacto con número inválido o muy corto:', raw, '→', phoneNorm);
+    return { phone: undefined, name };
+  }
+  console.log('[WhatsApp] Contacto extraído:', raw, '→', phoneNorm);
   return { phone: phoneNorm, name };
 }
 
@@ -412,10 +432,21 @@ async function createStudyFromWhatsApp(from: string, session: { videoUrl?: strin
   );
 
   if (requestingDoctor.phone?.trim()) {
-    await WhatsAppService.sendTextMessage(
-      requestingDoctor.phone,
-      `📋 *HeartLink - Estudio listo*\n\nEstudio de *${patientName}* completado.\n\n🔗 ${publicUrl}`
-    ).catch(() => {});
+    const phone = toWhatsAppFormat(requestingDoctor.phone);
+    if (!phone || phone.length < 12) {
+      console.warn('[WhatsApp Handler] Teléfono del médico inválido:', requestingDoctor.phone);
+    } else {
+      const estudioDesc = patientName;
+      const sendResult = await WhatsAppService.sendStudyTemplate(
+        phone,
+        requestingDoctor.name,
+        estudioDesc,
+        publicUrl
+      );
+      if (!sendResult.ok) {
+        console.warn('[WhatsApp Handler] No se pudo notificar al médico:', phone, sendResult.error);
+      }
+    }
   }
 
   studySessions.delete(from);
