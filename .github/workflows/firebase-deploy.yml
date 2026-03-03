@@ -36,15 +36,9 @@ jobs:
     - name: Run linter
       run: npm run lint
       continue-on-error: true
-      
-    - name: Deploy to Firebase
-      uses: FirebaseExtended/action-hosting-deploy@v0
-      with:
-        repoToken: '${{ secrets.GITHUB_TOKEN }}'
-        firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_HEARTLINK_F4FTQ }}'
-        projectId: heartlink-f4ftq
-        channelId: live
-        
+
+    # App Hosting despliega la app Next.js automáticamente desde GitHub.
+    # Aquí solo desplegamos Functions, Storage y Database.
     - name: Deploy Functions and Rules
       if: github.ref == 'refs/heads/main'
       run: |
