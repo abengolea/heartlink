@@ -682,6 +682,23 @@ export async function getSubscriptionByUserId(userId: string): Promise<Subscript
   }
 }
 
+// Get subscription by external payment ID (MercadoPago preference ID or DLocal payment ID)
+export async function getSubscriptionByExternalPaymentId(externalId: string): Promise<Subscription | null> {
+  try {
+    const db = getFirestoreAdmin();
+    const snapshot = await db.collection('subscriptions')
+      .where('mercadoPagoSubscriptionId', '==', externalId)
+      .limit(1)
+      .get();
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as Subscription;
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting subscription by external ID:', error);
+    return null;
+  }
+}
+
 // Update subscription in Firestore
 export async function updateSubscription(id: string, subscriptionData: Partial<Subscription>): Promise<void> {
   console.log('💳 [Firestore] Updating subscription:', id);

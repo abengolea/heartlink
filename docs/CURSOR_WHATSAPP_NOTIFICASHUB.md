@@ -83,7 +83,7 @@ Este documento explica en detalle qué queremos lograr desde el **médico operad
 **Endpoints de envío:**
 - `POST /api/whatsapp/test` — envía mensaje de prueba (body: `{ to, message? }`)
 - `POST /api/studies/[id]/send-whatsapp` — envía link del estudio a un número (requiere auth)
-- `POST /api/whatsapp/send` — envía usando **template** `documento_disponible` (variables: HeartLink, medicoNombre, estudio, link) y **guarda en NotificasHub** (`hubDb.collection("sends").add(...)`)
+- `POST /api/whatsapp/send` — envía usando **template** `notificas_estudio_medico` (variables: HeartLink, medicoNombre, paciente, link) y **guarda en NotificasHub** (`hubDb.collection("sends").add(...)`)
 
 **NotificasHub en HeartLink:**
 - `src/lib/notificashub.ts` — `getNotificasHubDb()` conecta a Firebase del proyecto `NOTIFICASHUB_PROJECT_ID` con `NOTIFICASHUB_CLIENT_EMAIL` y `NOTIFICASHUB_PRIVATE_KEY`
@@ -155,8 +155,8 @@ role: "operator"  // o "admin"
 ```
 
 ### 6. Template en Meta
-- Nombre: `documento_disponible`
-- Variables: `{{1}}` HeartLink, `{{2}}` medicoNombre, `{{3}}` estudio, `{{4}}` link
+- Nombre: `notificas_estudio_medico`
+- Variables: `{{1}}` HeartLink, `{{2}}` medicoNombre, `{{3}}` paciente, `{{4}}` link
 - Idioma: `WHATSAPP_TEMPLATE_LANGUAGE` (ej: `es_AR`)
 
 ---

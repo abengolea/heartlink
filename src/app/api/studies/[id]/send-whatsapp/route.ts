@@ -7,7 +7,7 @@ import { toWhatsAppFormat } from '@/lib/phone-format';
 
 /**
  * POST: Envía el enlace del estudio por WhatsApp a un número.
- * Usa template documento_disponible (funciona fuera de ventana 24h).
+ * Usa template notificas_estudio_medico (funciona fuera de ventana 24h).
  * Body: { to: string } - número (Argentina: +54 9 XXX XXX XXXX o 9 336 451-3355)
  */
 export async function POST(
@@ -52,7 +52,7 @@ export async function POST(
     const requesterId = patient?.requesterId;
     const requester = requesterId ? await getUserById(requesterId) : null;
     const medicoNombre = requester?.name || 'Médico';
-    const estudioDesc = (study as { description?: string }).description?.trim() || `Estudio - ${patient?.name ?? 'Cardiología'}`;
+    const estudioDesc = patient?.name ?? 'cardiológico';
 
     const result = await WhatsAppService.sendStudyTemplate(to, medicoNombre, estudioDesc, publicUrl);
 

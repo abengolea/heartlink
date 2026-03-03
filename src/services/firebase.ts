@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { getStorageBucket } from '@/lib/firebase-admin-v4';
-import { ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE } from '@/lib/upload-constants';
+import { ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE, MAX_PDF_SIZE } from '@/lib/upload-constants';
 
 export async function getSignedUploadUrl(
   fileType: string, 
@@ -143,6 +143,41 @@ export async function uploadStudyVideoFromBuffer(
   } catch (error) {
     console.error('❌ [Study Upload] Error:', error);
     throw new Error('No se pudo subir el video a la nube.');
+  }
+}
+
+/**
+ * Sube un PDF a Firebase Storage desde un buffer (para estudios).
+ * Campo opcional separado del video.
+ */
+export async function uploadStudyPdfFromBuffer(
+  pdfBuffer: Buffer,
+  fileName: string,
+  contentType: string = 'application/pdf'
+): Promise<string> {
+  console.log(`📤 [Study Upload] Uploading PDF: ${fileName} (${pdfBuffer.length} bytes)`);
+
+  if (pdfBuffer.length > MAX_PDF_SIZE) {
+    throw new Error('El PDF es demasiado grande. El límite es 50MB.');
+  }
+
+  try {
+    const bucket = getStorageBucket();
+    const extension = fileName.split('.').pop()?.toLowerCase() || 'pdf';
+    const filePath = `studies/pdf/${uuidv4()}.${extension}`;
+
+    const file = bucket.file(filePath);
+    await file.save(pdfBuffer, {
+      metadata: {
+        contentType: contentType || 'application/pdf',
+      },
+    });
+
+    console.log(`✅ [Study Upload] PDF uploaded: ${filePath}`);
+    return filePath;
+  } catch (error) {
+    console.error('❌ [Study Upload] Error uploading PDF:', error);
+    throw new Error('No se pudo subir el PDF a la nube.');
   }
 }
 

@@ -18,11 +18,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Remove server-side Firestore imports from client component
-import { CheckCircle, Loader2, UploadCloud, Wand2 } from "lucide-react";
+import { CheckCircle, FileText, Loader2, UploadCloud, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
 import { Progress } from "@/components/ui/progress";
-import { ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE } from "@/lib/upload-constants";
+import { ALLOWED_VIDEO_TYPES, ALLOWED_PDF_TYPES, MAX_FILE_SIZE, MAX_PDF_SIZE } from "@/lib/upload-constants";
 import { useAuth } from "@/contexts/auth-context";
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
 
@@ -35,6 +35,7 @@ export function UploadStudyForm() {
     const { dbUser } = useAuth();
     
     const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -132,6 +133,31 @@ export function UploadStudyForm() {
         }
     };
 
+    const handlePdfChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (!ALLOWED_PDF_TYPES.includes(file.type)) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Tipo de archivo no válido',
+                    description: 'Solo se permiten archivos PDF.',
+                });
+                event.target.value = '';
+                return;
+            }
+            if (file.size > MAX_PDF_SIZE) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Archivo demasiado grande',
+                    description: 'El PDF no debe superar 50MB.',
+                });
+                event.target.value = '';
+                return;
+            }
+            setPdfFile(file);
+        }
+    };
+
     const handleTranscribe = async () => {
         if (!videoFile) {
             toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un video primero.' });
@@ -198,6 +224,7 @@ export function UploadStudyForm() {
             // Enviar todo en una sola petición: el servidor sube el video a Firebase
             const formData = new FormData();
             formData.append('video', videoFile);
+            if (pdfFile) formData.append('pdf', pdfFile);
             formData.append('patientName', selectedPatientName);
             formData.append('requestingDoctorName', selectedRequestingDoctorName);
             formData.append('description', description || '');
@@ -261,6 +288,7 @@ export function UploadStudyForm() {
                     description: result.message,
                 });
                 setVideoFile(null);
+                setPdfFile(null);
                 setUploadProgress(0);
                 if (result.data?.studyId) {
                     setTimeout(() => router.push(`/dashboard/studies/${result.data.studyId}`), 1500);
@@ -311,6 +339,17 @@ export function UploadStudyForm() {
                         <CheckCircle className="h-4 w-4" />
                         <span>Video subido exitosamente. Haz clic en "Guardar Estudio".</span>
                     </div>
+                )}
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="pdf" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    PDF del Estudio (opcional)
+                </Label>
+                <Input id="pdf" name="pdf" type="file" accept="application/pdf" onChange={handlePdfChange} />
+                {pdfFile && (
+                    <p className="text-sm text-muted-foreground">{pdfFile.name}</p>
                 )}
             </div>
 

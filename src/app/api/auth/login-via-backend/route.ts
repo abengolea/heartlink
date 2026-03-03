@@ -19,9 +19,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-    if (!apiKey) {
-      console.error('❌ [Login Backend] NEXT_PUBLIC_FIREBASE_API_KEY no configurada');
+    // FIREBASE_API_KEY (runtime) tiene prioridad; fallback a NEXT_PUBLIC_* (build)
+    const apiKey = process.env.FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    if (!apiKey || apiKey.trim() === '') {
+      console.error('❌ [Login Backend] FIREBASE_API_KEY o NEXT_PUBLIC_FIREBASE_API_KEY no configurada/vacía');
       return NextResponse.json(
         { error: 'Configuración del servidor incompleta' },
         { status: 500 }

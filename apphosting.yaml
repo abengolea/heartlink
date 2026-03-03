@@ -61,6 +61,11 @@ env:
       - RUNTIME
 
   # Firebase Client Configuration - USING SECRETS FOR SECURITY
+  # FIREBASE_API_KEY: usado por el backend (login-via-backend). Se lee en RUNTIME.
+  - variable: FIREBASE_API_KEY
+    secret: NEXT_PUBLIC_FIREBASE_API_KEY
+    availability:
+      - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     secret: NEXT_PUBLIC_FIREBASE_API_KEY
     availability:

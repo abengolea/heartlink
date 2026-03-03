@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Video } from "lucide-react";
+import { Video, FileText } from "lucide-react";
 import VideoPlayer from "./video-player";
+import PdfLink from "./pdf-link";
 import ShareButton from "./share-button";
 import EnviarEstudioWhatsApp from "@/components/EnviarEstudioWhatsApp";
 import CommentsPanel from "./comments-panel";
@@ -79,7 +80,20 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                              <VideoPlayer videoUrl={study.videoUrl || ''} />
                         </CardContent>
                     </Card>
-                    
+
+                    {study.reportUrl && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                    <FileText className="h-5 w-5 shrink-0" /> PDF del Estudio
+                                </CardTitle>
+                                <CardDescription>Informe o documento adicional adjunto.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <PdfLink reportUrl={study.reportUrl} />
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <CommentsPanel
                         studyId={study.id}
@@ -123,7 +137,7 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
                     <EnviarEstudioWhatsApp
                         defaultTelefono={requesterPhoneForTemplate}
                         defaultMedicoNombre={requester?.name ?? ''}
-                        defaultEstudio={(study as { description?: string }).description?.trim() || `Estudio - ${patient?.name ?? 'Cardiología'}`}
+                        defaultEstudio={patient?.name ?? 'cardiológico'}
                         defaultLink={publicUrl}
                     />
                 </div>

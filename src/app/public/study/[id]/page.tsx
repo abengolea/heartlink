@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Video, ShieldAlert } from "lucide-react";
+import { Video, ShieldAlert, FileText } from "lucide-react";
 import VideoPlayer from "@/app/dashboard/studies/[id]/video-player";
+import PdfLink from "@/app/dashboard/studies/[id]/pdf-link";
 import type { Metadata } from "next";
 
 export const dynamic = 'force-dynamic';
@@ -170,6 +171,20 @@ export default async function PublicStudyPage({
                             <VideoPlayer videoUrl={study.videoUrl || ''} />
                         </CardContent>
                     </Card>
+
+                    {study.reportUrl && study.reportUrl.trim() !== '' && (
+                        <Card className="mb-6">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                    <FileText className="h-5 w-5" /> PDF del Estudio
+                                </CardTitle>
+                                <CardDescription>Informe o documento adicional adjunto.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <PdfLink reportUrl={study.reportUrl} />
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Study Info */}
                     <Card>

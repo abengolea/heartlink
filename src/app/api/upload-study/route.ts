@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { uploadStudy } from '@/actions/upload-study';
 import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 import { getAuthenticatedUser } from '@/lib/api-auth';
-import { uploadStudyVideoFromBuffer } from '@/services/firebase';
-import { ALLOWED_VIDEO_TYPES, MAX_FILE_SIZE } from '@/lib/upload-constants';
+import { uploadStudyVideoFromBuffer, uploadStudyPdfFromBuffer } from '@/services/firebase';
+import { ALLOWED_VIDEO_TYPES, ALLOWED_PDF_TYPES, MAX_FILE_SIZE, MAX_PDF_SIZE } from '@/lib/upload-constants';
 
 export async function POST(request: Request) {
   console.log('🔍 [UPLOAD-STUDY] Starting upload study via endpoint...');
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
     // Si viene el video en el FormData, subirlo por servidor (evita CORS/firewall del cliente)
     let filePath = formData.get('filePath') as string | null;
     const videoFile = formData.get('video') as File | null;
+    const pdfFile = formData.get('pdf') as File | null;
 
     if (videoFile && videoFile.size > 0) {
       console.log('📤 [UPLOAD-STUDY] Video recibido, subiendo por servidor...');
@@ -46,6 +47,22 @@ export async function POST(request: Request) {
       formData.set('filePath', filePath);
     } else if (!filePath) {
       return NextResponse.json({ success: false, error: 'Se requiere el video o filePath.' }, { status: 400 });
+    }
+
+    // PDF opcional en campo separado
+    if (pdfFile && pdfFile.size > 0) {
+      console.log('📤 [UPLOAD-STUDY] PDF recibido, subiendo por servidor...');
+      if (pdfFile.size > MAX_PDF_SIZE) {
+        return NextResponse.json({ success: false, error: 'El PDF es demasiado grande. Máximo 50MB.' }, { status: 413 });
+      }
+      if (!ALLOWED_PDF_TYPES.includes(pdfFile.type)) {
+        return NextResponse.json({ success: false, error: 'Solo se permiten archivos PDF.' }, { status: 415 });
+      }
+      const pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
+      const pdfFilePath = await uploadStudyPdfFromBuffer(pdfBuffer, pdfFile.name, pdfFile.type);
+      console.log('✅ [UPLOAD-STUDY] PDF subido:', pdfFilePath);
+      formData.delete('pdf');
+      formData.set('pdfFilePath', pdfFilePath);
     }
     
     // 🔐 VERIFY SUBSCRIPTION ACCESS

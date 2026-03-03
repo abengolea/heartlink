@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Loader2, Key, UserPlus, Copy } from "lucide-react";
+import { Eye, EyeOff, Loader2, Key, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,8 +19,18 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/logo";
-import { loginWithEmail, loginWithEmailViaBackend, resetPassword, resetPasswordViaBackend } from "@/lib/firebase-client";
 import { toast } from "sonner";
+
+// Import dinámico para evitar auth/invalid-api-key durante el build/SSR
+async function getFirebaseAuth() {
+  const mod = await import("@/lib/firebase-client");
+  return {
+    loginWithEmail: mod.loginWithEmail,
+    loginWithEmailViaBackend: mod.loginWithEmailViaBackend,
+    loginWithGoogle: mod.loginWithGoogle,
+    resetPasswordViaBackend: mod.resetPasswordViaBackend,
+  };
+}
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +42,6 @@ export default function LoginPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
-  const [resetLinkResult, setResetLinkResult] = useState<string | null>(null);
   const [registerData, setRegisterData] = useState({
     email: "",
     password: "",
@@ -68,12 +77,14 @@ export default function LoginPage() {
     
     try {
       console.log('🔐 [Login] Attempting login for:', email);
-      
+      const { loginWithEmail, loginWithEmailViaBackend } = await getFirebaseAuth();
+
       let result = await loginWithEmail(email, password);
-      
-      // Si falla por network-request-failed, intentar vía backend (evita bloqueos de red)
-      if (!result.success && result.error?.includes("network-request-failed")) {
-        console.log('🔄 [Login] Retrying via backend...');
+
+      // Si falla (dominio no autorizado, red bloqueada, etc.), intentar vía backend
+      // El backend no tiene restricciones de dominio y puede alcanzar Firebase
+      if (!result.success) {
+        console.log('🔄 [Login] Client failed, retrying via backend...');
         result = await loginWithEmailViaBackend(email, password);
       }
       
@@ -119,53 +130,26 @@ export default function LoginPage() {
     }
 
     setResetLoading(true);
-    setResetLinkResult(null);
     
     try {
-      console.log('🔑 [Reset] Sending password reset for:', resetEmail);
-      
-      let result = await resetPassword(resetEmail);
-      
-      // Si falla (dominio no autorizado, red bloqueada, etc.), intentar vía backend
-      if (!result.success) {
-        console.log('🔄 [Reset] Retrying via backend...');
-        result = await resetPasswordViaBackend(resetEmail);
-      }
+      console.log('🔑 [Reset] Requesting password reset for:', resetEmail);
+      const { resetPasswordViaBackend } = await getFirebaseAuth();
+      const result = await resetPasswordViaBackend(resetEmail);
       
       if (result.success) {
-        const backendResult = result as { success: true; resetLink?: string };
-        if (backendResult.resetLink) {
-          // Backend devolvió el enlace: mostrarlo para que el usuario lo copie
-          setResetLinkResult(backendResult.resetLink);
-          toast.success("Enlace generado. Cópialo y ábrelo en tu navegador.");
-        } else {
-          console.log('✅ [Reset] Password reset email sent');
-          toast.success("Se ha enviado un enlace de recuperación a tu email");
-          setShowForgotPassword(false);
-          setResetEmail("");
-          setResetLinkResult(null);
-        }
+        console.log('✅ [Reset] Password reset email sent');
+        toast.success("Se ha enviado tu nueva contraseña a tu correo. Revisa la bandeja de entrada y spam.");
+        setShowForgotPassword(false);
+        setResetEmail("");
       } else {
         console.error('❌ [Reset] Reset failed:', result.error);
-        toast.error("Error al enviar el enlace de recuperación");
+        toast.error(result.error || "Error al procesar la solicitud");
       }
     } catch (error) {
       console.error('❌ [Reset] Unexpected error:', error);
       toast.error("Error inesperado. Intenta nuevamente");
     } finally {
       setResetLoading(false);
-    }
-  };
-
-  const handleCloseForgotPassword = (open: boolean) => {
-    if (!open) setResetLinkResult(null);
-    setShowForgotPassword(open);
-  };
-
-  const copyResetLink = () => {
-    if (resetLinkResult) {
-      navigator.clipboard.writeText(resetLinkResult);
-      toast.success("Enlace copiado al portapapeles");
     }
   };
 
@@ -263,10 +247,54 @@ export default function LoginPage() {
               Bienvenido de nuevo
             </CardTitle>
             <CardDescription>
-              Ingresa tus credenciales para acceder a tu cuenta
+              Accede con Google o con tu email y contraseña
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="grid gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={loading}
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  const { loginWithGoogle } = await getFirebaseAuth();
+                  const result = await loginWithGoogle();
+                  if (result.success) {
+                    toast.success("¡Bienvenido!");
+                    router.push("/dashboard");
+                  } else {
+                    if (result.error?.includes("popup-closed")) {
+                      toast.info("Inicio de sesión cancelado");
+                    } else {
+                      toast.error(result.error || "Error al iniciar con Google");
+                    }
+                  }
+                } catch (e) {
+                  toast.error("Error inesperado");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continuar con Google
+            </Button>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">o</span>
+              </div>
+            </div>
             <form onSubmit={handleSubmit} className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="email">Correo electrónico</Label>
@@ -283,7 +311,7 @@ export default function LoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Contraseña</Label>
-                  <Dialog open={showForgotPassword} onOpenChange={handleCloseForgotPassword}>
+                  <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
                     <DialogTrigger asChild>
                       <Button
                         variant="link"
@@ -300,52 +328,31 @@ export default function LoginPage() {
                           Recuperar contraseña
                         </DialogTitle>
                         <DialogDescription>
-                          {resetLinkResult
-                            ? "Copia el enlace y ábrelo en tu navegador para restablecer tu contraseña."
-                            : "Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña."}
+                          Ingresa tu email y te enviaremos tu nueva contraseña por correo.
                         </DialogDescription>
                       </DialogHeader>
-                      {resetLinkResult ? (
-                        <div className="grid gap-4 py-4">
-                          <div className="flex gap-2">
-                            <Input
-                              readOnly
-                              value={resetLinkResult}
-                              className="font-mono text-xs"
-                            />
-                            <Button variant="outline" size="icon" onClick={copyResetLink} title="Copiar enlace">
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            El enlace expira en aproximadamente 1 hora.
-                          </p>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="reset-email">Email</Label>
+                          <Input
+                            id="reset-email"
+                            type="email"
+                            placeholder="tu@email.com"
+                            value={resetEmail}
+                            onChange={(e) => setResetEmail(e.target.value)}
+                            disabled={resetLoading}
+                          />
                         </div>
-                      ) : (
-                        <div className="grid gap-4 py-4">
-                          <div className="grid gap-2">
-                            <Label htmlFor="reset-email">Email</Label>
-                            <Input
-                              id="reset-email"
-                              type="email"
-                              placeholder="tu@email.com"
-                              value={resetEmail}
-                              onChange={(e) => setResetEmail(e.target.value)}
-                              disabled={resetLoading}
-                            />
-                          </div>
-                        </div>
-                      )}
+                      </div>
                       <DialogFooter>
                         <Button
                           variant="outline"
-                          onClick={() => handleCloseForgotPassword(false)}
+                          onClick={() => setShowForgotPassword(false)}
                           disabled={resetLoading}
                         >
-                          {resetLinkResult ? "Cerrar" : "Cancelar"}
+                          Cancelar
                         </Button>
-                        {!resetLinkResult && (
-                          <Button onClick={handleForgotPassword} disabled={resetLoading}>
+                        <Button onClick={handleForgotPassword} disabled={resetLoading}>
                             {resetLoading ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -354,11 +361,10 @@ export default function LoginPage() {
                             ) : (
                               <>
                                 <Key className="h-4 w-4 mr-2" />
-                                Enviar enlace
-                              </>
-                            )}
-                          </Button>
-                        )}
+                                Enviar nueva contraseña
+                            </>
+                          )}
+                        </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -504,6 +510,7 @@ export default function LoginPage() {
                 </DialogContent>
               </Dialog>
             </form>
+            </div>
           </CardContent>
         </Card>
       </div>

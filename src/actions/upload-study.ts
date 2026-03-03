@@ -45,7 +45,8 @@ const formSchema = z.object({
   patientName: z.string().min(1, 'El nombre del paciente es obligatorio.'),
   requestingDoctorName: z.string().min(1, 'El nombre del médico solicitante es obligatorio.'),
   description: z.string().optional(),
-  filePath: z.string().min(1, 'La ruta del archivo es obligatoria.') // This will be passed after upload
+  filePath: z.string().min(1, 'La ruta del archivo es obligatoria.'),
+  pdfFilePath: z.string().optional(),
 });
 
 type State = {
@@ -67,6 +68,7 @@ export async function uploadStudy(
       requestingDoctorName: formData.get('requestingDoctorName'),
       description: formData.get('description'),
       filePath: formData.get('filePath'),
+      pdfFilePath: formData.get('pdfFilePath') || undefined,
     });
 
     if (!validatedFields.success) {
@@ -77,17 +79,22 @@ export async function uploadStudy(
         };
     }
     
-    const { patientName, requestingDoctorName, description, filePath } = validatedFields.data;
-    console.log(`[uploadStudy] Processing study for patient: ${patientName}, file: ${filePath}`);
+    const { patientName, requestingDoctorName, description, filePath, pdfFilePath } = validatedFields.data;
+    console.log(`[uploadStudy] Processing study for patient: ${patientName}, file: ${filePath}, pdf: ${pdfFilePath || 'none'}`);
 
     // The file is already uploaded, so we get its public URL
     const videoUrl = await getPublicUrl(filePath);
+    let pdfUrl: string | undefined;
+    if (pdfFilePath) {
+      pdfUrl = await getPublicUrl(pdfFilePath);
+    }
 
     const input: StudyUploadFlowInput = {
-        videoDataUri: videoUrl, // Passing URL instead of data URI now
+        videoDataUri: videoUrl,
         patientName,
         requestingDoctorName,
         description,
+        pdfUrl,
     };
 
     console.log('[uploadStudy] Processing study...');

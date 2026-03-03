@@ -116,7 +116,7 @@ export default function AdminPricingPage() {
             Configuración de Precios
           </h1>
           <p className="text-muted-foreground text-sm">
-            Gestiona los precios de las suscripciones mensuales y anuales
+            Gestiona los precios de las suscripciones mensuales y anuales (IVA incluido)
           </p>
         </div>
         <Badge variant={pricing.isActive ? "default" : "secondary"}>
@@ -133,12 +133,12 @@ export default function AdminPricingPage() {
               Configuración de Precios
             </CardTitle>
             <CardDescription>
-              Ajusta los precios mensuales y anuales de las suscripciones
+              Ajusta los precios mensuales y anuales de las suscripciones. Todos los precios son IVA incluido.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="monthlyPrice">Precio Mensual (ARS)</Label>
+              <Label htmlFor="monthlyPrice">Precio Mensual (ARS, IVA incluido)</Label>
               <Input
                 id="monthlyPrice"
                 type="number"
@@ -216,7 +216,7 @@ export default function AdminPricingPage() {
                 <span className="text-muted-foreground">/ mes</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Facturación mensual, cancela cuando quieras
+                Facturación mensual, cancela cuando quieras. IVA incluido.
               </p>
             </div>
 
@@ -239,7 +239,7 @@ export default function AdminPricingPage() {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Pago único anual con descuento significativo
+                Pago único anual con descuento significativo. IVA incluido.
               </p>
             </div>
           </CardContent>
@@ -258,11 +258,11 @@ export default function AdminPricingPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="text-center p-4 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-blue-600">{formatCurrency(pricing.monthlyPrice)}</div>
-              <div className="text-sm text-muted-foreground">Precio Mensual</div>
+              <div className="text-sm text-muted-foreground">Precio Mensual (IVA incl.)</div>
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-green-600">{formatCurrency(pricing.annualPrice)}</div>
-              <div className="text-sm text-muted-foreground">Precio Anual</div>
+              <div className="text-sm text-muted-foreground">Precio Anual (IVA incl.)</div>
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-orange-600">{pricing.annualDiscountPercent}%</div>

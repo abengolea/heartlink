@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { useAuth } from "@/contexts/auth-context";
-import { File, PlusCircle, Search, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { File, PlusCircle, Search, Edit, Trash2, MoreHorizontal, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -62,6 +62,7 @@ export default function OperatorsPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [sendingLinkId, setSendingLinkId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const isAdmin = dbUser?.role === "admin";
@@ -197,6 +198,53 @@ export default function OperatorsPage() {
     setEditingUser(null);
     setIsCreating(true);
     setIsDialogOpen(true);
+  };
+
+  const handleSendPasswordLink = async (user: User) => {
+    if (!user.email) {
+      toast({
+        title: "Error",
+        description: "Este operador no tiene email registrado",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSendingLinkId(user.id);
+    try {
+      const response = await fetchWithAuth(
+        `/api/users/${user.id}/send-password-link`,
+        { method: "POST" }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        if (data.resetLink && typeof navigator?.clipboard?.writeText === "function") {
+          await navigator.clipboard.writeText(data.resetLink);
+          toast({
+            title: "Enlace enviado y copiado",
+            description: "El email se envió y el enlace se copió al portapapeles. Podés pegarlo en WhatsApp.",
+          });
+        } else {
+          toast({
+            title: "Éxito",
+            description: data.message,
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Error al enviar el enlace",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Error al enviar el enlace",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingLinkId(null);
+    }
   };
 
   const filteredOperators = operators.filter(
@@ -338,6 +386,15 @@ export default function OperatorsPage() {
                             >
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleSendPasswordLink(user)}
+                              disabled={!user.email || sendingLinkId === user.id}
+                            >
+                              <Mail className="h-4 w-4 mr-2" />
+                              {sendingLinkId === user.id
+                                ? "Enviando..."
+                                : "Enviar generar por email (y copiar enlace)"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

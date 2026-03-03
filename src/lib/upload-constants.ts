@@ -8,7 +8,12 @@ export const ALLOWED_VIDEO_TYPES = [
   'video/x-msvideo'
 ];
 
+export const ALLOWED_PDF_TYPES = [
+  'application/pdf',
+];
+
 export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB (aumentado de 50MB)
+export const MAX_PDF_SIZE = 50 * 1024 * 1024; // 50MB para PDFs
 
 export const UPLOAD_CONFIG = {
   SIGNED_URL_EXPIRY: 15 * 60 * 1000, // 15 minutos

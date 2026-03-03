@@ -15,7 +15,7 @@ interface SendRequestBody {
 }
 
 /**
- * POST: Envía estudio al médico por WhatsApp usando template documento_disponible.
+ * POST: Envía estudio al médico por WhatsApp usando template notificas_estudio_medico.
  * Variables: {{1}} HeartLink, {{2}} medicoNombre, {{3}} estudio, {{4}} link
  */
 export async function POST(request: NextRequest) {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       to: toNormalized,
       type: "template",
       template: {
-        name: "documento_disponible",
+        name: "notificas_estudio_medico",
         language: { code: templateLang },
         components: [
           {

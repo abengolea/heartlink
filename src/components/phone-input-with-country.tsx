@@ -39,21 +39,28 @@ function parsePhone(value: string): { countryCode: string; numberPart: string } 
   if (!trimmed) return { countryCode: "+54", numberPart: "" };
   for (const c of COUNTRIES) {
     if (c.dial && trimmed.startsWith(c.dial)) {
-      const rest = trimmed.slice(c.dial.length).replace(/^\s+/, "");
+      const rest = trimmed.slice(c.dial.length).replace(/^\s+/, "").replace(/\D/g, "");
+      return { countryCode: c.dial, numberPart: rest };
+    }
+    const dialDigits = (c.dial ?? "").replace(/\D/g, "");
+    if (dialDigits && /^\d+$/.test(trimmed) && trimmed.startsWith(dialDigits) && trimmed.length > dialDigits.length) {
+      let rest = trimmed.slice(dialDigits.length);
+      if (c.dial === "+54" && rest.length === 12 && rest.startsWith("54")) {
+        rest = rest.slice(2);
+      }
       return { countryCode: c.dial, numberPart: rest };
     }
   }
   if (trimmed.startsWith("+")) {
     const match = trimmed.match(/^(\+\d{1,4})\s*(.*)$/);
-    if (match) return { countryCode: match[1], numberPart: match[2] || "" };
+    if (match) return { countryCode: match[1], numberPart: (match[2] || "").replace(/\D/g, "") };
   }
-  return { countryCode: "+54", numberPart: trimmed };
+  return { countryCode: "+54", numberPart: trimmed.replace(/\D/g, "") };
 }
 
 /**
- * Construye el número completo para guardar (formato WhatsApp).
- * Argentina: si el usuario ingresa "336 451-3355" (sin el 9), lo agregamos automáticamente.
- * El 9 es obligatorio para móviles en formato internacional (+54 9 XXX XXX XXXX).
+ * Construye el número completo para guardar.
+ * NO agregamos el 9 automáticamente (causaba que no llegaran mensajes de WhatsApp).
  */
 function buildFullPhone(countryCode: string, numberPart: string): string {
   const raw = (numberPart ?? "").trim();
@@ -61,12 +68,7 @@ function buildFullPhone(countryCode: string, numberPart: string): string {
   if (!countryCode) return raw;
   const digits = raw.replace(/\D/g, "");
   if (!digits) return "";
-  let normalized = digits;
-  // Argentina (+54): móviles requieren 9. Usuario puede ingresar "3364513355" → "93364513355"
-  if (countryCode === "+54" && (digits.length === 9 || digits.length === 10) && !digits.startsWith("9")) {
-    normalized = "9" + digits;
-  }
-  return `${countryCode} ${normalized}`;
+  return `${countryCode.replace(/\D/g, "")}${digits}`;
 }
 
 interface PhoneInputWithCountryProps {

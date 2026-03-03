@@ -10,7 +10,6 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
   options: {
     timeout: 5000,
-    idempotencyKey: 'abc123'
   }
 });
 
@@ -55,7 +54,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { userId, planType = 'monthly' } = await request.json();
+    const body = await request.json();
+    const { userId, planType = 'monthly', simulate = false } = body;
     
     if (!userId) {
       return NextResponse.json(
@@ -125,6 +125,90 @@ export async function POST(request: NextRequest) {
     const gracePeriodEndDate = new Date(endDate);
     gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + 10); // +10 días de gracia
     
+    // MercadoPago exige HTTPS desde marzo 2025. En local (http://localhost) usamos la URL de producción.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app';
+    const mpBaseUrl = appUrl.startsWith('http://') 
+      ? 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app'
+      : appUrl.replace(/\/$/, '');
+
+    // Modo simulación: solo cuando se envía simulate: true explícitamente (botón "Simular pago")
+    // Los botones "Suscribirse Mensual" y "Suscribirse Anual" siempre llaman a MercadoPago
+    if (simulate) {
+      console.log('🎭 [Subscription API] SIMULATING payment - skipping MercadoPago');
+      const now = new Date();
+      const endDate = new Date(now);
+      if (planType === 'annual') {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      } else {
+        endDate.setMonth(endDate.getMonth() + 1);
+      }
+      const gracePeriodEndDate = new Date(endDate);
+      gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + 10);
+
+      const subscriptionIdPlaceholder = `pending_${Date.now()}`;
+      const simulatedPaymentRecord = {
+        id: `sim_${Date.now()}`,
+        subscriptionId: subscriptionIdPlaceholder,
+        mercadoPagoPaymentId: `simulated_${Date.now()}`,
+        amount,
+        currency: 'ARS' as const,
+        status: 'approved' as const,
+        paymentDate: now.toISOString(),
+        dueDate: endDate.toISOString(),
+        paymentMethod: 'simulado',
+        description: `Pago único simulado $20.000 - HeartLink ${planType === 'annual' ? 'Anual' : 'Mensual'}`,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      };
+
+      const subscriptionData = {
+        userId,
+        status: 'active' as const,
+        planType: planType as 'monthly' | 'annual',
+        amount,
+        currency: pricingConfig.currency as 'ARS',
+        mercadoPagoSubscriptionId: `sim_${Date.now()}`,
+        startDate: now.toISOString(),
+        endDate: endDate.toISOString(),
+        nextBillingDate: endDate.toISOString(),
+        lastPaymentDate: now.toISOString(),
+        gracePeriodEndDate: gracePeriodEndDate.toISOString(),
+        isAccessBlocked: false,
+        paymentHistory: [simulatedPaymentRecord],
+      };
+
+      const subscriptionId = await createSubscription(subscriptionData);
+      // Actualizar subscriptionId en el registro de pago (era placeholder)
+      simulatedPaymentRecord.subscriptionId = subscriptionId;
+
+      await updateUser(userId, {
+        subscriptionStatus: 'active',
+        subscriptionId,
+      });
+
+      console.log('✅ [Subscription API] Simulated subscription created:', subscriptionId);
+      // Usar origin del request para redirigir al mismo host (localhost en dev)
+      let origin = mpBaseUrl;
+      try {
+        const o = request.headers.get('origin');
+        const r = request.headers.get('referer');
+        if (o) origin = o;
+        else if (r) origin = new URL(r).origin;
+      } catch {
+        // fallback mpBaseUrl
+      }
+      const successUrl = `${origin}/dashboard/subscription?status=success&plan=${planType}&payment_id=simulated`;
+      return NextResponse.json({
+        success: true,
+        simulated: true,
+        subscriptionId,
+        planType,
+        amount,
+        checkoutUrl: successUrl,
+        message: 'Pago simulado exitoso. Redirigiendo...',
+      });
+    }
+    
     // Crear preferencia de pago en MercadoPago
     const preferenceData = {
       items: [
@@ -148,12 +232,12 @@ export async function POST(request: NextRequest) {
         installments: isAnnual ? 12 : 1, // Permitir cuotas para plan anual
       },
       back_urls: {
-        success: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=success&plan=${planType}`,
-        failure: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=failure&plan=${planType}`,
-        pending: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=pending&plan=${planType}`,
+        success: `${mpBaseUrl}/dashboard/subscription?status=success&plan=${planType}`,
+        failure: `${mpBaseUrl}/dashboard/subscription?status=failure&plan=${planType}`,
+        pending: `${mpBaseUrl}/dashboard/subscription?status=pending&plan=${planType}`,
       },
       auto_return: 'approved',
-      notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
+      notification_url: `${mpBaseUrl}/api/mercadopago/webhook`,
       external_reference: `subscription_${userId}_${planType}_${now.getTime()}`,
       expires: true,
       expiration_date_from: now.toISOString(),

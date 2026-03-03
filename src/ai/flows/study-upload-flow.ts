@@ -15,6 +15,7 @@ export type StudyUploadFlowInput = {
   patientName: string;
   requestingDoctorName: string;
   description?: string;
+  pdfUrl?: string;
 };
 
 export type StudyUploadFlowOutput = {
@@ -49,7 +50,7 @@ export async function processStudyUpload(input: StudyUploadFlowInput): Promise<S
     patientId: patient.id,  // ID string, no el objeto
     requestingDoctorId,
     videoUrl,
-    reportUrl: '',
+    reportUrl: input.pdfUrl || '',  // PDF opcional en campo separado
     date: new Date().toISOString(),
     isUrgent: false,
     description: input.description || 'Estudio cardiológico subido automáticamente',

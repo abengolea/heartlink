@@ -14,6 +14,12 @@ export async function POST(request: NextRequest) {
     
     const { email = 'test@heartlink.app', name = 'Usuario Test' } = await request.json();
     
+    // MercadoPago exige HTTPS. En local usamos URL de producción.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app';
+    const mpBaseUrl = appUrl.startsWith('http://') 
+      ? 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app'
+      : appUrl.replace(/\/$/, '');
+    
     // Crear preferencia de pago de prueba
     const preferenceData = {
       items: [
@@ -37,12 +43,12 @@ export async function POST(request: NextRequest) {
         installments: 1,
       },
       back_urls: {
-        success: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=success&test=true`,
-        failure: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=failure&test=true`,
-        pending: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?status=pending&test=true`,
+        success: `${mpBaseUrl}/dashboard/subscription?status=success&test=true`,
+        failure: `${mpBaseUrl}/dashboard/subscription?status=failure&test=true`,
+        pending: `${mpBaseUrl}/dashboard/subscription?status=pending&test=true`,
       },
       auto_return: 'approved',
-      notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
+      notification_url: `${mpBaseUrl}/api/mercadopago/webhook`,
       external_reference: `test_payment_${Date.now()}`,
       expires: true,
       expiration_date_from: new Date().toISOString(),

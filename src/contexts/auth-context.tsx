@@ -1,10 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from 'firebase/auth';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase-client';
-import { User as DBUser } from '@/lib/types';
+import type { User } from 'firebase/auth';
+import type { User as DBUser } from '@/lib/types';
 
 interface AuthContextType {
   firebaseUser: User | null;
@@ -14,66 +12,35 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const defaultAuthValue: AuthContextType = {
+  firebaseUser: null,
+  dbUser: null,
+  loading: true,
+  error: undefined,
+  signOut: async () => {},
+};
+
+/**
+ * AuthProvider que carga Firebase solo tras el mount en el cliente.
+ * Evita auth/invalid-api-key durante el build/SSR cuando NEXT_PUBLIC_FIREBASE_API_KEY
+ * no está disponible en el entorno de compilación.
+ */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [firebaseUser, loading, error] = useAuthState(auth);
-  const [dbUser, setDbUser] = useState<DBUser | null>(null);
-  const [dbUserLoading, setDbUserLoading] = useState(false);
+  const [Inner, setInner] = useState<React.ComponentType<{ children: React.ReactNode }> | null>(null);
 
-  // Fetch user data from Firestore when Firebase user changes
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (firebaseUser?.email) {
-        setDbUserLoading(true);
-        try {
-          console.log('🔍 [Auth] Fetching user data for:', firebaseUser.email);
-          
-          const token = await firebaseUser.getIdToken();
-          const response = await fetch(`/api/users/by-email?email=${encodeURIComponent(firebaseUser.email)}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            setDbUser(userData.user);
-            console.log('✅ [Auth] User data loaded:', userData.user);
-          } else {
-            console.log('❌ [Auth] User not found in database:', firebaseUser.email);
-            setDbUser(null);
-          }
-        } catch (error) {
-          console.error('❌ [Auth] Error fetching user data:', error);
-          setDbUser(null);
-        } finally {
-          setDbUserLoading(false);
-        }
-      } else {
-        setDbUser(null);
-      }
-    };
+    import('./auth-provider-with-firebase').then((m) => setInner(() => m.AuthProviderWithFirebase));
+  }, []);
 
-    fetchUserData();
-  }, [firebaseUser]);
+  if (!Inner) {
+    return (
+      <AuthContext.Provider value={defaultAuthValue}>{children}</AuthContext.Provider>
+    );
+  }
 
-  const signOut = async () => {
-    try {
-      await auth.signOut();
-      setDbUser(null);
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
-  const value = {
-    firebaseUser,
-    dbUser,
-    loading: loading || dbUserLoading,
-    error,
-    signOut,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <Inner>{children}</Inner>;
 }
 
 export function useAuth() {

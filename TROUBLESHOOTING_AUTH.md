@@ -46,6 +46,15 @@ Si aún falla, prueba:
 4. **Probar en modo incógnito** (sin extensiones)
 5. **Probar otro navegador** (Chrome, Firefox, Edge)
 
+### Recuperar contraseña: no llega el email
+El flujo "¿Olvidaste tu contraseña?" genera una **nueva contraseña** (no un enlace) y la envía por correo vía **Firestore Trigger Email** (Gmail SMTP).
+
+Si no recibes el email:
+1. **Revisa la carpeta de spam/correo no deseado**
+2. Verifica que la extensión **Firestore Trigger Email** esté instalada y configurada (extensions/firestore-send-email.env)
+3. Prueba el envío con Admin → "Probar Trigger Mail" para confirmar que los emails funcionan
+4. El email se envía desde la cuenta configurada en SMTP_CONNECTION_URI (p. ej. abengolea1@gmail.com)
+
 ### Ver el error exacto
 Abre la consola del navegador (F12 → Console) al intentar iniciar sesión. El mensaje de error te dará más pistas:
 - `auth/unauthorized-domain` → dominio no autorizado (ver arriba)

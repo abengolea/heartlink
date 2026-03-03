@@ -1,6 +1,6 @@
 // Firebase Client Configuration (for frontend authentication)
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithCustomToken, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithCustomToken, signInWithPopup, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -23,6 +23,16 @@ export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Auth functions
+export const loginWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return { success: true, user: result.user };
+  } catch (error: any) {
+    console.error('Google login error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const loginWithEmail = async (email: string, password: string) => {
   try {
     const result = await signInWithEmailAndPassword(auth, email, password);
@@ -91,9 +101,8 @@ export const resetPassword = async (email: string) => {
 };
 
 /**
- * Recuperar contraseña vía backend: evita fallos cuando sendPasswordResetEmail
- * no puede conectar (dominio no autorizado, red bloqueada, etc.).
- * Devuelve el enlace generado para que el usuario pueda copiarlo si Firebase no envía el email.
+ * Recuperar contraseña vía backend: genera una nueva contraseña,
+ * la actualiza en Firebase Auth y envía un email con ella vía Firestore Trigger Email (Gmail).
  */
 export const resetPasswordViaBackend = async (email: string) => {
   try {
@@ -106,11 +115,7 @@ export const resetPasswordViaBackend = async (email: string) => {
     if (!res.ok) {
       return { success: false, error: data.error || 'Error al procesar la solicitud' };
     }
-    return {
-      success: true,
-      resetLink: data.resetLink as string | undefined,
-      message: data.message,
-    };
+    return { success: true, message: data.message };
   } catch (error: any) {
     console.error('Reset via backend error:', error);
     return { success: false, error: error.message };

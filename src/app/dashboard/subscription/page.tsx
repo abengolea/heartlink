@@ -97,21 +97,24 @@ function SubscriptionPageContent() {
     }
   };
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = async (simulate = false) => {
     setActionLoading(true);
     try {
-      console.log('💳 Creating subscription for:', userId, 'plan:', planType);
+      console.log('💳 Creating subscription for:', userId, 'plan:', planType, 'simulate:', simulate);
       
       const response = await fetchWithAuth('/api/subscription/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, planType }),
+        body: JSON.stringify({ userId, planType, simulate }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        console.log('✅ Subscription created, redirecting to payment:', data.checkoutUrl);
+        if (data.simulated) {
+          toast.success('¡Pago simulado exitoso!');
+        }
+        console.log('✅ Subscription created, redirecting:', data.checkoutUrl);
         window.location.href = data.checkoutUrl;
       } else {
         throw new Error(data.error || 'Error al crear suscripción');
@@ -119,6 +122,30 @@ function SubscriptionPageContent() {
     } catch (error) {
       console.error('❌ Error creating subscription:', error);
       toast.error('Error al crear la suscripción');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSubscribeDLocal = async () => {
+    setActionLoading(true);
+    try {
+      console.log('💳 Creating DLocal payment for:', userId, 'plan:', planType);
+      const response = await fetchWithAuth('/api/dlocal/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, planType }),
+      });
+      const data = await response.json();
+      if (response.ok && data.checkoutUrl) {
+        toast.success('Redirigiendo a DLocal...');
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error(data.error || 'Error al crear pago DLocal');
+      }
+    } catch (error) {
+      console.error('❌ Error DLocal:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al crear pago DLocal');
     } finally {
       setActionLoading(false);
     }
@@ -236,7 +263,7 @@ function SubscriptionPageContent() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="font-semibold text-lg md:text-2xl">
             Gestionar Suscripción
@@ -248,16 +275,87 @@ function SubscriptionPageContent() {
             }
           </p>
         </div>
-        <Button 
-          onClick={loadSubscriptionStatus} 
-          variant="outline" 
-          size="sm"
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Actualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={loadSubscriptionStatus} 
+            variant="outline" 
+            size="sm"
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        </div>
       </div>
+
+      {/* Admin: Pago real (MercadoPago) + Simulación (cuando MP falla) */}
+      {dbUser?.role === 'admin' && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
+          <CardContent className="py-4">
+            <div className="flex flex-col gap-4">
+              <p className="font-medium text-amber-800 dark:text-amber-200">
+                Admin: Opciones de pago
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="outline"
+                  size="default"
+                  className="border-green-400 text-green-800 hover:bg-green-50 dark:text-green-200 dark:border-green-600"
+                  onClick={() => {
+                    setPlanType('monthly');
+                    handleSubscribe(false);
+                  }}
+                  disabled={actionLoading || !userId}
+                >
+                  {actionLoading ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-2" />
+                  )}
+                  Pago real $20.000 (MercadoPago)
+                </Button>
+                <Button 
+                  variant="outline"
+                  size="default"
+                  className="text-amber-800 border-amber-400 hover:bg-amber-100 dark:text-amber-200 dark:border-amber-600"
+                  onClick={() => {
+                    setPlanType('monthly');
+                    handleSubscribe(true);
+                  }}
+                  disabled={actionLoading || !userId}
+                >
+                  {actionLoading ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <DollarSign className="h-4 w-4 mr-2" />
+                  )}
+                  Simular pago (si MercadoPago falla)
+                </Button>
+                <Button 
+                  variant="outline"
+                  size="default"
+                  className="border-violet-400 text-violet-800 hover:bg-violet-50 dark:text-violet-200 dark:border-violet-600"
+                  onClick={() => {
+                    setPlanType('monthly');
+                    handleSubscribeDLocal();
+                  }}
+                  disabled={actionLoading || !userId}
+                >
+                  {actionLoading ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-2" />
+                  )}
+                  Pagar $20.000 con DLocal
+                </Button>
+              </div>
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Si “Pago real” da error PA_UNAUTHORIZED, usá “Simular pago” para probar. Revisá credenciales en developers.mercadopago.com o contactá soporte MP.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {!subscriptionStatus?.hasSubscription ? (
         /* Página de Suscripción - Usuario NO suscripto */
@@ -275,6 +373,7 @@ function SubscriptionPageContent() {
                 </span>
                 <span className="text-muted-foreground">/ mes</span>
               </div>
+              <p className="text-xs text-muted-foreground">IVA incluido</p>
               <CardDescription>
                 Pago mensual. Cancela cuando quieras.
               </CardDescription>
@@ -301,12 +400,12 @@ function SubscriptionPageContent() {
                 <span>Soporte técnico incluido</span>
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col gap-2">
               <Button 
                 className="w-full" 
                 onClick={() => {
                   setPlanType('monthly');
-                  handleSubscribe();
+                  handleSubscribe(false);
                 }}
                 disabled={actionLoading}
               >
@@ -335,6 +434,7 @@ function SubscriptionPageContent() {
                 </span>
                 <span className="text-muted-foreground">/ año</span>
               </div>
+              <p className="text-xs text-muted-foreground">IVA incluido</p>
               <div className="text-sm text-muted-foreground">
                 <span className="line-through">
                   {pricingConfig ? formatCurrency(pricingConfig.monthlyPrice * 12) : '$240,000'}
@@ -374,7 +474,7 @@ function SubscriptionPageContent() {
                 className="w-full bg-green-600 hover:bg-green-700" 
                 onClick={() => {
                   setPlanType('annual');
-                  handleSubscribe();
+                  handleSubscribe(false);
                 }}
                 disabled={actionLoading}
               >
@@ -415,7 +515,7 @@ function SubscriptionPageContent() {
                   <p className="font-semibold">
                     {formatCurrency(subscriptionStatus.subscription?.amount)}
                     <span className="text-sm text-muted-foreground">
-                      /{subscriptionStatus.subscription?.planType === 'monthly' ? 'mes' : 'año'}
+                      /{subscriptionStatus.subscription?.planType === 'monthly' ? 'mes' : 'año'} (IVA incluido)
                     </span>
                   </p>
                 </div>

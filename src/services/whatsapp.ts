@@ -16,7 +16,7 @@ export class WhatsAppService {
   }
 
   /**
-   * Envía mensaje con template documento_disponible.
+   * Envía mensaje con template notificas_estudio_medico.
    * Usar para alcanzar usuarios fuera de la ventana de 24h (regla de WhatsApp).
    */
   static async sendStudyTemplate(to: string, medicoNombre: string, estudio: string, link: string): Promise<{ ok: boolean; error?: string }> {
@@ -42,7 +42,7 @@ export class WhatsAppService {
           to: normalizedTo,
           type: 'template',
           template: {
-            name: 'documento_disponible',
+            name: 'notificas_estudio_medico',
             language: { code: templateLang },
             components: [{
               type: 'body',
