@@ -11,14 +11,21 @@ export function toDigits(phone: string): string {
 /**
  * Normaliza a formato WhatsApp Argentina: 549XXXXXXXXX
  * Si el número no tiene código de país, asume Argentina (+54)
+ * Asegura el 9 después de 54 para celulares (requerido por WhatsApp).
  */
 export function toWhatsAppFormat(phone: string): string {
   let digits = toDigits(phone);
   if (!digits || digits.length < 10) return digits;
   // Argentina: si empieza con 9 (celular) o 11/351/336 (código área), agregar 54
-  if (digits.startsWith('54')) return digits;
+  if (digits.startsWith('54')) {
+    // Celulares deben ser 54 9 XXX... Si viene 54XXX sin 9, insertar 9 (ej: 543364259444 → 5493364259444)
+    if (digits.length >= 12 && digits[2] !== '9') {
+      return '549' + digits.slice(2);
+    }
+    return digits;
+  }
   if (digits.startsWith('9') && digits.length >= 10) return '54' + digits;
-  if (digits.startsWith('11') || digits.startsWith('351') || digits.startsWith('336')) {
+  if (digits.startsWith('11') || digits.startsWith('351') || digits.startsWith('3364') || digits.startsWith('336')) {
     return '549' + digits;
   }
   return '54' + digits;

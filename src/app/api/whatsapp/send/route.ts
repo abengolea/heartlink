@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/api-auth";
 import { getNotificasHubDb } from "@/lib/notificashub";
+import { toWhatsAppFormat } from "@/lib/phone-format";
 
 const META_GRAPH_URL = "https://graph.facebook.com/v21.0";
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
@@ -40,8 +41,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const toNormalized = to.replace(/\D/g, "");
-    if (toNormalized.length < 10) {
+    const toNormalized = toWhatsAppFormat(to);
+    if (!toNormalized || toNormalized.length < 12) {
       return NextResponse.json(
         { error: "Número de teléfono inválido" },
         { status: 400 }

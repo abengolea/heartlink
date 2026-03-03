@@ -7,6 +7,7 @@ import { toWhatsAppFormat } from '@/lib/phone-format';
 
 /**
  * POST: Envía el enlace del estudio por WhatsApp a un número.
+ * Usa template documento_disponible (funciona fuera de ventana 24h).
  * Body: { to: string } - número (Argentina: +54 9 XXX XXX XXXX o 9 336 451-3355)
  */
 export async function POST(
@@ -44,13 +45,21 @@ export async function POST(
     const baseUrl = process.env.NEXT_PUBLIC_PUBLIC_SHARE_BASE_URL || PRODUCTION_URL;
     const publicUrl = `${baseUrl.replace(/\/$/, '')}/public/study/${id}?token=${shareToken}`;
 
-    const message = `📋 HeartLink - Tu estudio está listo\n\nVer estudio: ${publicUrl}`;
+    // Obtener médico y paciente para el template
+    const patientIdRaw = study.patientId;
+    const patientId = typeof patientIdRaw === 'string' ? patientIdRaw : (patientIdRaw as { id?: string })?.id;
+    const patient = patientId && typeof patientId === 'string' ? await getPatientById(patientId) : null;
+    const requesterId = patient?.requesterId;
+    const requester = requesterId ? await getUserById(requesterId) : null;
+    const medicoNombre = requester?.name || 'Médico';
+    const estudioDesc = (study as { description?: string }).description?.trim() || `Estudio - ${patient?.name ?? 'Cardiología'}`;
 
-    const sent = await WhatsAppService.sendTextMessage(to, message);
+    const result = await WhatsAppService.sendStudyTemplate(to, medicoNombre, estudioDesc, publicUrl);
 
-    if (!sent) {
+    if (!result.ok) {
+      console.error('[send-whatsapp] Template send failed:', result.error);
       return NextResponse.json(
-        { error: 'No se pudo enviar el mensaje por WhatsApp. Verifica la configuración.' },
+        { error: result.error || 'No se pudo enviar por WhatsApp. Verifica que el número sea correcto (ej: +54 9 3364 25-9444).' },
         { status: 500 }
       );
     }
