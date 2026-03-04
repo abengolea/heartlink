@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto';
 import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
 import { getFirestore } from 'firebase-admin/firestore';
+import { registerInNotificasHub } from '@/lib/notificashub';
 import type { Study, StudyComment, Patient, User, Subscription, PaymentRecord, DataDeletionRequest, UserPreferences } from './types';
 
 // Initialize Firestore with Firebase Admin
@@ -264,6 +265,9 @@ export async function createUser(userData: Omit<User, 'id'>): Promise<string> {
     });
     
     console.log('✅ [Firestore] User created with ID:', docRef.id);
+    if (userData.phone?.trim()) {
+      registerInNotificasHub(userData.phone);
+    }
     return docRef.id;
     
   } catch (error) {
@@ -457,6 +461,9 @@ export async function updateUser(id: string, userData: Partial<User>): Promise<v
     });
     
     console.log('✅ [Firestore] User updated:', id);
+    if (userData.phone !== undefined && String(userData.phone ?? '').trim()) {
+      registerInNotificasHub(String(userData.phone));
+    }
     
   } catch (error) {
     console.error('❌ [Firestore] Error updating user:', error);

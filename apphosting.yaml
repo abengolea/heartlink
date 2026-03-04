@@ -33,6 +33,10 @@ env:
     value: heartlink_internal_2026
     availability:
       - RUNTIME
+  - variable: NOTIFICASHUB_URL
+    value: https://notificashub--studio-3864746689-59018.us-east4.hosted.app
+    availability:
+      - RUNTIME
   - variable: WHATSAPP_ACCESS_TOKEN
     secret: WHATSAPP_ACCESS_TOKEN
     availability:

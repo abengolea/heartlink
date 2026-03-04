@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "migrate:medico-operador": "tsx scripts/migrate-medico-operador-to-operator.ts"
+    "migrate:medico-operador": "tsx scripts/migrate-medico-operador-to-operator.ts",
+    "migrate:notificashub": "tsx scripts/migrate-users-to-notificashub.ts"
   },
   "dependencies": {
     "@firebase/analytics": "^0.10.18",

@@ -21,6 +21,12 @@ const referralSchema = z.object({
   source_url: z.string().url().optional(),
   ref: z.string().optional(),
 }).passthrough();
+const videoSchema = z.object({ id: z.string() }).passthrough();
+const imageSchema = z.object({ id: z.string() }).passthrough();
+const contactSchema = z.object({
+  name: z.object({ formatted_name: z.string().optional(), first_name: z.string().optional() }).passthrough().optional(),
+  phones: z.array(z.object({ phone: z.string().optional(), wa_id: z.string().optional() })).optional(),
+}).passthrough();
 
 export const incomingMessageSchema = z.object({
   id: z.string(),
@@ -28,6 +34,9 @@ export const incomingMessageSchema = z.object({
   timestamp: z.string(),
   type: z.string(),
   text: textSchema.optional(),
+  video: videoSchema.optional(),
+  image: imageSchema.optional(),
+  contacts: z.array(contactSchema).optional(),
   interactive: interactiveSchema.optional(),
   referral: referralSchema.optional(),
   context: z.object({ from: z.string().optional() }).optional(),

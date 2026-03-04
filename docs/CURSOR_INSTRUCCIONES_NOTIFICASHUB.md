@@ -78,11 +78,31 @@ HeartLink acepta:
 - `message` y `from` son obligatorios.
 - `contactName`, `messageId`, `timestamp` son opcionales (HeartLink usa valores por defecto si faltan).
 
-**Importante:** Reenviar el objeto `message` completo tal como lo envía Meta. HeartLink necesita estos tipos:
-- `text` – mensajes de texto
-- `video` – videos (estudios)
+**CRÍTICO – mensajes con media:** Reenviar el objeto `message` **completo y sin modificar** tal como lo envía Meta. Si se filtra o transforma el mensaje, se pierde el ID del media y HeartLink no puede descargar el video.
+
+Para un video, Meta envía:
+```json
+{
+  "id": "wamid.xxx",
+  "from": "5493364645357",
+  "timestamp": "1772659306",
+  "type": "video",
+  "video": {
+    "id": "MEDIA_ID_AQUI",
+    "mime_type": "video/mp4",
+    "sha256": "..."
+  }
+}
+```
+
+HeartLink necesita `message.video.id` para descargar el video. Sin eso responde "No se pudo obtener el video".
+
+Tipos que HeartLink necesita:
+- `text` – `message.text.body`
+- `video` – **`message.video.id`** (obligatorio para videos)
+- `image` – `message.image.id`
 - `interactive` – respuestas a listas (paciente, médico)
-- `contacts` – cuando el usuario comparte un contacto (vCard). El mensaje incluye `message.contacts` con nombre y teléfono.
+- `contacts` – `message.contacts` (vCard con nombre y teléfono)
 
 ---
 
