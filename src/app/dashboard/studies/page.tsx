@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
+import { useSubscriptionStatus } from "@/hooks/use-subscription-status";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
@@ -23,6 +24,7 @@ export default function StudiesPage() {
     const [studies, setStudies] = useState<Study[]>([]);
     const [patients, setPatients] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { hasAccess } = useSubscriptionStatus();
 
     useEffect(() => {
         async function loadData() {
@@ -116,12 +118,19 @@ export default function StudiesPage() {
                         <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                         Actualizar
                     </Button>
-                    <Button asChild>
-                        <Link href="/dashboard/studies/upload">
+                    {hasAccess === false ? (
+                        <Button disabled>
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Subir Estudio
-                        </Link>
-                    </Button>
+                        </Button>
+                    ) : (
+                        <Button asChild>
+                            <Link href="/dashboard/studies/upload">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Subir Estudio
+                            </Link>
+                        </Button>
+                    )}
                 </div>
             </div>
             {studies.length === 0 && !isLoading ? (
@@ -131,12 +140,19 @@ export default function StudiesPage() {
                         <p className="text-muted-foreground mb-4 text-center">
                             No se encontraron estudios médicos. Sube tu primer estudio para comenzar.
                         </p>
-                        <Button asChild>
-                            <Link href="/dashboard/studies/upload">
+                        {hasAccess === false ? (
+                            <Button disabled>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Subir Primer Estudio
-                            </Link>
-                        </Button>
+                            </Button>
+                        ) : (
+                            <Button asChild>
+                                <Link href="/dashboard/studies/upload">
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Subir Primer Estudio
+                                </Link>
+                            </Button>
+                        )}
                     </CardContent>
                 </Card>
             ) : (

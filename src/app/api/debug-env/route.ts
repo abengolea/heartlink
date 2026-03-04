@@ -8,8 +8,11 @@ export async function GET() {
     storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     nodeEnv: process.env.NODE_ENV,
+    hasDLocalApiKey: !!(process.env.DLOCAL_API_KEY || process.env.DLOCAL_GO_API_KEY),
+    hasDLocalSecretKey: !!(process.env.DLOCAL_SECRET_KEY || process.env.DLOCAL_GO_SECRET_KEY),
+    dlocalApiKeyVar: process.env.DLOCAL_API_KEY ? 'DLOCAL_API_KEY' : process.env.DLOCAL_GO_API_KEY ? 'DLOCAL_GO_API_KEY' : 'ninguna',
     availableEnvKeys: Object.keys(process.env).filter(key => 
-      key.includes('FIREBASE') || key.includes('SERVICE')
+      key.includes('FIREBASE') || key.includes('SERVICE') || key.includes('DLOCAL')
     ),
     serviceAccountKeyLength: process.env.SERVICE_ACCOUNT_KEY?.length || 0,
     firebaseServiceAccountKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.length || 0

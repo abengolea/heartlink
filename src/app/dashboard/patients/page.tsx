@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
+import { useSubscriptionStatus } from "@/hooks/use-subscription-status";
 import { File, PlusCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export default function PatientsPage() {
   const [patients, setPatients] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { hasAccess } = useSubscriptionStatus();
 
   useEffect(() => {
     async function loadData() {
@@ -84,14 +86,23 @@ export default function PatientsPage() {
               Exportar
             </span>
           </Button>
-          <Button size="sm" className="h-8 gap-1" asChild>
-            <Link href="/dashboard/patients/new">
+          {hasAccess === false ? (
+            <Button size="sm" className="h-8 gap-1" disabled>
               <PlusCircle className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                 Añadir Paciente
               </span>
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button size="sm" className="h-8 gap-1" asChild>
+              <Link href="/dashboard/patients/new">
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  Añadir Paciente
+                </span>
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
       <Card>

@@ -2,29 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createDLocalGoPayment } from '@/lib/dlocal';
 import { createSubscription, getUserById, updateUser } from '@/lib/firestore';
 import { getAuthenticatedUser } from '@/lib/api-auth';
-import { getFirestoreAdmin } from '@/lib/firebase-admin-v4';
-import { getFirestore } from 'firebase-admin/firestore';
-
-async function getPricingConfig() {
-  try {
-    const app = getFirestoreAdmin();
-    const db = getFirestore(app);
-    const pricingDoc = await db.collection('admin').doc('pricing').get();
-    if (!pricingDoc.exists) {
-      return {
-        monthlyPrice: 20000,
-        currency: 'ARS',
-      };
-    }
-    const data = pricingDoc.data()!;
-    return {
-      monthlyPrice: data.monthlyPrice ?? 20000,
-      currency: data.currency ?? 'ARS',
-    };
-  } catch {
-    return { monthlyPrice: 20000, currency: 'ARS' };
-  }
-}
+import { getAdminPricingConfig } from '@/lib/admin-config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,8 +29,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    const pricingConfig = await getPricingConfig();
-    const amount = customAmount ?? (planType === 'annual' ? pricingConfig.monthlyPrice * 12 * 0.6 : pricingConfig.monthlyPrice);
+    const pricingConfig = await getAdminPricingConfig();
+    const discountMultiplier = 1 - (pricingConfig.annualDiscountPercent / 100);
+    const amount = customAmount ?? (planType === 'annual' ? pricingConfig.monthlyPrice * 12 * discountMultiplier : pricingConfig.monthlyPrice);
     const now = new Date();
     const endDate = new Date(now);
     if (planType === 'annual') {
@@ -61,12 +40,19 @@ export async function POST(request: NextRequest) {
       endDate.setMonth(endDate.getMonth() + 1);
     }
     const gracePeriodEndDate = new Date(endDate);
-    gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + 10);
+    gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + pricingConfig.gracePeriodDays);
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app';
-    const baseUrl = appUrl.startsWith('http://')
-      ? 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app'
-      : appUrl.replace(/\/$/, '');
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ||
+      'https://heartlink--heartlink-f4ftq.us-central1.hosted.app';
+
+    const webhookUrl =
+      process.env.DLOCAL_WEBHOOK_URL || `${baseUrl}/api/dlocal/webhook`;
+
+    const returnBase = process.env.DLOCAL_RETURN_URL;
+    const callbackUrl = returnBase
+      ? `${returnBase}${returnBase.includes('?') ? '&' : '?'}status=success&plan=${planType}&payment_id=dlocal`
+      : `${baseUrl}/dashboard/subscription?status=success&plan=${planType}&payment_id=dlocal`;
 
     const orderId = `heartlink_${userId}_${planType}_${now.getTime()}`;
 
@@ -83,8 +69,8 @@ export async function POST(request: NextRequest) {
       },
       order_id: orderId,
       description: `HeartLink - Suscripción ${planType === 'annual' ? 'Anual' : 'Mensual'}`,
-      notification_url: `${baseUrl}/api/dlocal/webhook`,
-      callback_url: `${baseUrl}/dashboard/subscription?status=success&plan=${planType}&payment_id=dlocal`,
+      notification_url: webhookUrl,
+      callback_url: callbackUrl,
     };
 
     const response = await createDLocalGoPayment(payload);

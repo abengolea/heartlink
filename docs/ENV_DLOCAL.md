@@ -7,15 +7,15 @@ Variables necesarias en `.env.local` para integrar **dLocal Go** como pasarela d
 ## Variables requeridas
 
 ```env
-# API Key (clave pública)
-DLOCAL_GO_API_KEY=<tu_api_key>
-
-# Secret Key (clave privada - ¡no compartir!)
-DLOCAL_GO_SECRET_KEY=<tu_secret_key>
-
-# true = Sandbox (pruebas)
-# false o vacío = Producción
-DLOCAL_GO_SANDBOX=true
+# dLocal Go
+# Testing: https://api-sbx.dlocalgo.com | Live: https://api.dlocalgo.com
+DLOCAL_API_KEY=<tu_api_key>
+DLOCAL_SECRET_KEY=<tu_secret_key>
+DLOCAL_BASE_URL=https://api.dlocalgo.com
+DLOCAL_WEBHOOK_URL=https://heartlink--heartlink-f4ftq.us-central1.hosted.app/api/dlocal/webhook
+DLOCAL_RETURN_URL=https://heartlink--heartlink-f4ftq.us-central1.hosted.app/dashboard/subscription
+# true = Sandbox (pruebas), false = Producción
+DLOCAL_SANDBOX=true
 ```
 
 ---
@@ -26,8 +26,6 @@ DLOCAL_GO_SANDBOX=true
 2. Ir a **Integraciones** (o Integrations)
 3. Copiar **API Key** y **Secret Key** de la sección "Claves de integración"
 
-> **SmartFields API Key** se usa para formularios de tarjeta en el frontend; HeartLink usa flujo REDIRECT, así que no es necesaria para nuestra integración.
-
 ---
 
 ## URLs de la API
@@ -36,6 +34,8 @@ DLOCAL_GO_SANDBOX=true
 |--------|----------|
 | Sandbox | `https://api-sbx.dlocalgo.com` |
 | Live | `https://api.dlocalgo.com` |
+
+Si definís `DLOCAL_BASE_URL`, se usa esa URL en lugar de derivarla de `DLOCAL_SANDBOX`.
 
 ---
 

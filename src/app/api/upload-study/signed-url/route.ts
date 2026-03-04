@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import { getSignedUploadUrl } from '@/services/firebase';
+import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 
 /**
  * POST: Obtiene una URL firmada para subir el video a Firebase Storage.
@@ -14,6 +15,13 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Debes iniciar sesión' },
         { status: 401 }
       );
+    }
+    if (authUser.dbUser.role !== 'admin') {
+      const accessResult = await verifySubscriptionAccess(authUser.dbUser.id);
+      if (!accessResult.hasAccess) {
+        const res = createAccessControlResponse(accessResult);
+        return NextResponse.json({ success: false, ...res }, { status: 402 });
+      }
     }
 
     const body = await request.json();

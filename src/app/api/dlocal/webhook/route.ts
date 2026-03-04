@@ -5,6 +5,7 @@ import {
   addPaymentRecord,
   updateUser,
 } from '@/lib/firestore';
+import { getAdminPricingConfig } from '@/lib/admin-config';
 import type { PaymentRecord } from '@/lib/types';
 
 interface DLocalWebhookPayload {
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     if (status === 'PAID') {
       console.log('✅ [DLocal Webhook] Payment approved, activating subscription');
-
+      const config = await getAdminPricingConfig();
       const now = new Date();
       const newEndDate = new Date(now);
       const isAnnual = subscription.planType === 'annual';
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
         newEndDate.setMonth(newEndDate.getMonth() + 1);
       }
       const newGracePeriodEndDate = new Date(newEndDate);
-      newGracePeriodEndDate.setDate(newGracePeriodEndDate.getDate() + 10);
+      newGracePeriodEndDate.setDate(newGracePeriodEndDate.getDate() + config.gracePeriodDays);
 
       await updateSubscription(subscription.id, {
         status: 'active',

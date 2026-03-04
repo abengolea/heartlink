@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllStudies, createStudy } from '@/lib/firestore';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,6 +25,13 @@ export async function POST(request: NextRequest) {
     const authUser = await getAuthenticatedUser(request);
     if (!authUser) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    if (authUser.dbUser.role !== 'admin') {
+      const accessResult = await verifySubscriptionAccess(authUser.dbUser.id);
+      if (!accessResult.hasAccess) {
+        const res = createAccessControlResponse(accessResult);
+        return NextResponse.json(res, { status: 402 });
+      }
     }
     const studyData = await request.json();
     const studyId = await createStudy(studyData);

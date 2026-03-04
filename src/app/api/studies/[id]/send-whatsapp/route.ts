@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStudyById, updateStudy, getPatientById, getUserById } from '@/lib/firestore';
-import { requireRole } from '@/lib/api-auth';
+import { requireRole, getAuthenticatedUser } from '@/lib/api-auth';
+import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 import { randomBytes } from 'crypto';
 import { WhatsAppService } from '@/services/whatsapp';
 import { toWhatsAppFormat } from '@/lib/phone-format';
+import { logWhatsAppSend } from '@/lib/notificashub';
 
 /**
  * POST: Envía el enlace del estudio por WhatsApp a un número.
@@ -15,8 +17,18 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Solo operadores pueden enviar estudios por WhatsApp
     await requireRole(request, ['admin', 'operator']);
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    if (authUser.dbUser.role !== 'admin') {
+      const accessResult = await verifySubscriptionAccess(authUser.dbUser.id);
+      if (!accessResult.hasAccess) {
+        const res = createAccessControlResponse(accessResult);
+        return NextResponse.json(res, { status: 402 });
+      }
+    }
 
     const { id } = await params;
     const study = await getStudyById(id);
@@ -63,6 +75,14 @@ export async function POST(
         { status: 500 }
       );
     }
+
+    await logWhatsAppSend({
+      to,
+      medicoNombre,
+      estudio: estudioDesc,
+      link: publicUrl,
+      operatorId: authUser.dbUser.id,
+    });
 
     return NextResponse.json({ success: true, message: 'Mensaje enviado correctamente' });
   } catch (error) {

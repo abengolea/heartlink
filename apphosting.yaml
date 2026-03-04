@@ -107,3 +107,15 @@ env:
     secret: META_APP_SECRET
     availability:
       - RUNTIME
+  - variable: DLOCAL_API_KEY
+    secret: DLOCAL_API_KEY
+  - variable: DLOCAL_SECRET_KEY
+    secret: DLOCAL_SECRET_KEY
+  - variable: DLOCAL_BASE_URL
+    secret: DLOCAL_BASE_URL
+  - variable: DLOCAL_WEBHOOK_URL
+    secret: DLOCAL_WEBHOOK_URL
+  - variable: DLOCAL_RETURN_URL
+    secret: DLOCAL_RETURN_URL
+  - variable: DLOCAL_SANDBOX
+    secret: DLOCAL_SANDBOX

@@ -1,5 +1,6 @@
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
+import { SubscriptionBanner } from "@/components/subscription-banner";
 import AuthGuard from "@/components/auth-guard";
 
 export default function DashboardLayout({
@@ -13,6 +14,7 @@ export default function DashboardLayout({
       <DashboardSidebar />
         <div className="flex flex-col min-w-0 overflow-x-hidden">
           <DashboardHeader />
+          <SubscriptionBanner />
           <main className="flex flex-1 flex-col gap-4 p-4 sm:p-4 lg:gap-6 lg:p-6 bg-background min-w-0">
               {children}
           </main>

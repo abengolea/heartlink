@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import { useSubscriptionStatus } from "@/hooks/use-subscription-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,9 +27,11 @@ export default function EnviarEstudioWhatsApp({
   defaultLink = "",
 }: EnviarEstudioWhatsAppProps) {
   const { dbUser } = useAuth();
+  const { hasAccess } = useSubscriptionStatus();
   const isOperator =
     dbUser?.role === "operator" ||
     dbUser?.role === "admin";
+  const canSend = isOperator && (dbUser?.role === "admin" || hasAccess !== false);
 
   const [telefono, setTelefono] = useState(defaultTelefono);
   const [medicoNombre, setMedicoNombre] = useState(defaultMedicoNombre);
@@ -84,14 +87,16 @@ export default function EnviarEstudioWhatsApp({
   if (!isOperator) return null;
 
   return (
-    <Card>
+    <Card className={!canSend ? "opacity-70" : ""}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5" />
           Enviar estudio por WhatsApp
         </CardTitle>
         <CardDescription>
-          Los campos se completan automáticamente con los datos del estudio. Edita si falta algún dato (ej. teléfono del médico).
+          {!canSend
+            ? "Tu acceso está bloqueado. Actualiza tu suscripción para enviar por WhatsApp."
+            : "Los campos se completan automáticamente con los datos del estudio. Edita si falta algún dato (ej. teléfono del médico)."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -139,7 +144,7 @@ export default function EnviarEstudioWhatsApp({
               disabled={loading}
             />
           </div>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || !canSend}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

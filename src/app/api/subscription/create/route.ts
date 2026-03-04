@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { createSubscription, getUserById, updateUser } from '@/lib/firestore';
 import { getAuthenticatedUser } from '@/lib/api-auth';
-import { getFirestoreAdmin } from '@/lib/firebase-admin-v4';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminPricingConfig } from '@/lib/admin-config';
 
 // Configurar MercadoPago
 const client = new MercadoPagoConfig({
@@ -14,38 +13,6 @@ const client = new MercadoPagoConfig({
 });
 
 const preference = new Preference(client);
-
-// Get pricing configuration from Firestore
-async function getPricingConfig() {
-  try {
-    const app = getFirestoreAdmin();
-    const db = getFirestore(app);
-    const pricingDoc = await db.collection('admin').doc('pricing').get();
-    
-    if (!pricingDoc.exists) {
-      // Return default pricing if not configured
-      return {
-        monthlyPrice: 20000,
-        annualPrice: 144000,
-        annualDiscountPercent: 40,
-        currency: 'ARS',
-        isActive: true
-      };
-    }
-    
-    return pricingDoc.data();
-  } catch (error) {
-    console.error('❌ [Subscription API] Error getting pricing config:', error);
-    // Return default on error
-    return {
-      monthlyPrice: 20000,
-      annualPrice: 144000,
-      annualDiscountPercent: 40,
-      currency: 'ARS',
-      isActive: true
-    };
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -93,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Obtener configuración de precios
-    const pricingConfig = await getPricingConfig();
+    const pricingConfig = await getAdminPricingConfig();
     console.log('💰 [Subscription API] Using pricing config:', pricingConfig);
     
     if (!pricingConfig.isActive) {
@@ -123,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
     
     const gracePeriodEndDate = new Date(endDate);
-    gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + 10); // +10 días de gracia
+    gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + pricingConfig.gracePeriodDays);
     
     // MercadoPago exige HTTPS desde marzo 2025. En local (http://localhost) usamos la URL de producción.
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://heartlink--heartlink-f4ftq.us-central1.hosted.app';
@@ -143,7 +110,7 @@ export async function POST(request: NextRequest) {
         endDate.setMonth(endDate.getMonth() + 1);
       }
       const gracePeriodEndDate = new Date(endDate);
-      gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + 10);
+      gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + pricingConfig.gracePeriodDays);
 
       const subscriptionIdPlaceholder = `pending_${Date.now()}`;
       const simulatedPaymentRecord = {

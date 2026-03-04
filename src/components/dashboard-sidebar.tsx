@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard, FileText, Home, Settings, Stethoscope, Upload, Users, UserPlus, Workflow } from "lucide-react";
+import { CreditCard, FileText, Home, Settings, Shield, Stethoscope, Upload, Users, UserPlus, Workflow } from "lucide-react";
 import Logo from "@/components/logo";
 import { useAuth } from "@/contexts/auth-context";
+import { AdminSidebar } from "@/components/admin-sidebar";
 
 export function DashboardSidebar() {
   const { dbUser } = useAuth();
+
+  // Admin siempre ve el sidebar de admin (fijo) - no el de médico operador
+  if (dbUser?.role === "admin") {
+    return <AdminSidebar />;
+  }
+
   const isOperator =
     dbUser?.role === "operator" ||
     dbUser?.role === "admin";
@@ -30,6 +37,16 @@ export function DashboardSidebar() {
               <Home className="h-4 w-4" />
               Panel de control
             </Link>
+            {isAdmin && (
+              <Link
+                href="/admin/suscripciones"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
             <Link
               href="/dashboard/patients"
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
@@ -96,14 +113,17 @@ export function DashboardSidebar() {
                 Subir por WhatsApp
               </Link>
             )}
-            <Link
-              href="/dashboard/subscription"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
-              <CreditCard className="h-4 w-4" />
-              Suscripción
-            </Link>
+            {/* Suscripción solo para médico operador (operator), NO para admin */}
+            {dbUser?.role === 'operator' && (
+              <Link
+                href="/dashboard/subscription"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                prefetch={false}
+              >
+                <CreditCard className="h-4 w-4" />
+                Suscripción
+              </Link>
+            )}
             <Link
               href="/dashboard/configuracion"
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CircleUser, CreditCard, Database, FileText, Home, Link2, ListOrdered, Mail, Menu, Shield, Syringe, Users, Webhook } from "lucide-react";
+import { CircleUser, CreditCard, Database, FileText, Home, Link2, ListOrdered, Mail, Menu, Receipt, Shield, Syringe, Users, Webhook } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
@@ -32,6 +32,7 @@ const adminNavItems = [
     { href: "/dashboard", label: "Panel Principal", icon: Home },
     { href: "/admin/users", label: "Usuarios", icon: Users },
     { href: "/admin/pricing", label: "Facturación", icon: CreditCard },
+    { href: "/admin/suscripciones", label: "Suscripciones", icon: Receipt },
     { href: "/dashboard/patients", label: "Pacientes", icon: Syringe },
     { href: "/dashboard/studies", label: "Estudios", icon: FileText },
     { href: "/admin/links-publicos", label: "Links Públicos", icon: Link2 },

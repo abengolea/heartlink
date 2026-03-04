@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPatientById, updatePatient, getDoctorsByOperator } from '@/lib/firestore';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 
 /**
  * Regla: médico solicitante y operador pueden editar pacientes.
@@ -60,6 +61,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const allowedRoles = ['admin', 'operator', 'solicitante', 'medico_solicitante'];
     if (!allowedRoles.includes(role)) {
       return NextResponse.json({ error: 'Sin permisos para editar pacientes' }, { status: 403 });
+    }
+    if (role !== 'admin') {
+      const accessResult = await verifySubscriptionAccess(authUser.dbUser.id);
+      if (!accessResult.hasAccess) {
+        const res = createAccessControlResponse(accessResult);
+        return NextResponse.json(res, { status: 402 });
+      }
     }
 
     const { id } = await params;

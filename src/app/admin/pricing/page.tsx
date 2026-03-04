@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
+import { useAuth } from '@/contexts/auth-context';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Settings, DollarSign, Percent, Save, RefreshCw } from "lucide-react";
+import { Settings, DollarSign, Percent, Save, RefreshCw, CreditCard } from "lucide-react";
 import { toast } from 'sonner';
 
 interface PricingConfig {
@@ -17,15 +18,19 @@ interface PricingConfig {
   annualDiscountPercent: number;
   currency: string;
   isActive: boolean;
+  gracePeriodDays: number;
 }
 
 export default function AdminPricingPage() {
+  const { dbUser } = useAuth();
+  const [paymentTestLoading, setPaymentTestLoading] = useState(false);
   const [pricing, setPricing] = useState<PricingConfig>({
     monthlyPrice: 20000,
     annualPrice: 144000,
     annualDiscountPercent: 40,
     currency: 'ARS',
-    isActive: true
+    isActive: true,
+    gracePeriodDays: 15,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -64,7 +69,7 @@ export default function AdminPricingPage() {
       const response = await fetchWithAuth('/api/admin/pricing');
       if (response.ok) {
         const data = await response.json();
-        setPricing(data);
+        setPricing({ ...data, gracePeriodDays: data.gracePeriodDays ?? 15 });
         toast.success('Configuración cargada');
       }
     } catch (error) {
@@ -106,6 +111,58 @@ export default function AdminPricingPage() {
     }).format(amount);
   };
 
+  const handlePaymentTestMercadoPago = async (simulate: boolean) => {
+    if (!dbUser?.id || paymentTestLoading) return;
+    setPaymentTestLoading(true);
+    try {
+      const res = await fetchWithAuth('/api/subscription/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: dbUser.id, planType: 'monthly', simulate }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.simulated) {
+          toast.success('¡Pago simulado exitoso!');
+        } else if (data.checkoutUrl) {
+          toast.success('Redirigiendo a MercadoPago...');
+          window.location.href = data.checkoutUrl;
+        } else {
+          throw new Error(data.error || 'Error al crear suscripción');
+        }
+      } else {
+        throw new Error(data.error || 'Error al crear suscripción');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al crear suscripción');
+    } finally {
+      setPaymentTestLoading(false);
+    }
+  };
+
+  const handlePaymentTestDLocal = async () => {
+    if (!dbUser?.id || paymentTestLoading) return;
+    setPaymentTestLoading(true);
+    try {
+      const res = await fetchWithAuth('/api/dlocal/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: dbUser.id, planType: 'monthly' }),
+      });
+      const data = await res.json();
+      if (res.ok && data.checkoutUrl) {
+        toast.success('Redirigiendo a DLocal...');
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error(data.error || 'Error al crear pago DLocal');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al crear pago DLocal');
+    } finally {
+      setPaymentTestLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
@@ -123,6 +180,68 @@ export default function AdminPricingPage() {
           {pricing.isActive ? "Activo" : "Inactivo"}
         </Badge>
       </div>
+
+      {/* Pruebas de pago - visible para admin */}
+      <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Pruebas de pago
+          </CardTitle>
+          <CardDescription>
+            Probar el flujo de suscripción con MercadoPago, simulación o DLocal. Usa tu propia cuenta como usuario de prueba.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="default"
+              className="border-green-400 text-green-800 hover:bg-green-50 dark:text-green-200 dark:border-green-600"
+              onClick={() => handlePaymentTestMercadoPago(false)}
+              disabled={paymentTestLoading || !dbUser?.id}
+            >
+              {paymentTestLoading ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4 mr-2" />
+              )}
+              Pago real (MercadoPago)
+            </Button>
+            <Button
+              variant="outline"
+              size="default"
+              className="text-amber-800 border-amber-400 hover:bg-amber-100 dark:text-amber-200 dark:border-amber-600"
+              onClick={() => handlePaymentTestMercadoPago(true)}
+              disabled={paymentTestLoading || !dbUser?.id}
+            >
+              {paymentTestLoading ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <DollarSign className="h-4 w-4 mr-2" />
+              )}
+              Simular pago (si MP falla)
+            </Button>
+            <Button
+              variant="outline"
+              size="default"
+              className="border-violet-400 text-violet-800 hover:bg-violet-50 dark:text-violet-200 dark:border-violet-600"
+              onClick={handlePaymentTestDLocal}
+              disabled={paymentTestLoading || !dbUser?.id}
+            >
+              {paymentTestLoading ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4 mr-2" />
+              )}
+              Pagar con DLocal
+            </Button>
+          </div>
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            Si &quot;Pago real&quot; da error PA_UNAUTHORIZED, usá &quot;Simular pago&quot;. Revisá credenciales en developers.mercadopago.com
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Configuración de Precios */}
@@ -159,6 +278,22 @@ export default function AdminPricingPage() {
                 min="0"
                 max="100"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gracePeriodDays">Días de gracia (tras vencimiento)</Label>
+              <Input
+                id="gracePeriodDays"
+                type="number"
+                value={pricing.gracePeriodDays}
+                onChange={(e) => setPricing(prev => ({ ...prev, gracePeriodDays: parseInt(e.target.value) || 15 }))}
+                placeholder="15"
+                min="1"
+                max="90"
+              />
+              <p className="text-xs text-muted-foreground">
+                Tras vencer la mensualidad, el usuario tiene estos días para pagar antes de quedar inactivo.
+              </p>
             </div>
 
             <div className="space-y-2">

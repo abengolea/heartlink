@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/api-auth";
-import { getNotificasHubDb } from "@/lib/notificashub";
+import { requireRole, getAuthenticatedUser } from "@/lib/api-auth";
+import { verifySubscriptionAccess, createAccessControlResponse } from "@/middleware/subscription-access";
+import { logWhatsAppSend } from "@/lib/notificashub";
 import { toWhatsAppFormat } from "@/lib/phone-format";
 
 const META_GRAPH_URL = "https://graph.facebook.com/v21.0";
@@ -20,8 +21,18 @@ interface SendRequestBody {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Solo operadores pueden enviar estudios por WhatsApp
     await requireRole(request, ["admin", "operator"]);
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    if (authUser.dbUser.role !== "admin") {
+      const accessResult = await verifySubscriptionAccess(authUser.dbUser.id);
+      if (!accessResult.hasAccess) {
+        const res = createAccessControlResponse(accessResult);
+        return NextResponse.json(res, { status: 402 });
+      }
+    }
 
     if (!PHONE_NUMBER_ID || !WHATSAPP_TOKEN) {
       console.error("[whatsapp/send] PHONE_NUMBER_ID o WHATSAPP_TOKEN no configurados");
@@ -92,23 +103,14 @@ export async function POST(request: NextRequest) {
 
     const messageId = data?.messages?.[0]?.id;
 
-    // Guardar en NotificasHub
-    try {
-      const hubDb = getNotificasHubDb();
-      await hubDb.collection("sends").add({
-        appId: "heartlink",
-        to: toNormalized,
-        medicoNombre: medicoNombre.trim(),
-        estudio: estudio.trim(),
-        link: link.trim(),
-        messageId: messageId ?? null,
-        sentAt: new Date().toISOString(),
-        status: "sent",
-      });
-    } catch (hubError) {
-      console.warn("[whatsapp/send] Error guardando en NotificasHub:", hubError);
-      // No fallar la respuesta si el mensaje ya se envió
-    }
+    await logWhatsAppSend({
+      to: toNormalized,
+      medicoNombre: medicoNombre.trim(),
+      estudio: estudio.trim(),
+      link: link.trim(),
+      messageId: messageId ?? null,
+      operatorId: authUser.dbUser.id,
+    });
 
     return NextResponse.json({
       success: true,

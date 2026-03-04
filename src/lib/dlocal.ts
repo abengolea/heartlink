@@ -1,15 +1,17 @@
 /**
  * dLocal Go API - https://docs.dlocalgo.com
  * Auth: Bearer API_KEY:SECRET_KEY
- * Sandbox: https://api-sbx.dlocalgo.com
- * Live: https://api.dlocalgo.com
+ * Env: DLOCAL_API_KEY, DLOCAL_SECRET_KEY, DLOCAL_BASE_URL (opcional), DLOCAL_SANDBOX
  */
 
-const DLOCAL_GO_SANDBOX = 'https://api-sbx.dlocalgo.com';
-const DLOCAL_GO_LIVE = 'https://api.dlocalgo.com';
+const DLOCAL_SANDBOX_URL = 'https://api-sbx.dlocalgo.com';
+const DLOCAL_LIVE_URL = 'https://api.dlocalgo.com';
 
-export function getDLocalGoBaseUrl(): string {
-  return process.env.DLOCAL_GO_SANDBOX === 'true' ? DLOCAL_GO_SANDBOX : DLOCAL_GO_LIVE;
+export function getDLocalBaseUrl(): string {
+  if (process.env.DLOCAL_BASE_URL) {
+    return process.env.DLOCAL_BASE_URL.replace(/\/$/, '');
+  }
+  return process.env.DLOCAL_SANDBOX === 'true' ? DLOCAL_SANDBOX_URL : DLOCAL_LIVE_URL;
 }
 
 export interface DLocalGoPaymentRequest {
@@ -43,16 +45,16 @@ export interface DLocalGoPaymentResponse {
 export async function createDLocalGoPayment(
   payload: DLocalGoPaymentRequest
 ): Promise<DLocalGoPaymentResponse> {
-  const apiKey = process.env.DLOCAL_GO_API_KEY;
-  const secretKey = process.env.DLOCAL_GO_SECRET_KEY;
+  const apiKey = process.env.DLOCAL_API_KEY || process.env.DLOCAL_GO_API_KEY;
+  const secretKey = process.env.DLOCAL_SECRET_KEY || process.env.DLOCAL_GO_SECRET_KEY;
 
   if (!apiKey || !secretKey) {
     throw new Error(
-      'dLocal Go credentials missing: DLOCAL_GO_API_KEY, DLOCAL_GO_SECRET_KEY'
+      'dLocal Go credentials missing. Define DLOCAL_API_KEY y DLOCAL_SECRET_KEY en .env.local'
     );
   }
 
-  const baseUrl = getDLocalGoBaseUrl();
+  const baseUrl = getDLocalBaseUrl();
   const url = `${baseUrl}/v1/payments`;
   const bearerToken = `${apiKey}:${secretKey}`;
 

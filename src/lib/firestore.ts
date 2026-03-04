@@ -797,6 +797,20 @@ export async function checkUserAccess(userId: string): Promise<{ hasAccess: bool
   }
 }
 
+// Get all subscriptions (admin)
+export async function getAllSubscriptions(): Promise<Subscription[]> {
+  try {
+    const db = getFirestoreAdmin();
+    const snapshot = await db.collection('subscriptions')
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Subscription));
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting all subscriptions:', error);
+    throw new Error(`Failed to get subscriptions: ${error instanceof Error ? error.message : 'Unknown'}`);
+  }
+}
+
 // Get all expired subscriptions that need to be processed
 export async function getExpiredSubscriptions(): Promise<Subscription[]> {
   console.log('⏰ [Firestore] Getting expired subscriptions...');

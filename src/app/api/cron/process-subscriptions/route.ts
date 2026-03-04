@@ -4,6 +4,7 @@ import {
   updateSubscription, 
   updateUser 
 } from '@/lib/firestore';
+import { getAdminPricingConfig } from '@/lib/admin-config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,17 +35,17 @@ export async function GET(request: NextRequest) {
     
     let processedCount = 0;
     let blockedCount = 0;
-    
     const now = new Date();
+    const config = await getAdminPricingConfig();
+    const graceDays = config.gracePeriodDays || 15;
     
     for (const subscription of expiredSubscriptions) {
       try {
         console.log(`⏰ [Subscription Cron] Processing subscription ${subscription.id} for user ${subscription.userId}`);
-        
         const endDate = new Date(subscription.endDate);
         const gracePeriodEnd = subscription.gracePeriodEndDate 
           ? new Date(subscription.gracePeriodEndDate) 
-          : new Date(endDate.getTime() + 10 * 24 * 60 * 60 * 1000); // +10 días
+          : new Date(endDate.getTime() + graceDays * 24 * 60 * 60 * 1000);
         
         // Verificar si el período de gracia ha terminado
         if (now > gracePeriodEnd) {
@@ -66,7 +67,6 @@ export async function GET(request: NextRequest) {
         } else {
           console.log(`⚠️ [Subscription Cron] Subscription ${subscription.id} is in grace period until ${gracePeriodEnd.toISOString()}`);
           
-          // Asegurar que la fecha de gracia esté establecida
           if (!subscription.gracePeriodEndDate) {
             await updateSubscription(subscription.id, {
               gracePeriodEndDate: gracePeriodEnd.toISOString()

@@ -16,6 +16,7 @@ import {
   createUser,
   addDoctorToOperator,
 } from '@/lib/firestore';
+import { logWhatsAppSend } from '@/lib/notificashub';
 import { studyUploadFlow, StudyUploadFlowInput } from '@/ai/flows/study-upload-flow';
 import { toWhatsAppFormat } from '@/lib/phone-format';
 import { v4 as uuidv4 } from 'uuid';
@@ -389,7 +390,7 @@ async function sendDoctorSelection(from: string, operatorId?: string): Promise<v
   await WhatsAppService.sendListMessage(from, '👨‍⚕️ Médico solicitante', 'Selecciona el médico o agrega uno:', listItems);
 }
 
-async function createStudyFromWhatsApp(from: string, session: { videoUrl?: string; patientId?: string; pendingPatientName?: string; requestingDoctorId?: string }, contactName: string): Promise<void> {
+async function createStudyFromWhatsApp(from: string, session: { videoUrl?: string; patientId?: string; pendingPatientName?: string; requestingDoctorId?: string; operatorId?: string }, contactName: string): Promise<void> {
   await WhatsAppService.sendTextMessage(from, '⏳ Creando estudio...');
 
   const [patients, users] = await Promise.all([getAllPatients(), getAllUsers()]);
@@ -445,6 +446,14 @@ async function createStudyFromWhatsApp(from: string, session: { videoUrl?: strin
       );
       if (!sendResult.ok) {
         console.warn('[WhatsApp Handler] No se pudo notificar al médico:', phone, sendResult.error);
+      } else {
+        await logWhatsAppSend({
+          to: phone,
+          medicoNombre: requestingDoctor.name,
+          estudio: estudioDesc,
+          link: publicUrl,
+          operatorId: session.operatorId,
+        });
       }
     }
   }

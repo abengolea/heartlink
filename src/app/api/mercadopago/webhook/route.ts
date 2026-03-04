@@ -106,8 +106,10 @@ export async function POST(request: NextRequest) {
       const newEndDate = new Date(now);
       newEndDate.setMonth(newEndDate.getMonth() + 1); // +1 mes
       
+      const { getAdminPricingConfig } = await import('@/lib/admin-config');
+      const config = await getAdminPricingConfig();
       const newGracePeriodEndDate = new Date(newEndDate);
-      newGracePeriodEndDate.setDate(newGracePeriodEndDate.getDate() + 10); // +10 días de gracia
+      newGracePeriodEndDate.setDate(newGracePeriodEndDate.getDate() + config.gracePeriodDays);
       
       // Actualizar suscripción
       await updateSubscription(subscription.id, {

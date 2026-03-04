@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllPatients, createPatient, getDoctorsByOperator } from '@/lib/firestore';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 
 /**
  * Regla: médico solicitante y operador pueden registrar pacientes.
@@ -53,6 +54,14 @@ export async function POST(request: NextRequest) {
     const allowedRoles = ['admin', 'operator', 'solicitante', 'medico_solicitante'];
     if (!allowedRoles.includes(role)) {
       return NextResponse.json({ error: 'Sin permisos para registrar pacientes' }, { status: 403 });
+    }
+
+    if (role !== 'admin') {
+      const accessResult = await verifySubscriptionAccess(authUser.dbUser.id);
+      if (!accessResult.hasAccess) {
+        const res = createAccessControlResponse(accessResult);
+        return NextResponse.json(res, { status: 402 });
+      }
     }
 
     const patientData = await request.json();

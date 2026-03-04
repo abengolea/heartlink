@@ -9,6 +9,8 @@ interface PricingConfig {
   annualDiscountPercent: number;
   currency: string;
   isActive: boolean;
+  /** Días de gracia tras vencimiento antes de bloquear acceso (default 15) */
+  gracePeriodDays: number;
   updatedAt: string;
   updatedBy?: string;
 }
@@ -19,10 +21,10 @@ function getDb() {
   return getFirestore(app);
 }
 
-// GET - Obtener configuración de precios
+// GET - Obtener configuración de precios (admin y operator para suscripción)
 export async function GET(request: NextRequest) {
   try {
-    await requireRole(request, ['admin']);
+    await requireRole(request, ['admin', 'operator']);
     console.log('📊 [Admin Pricing API] Getting pricing configuration...');
     
     const db = getDb();
@@ -36,6 +38,7 @@ export async function GET(request: NextRequest) {
         annualDiscountPercent: 40,
         currency: 'ARS',
         isActive: true,
+        gracePeriodDays: 15,
         updatedAt: new Date().toISOString(),
       };
       
@@ -46,9 +49,14 @@ export async function GET(request: NextRequest) {
     }
     
     const pricingData = pricingDoc.data() as PricingConfig;
+    // Asegurar gracePeriodDays por compatibilidad
+    const result = {
+      ...pricingData,
+      gracePeriodDays: pricingData.gracePeriodDays ?? 15,
+    };
     console.log('✅ [Admin Pricing API] Pricing configuration retrieved');
     
-    return NextResponse.json(pricingData);
+    return NextResponse.json(result);
     
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : '';
@@ -92,14 +100,23 @@ export async function PUT(request: NextRequest) {
     const discount = yearlyPrice * (annualDiscountPercent / 100);
     const annualPrice = yearlyPrice - discount;
     
+    const gracePeriodDays = body.gracePeriodDays ?? 15;
+    if (gracePeriodDays < 1 || gracePeriodDays > 90) {
+      return NextResponse.json(
+        { error: 'Días de gracia debe estar entre 1 y 90' },
+        { status: 400 }
+      );
+    }
+
     const updatedPricing: PricingConfig = {
       monthlyPrice: Number(monthlyPrice),
       annualPrice: Math.round(annualPrice),
       annualDiscountPercent: Number(annualDiscountPercent),
       currency: body.currency || 'ARS',
       isActive: body.isActive !== undefined ? body.isActive : true,
+      gracePeriodDays: Number(gracePeriodDays),
       updatedAt: new Date().toISOString(),
-      updatedBy: 'admin' // En el futuro, obtener del usuario autenticado
+      updatedBy: 'admin'
     };
     
     const db = getDb();

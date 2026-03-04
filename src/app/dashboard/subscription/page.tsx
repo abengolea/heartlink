@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,15 @@ interface SubscriptionStatus {
 function SubscriptionPageContent() {
   const searchParams = useSearchParams();
   const { dbUser } = useAuth();
+  const router = useRouter();
+
+  // Solo médico operador puede ver esta página. Admin NO.
+  useEffect(() => {
+    if (dbUser && dbUser.role === 'admin') {
+      router.replace('/dashboard');
+    }
+  }, [dbUser, router]);
+
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -40,12 +49,13 @@ function SubscriptionPageContent() {
   const userId = dbUser?.id || '';
 
   useEffect(() => {
+    if (dbUser?.role === 'admin') return; // Admin es redirigido, no cargar datos
     if (userId) {
       loadSubscriptionStatus();
       loadPricingConfig();
       handlePaymentCallback();
     }
-  }, [userId]);
+  }, [userId, dbUser?.role]);
 
   const loadPricingConfig = async () => {
     try {
@@ -288,77 +298,9 @@ function SubscriptionPageContent() {
         </div>
       </div>
 
-      {/* Admin: Pago real (MercadoPago) + Simulación (cuando MP falla) */}
-      {dbUser?.role === 'admin' && (
-        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
-          <CardContent className="py-4">
-            <div className="flex flex-col gap-4">
-              <p className="font-medium text-amber-800 dark:text-amber-200">
-                Admin: Opciones de pago
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant="outline"
-                  size="default"
-                  className="border-green-400 text-green-800 hover:bg-green-50 dark:text-green-200 dark:border-green-600"
-                  onClick={() => {
-                    setPlanType('monthly');
-                    handleSubscribe(false);
-                  }}
-                  disabled={actionLoading || !userId}
-                >
-                  {actionLoading ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <CreditCard className="h-4 w-4 mr-2" />
-                  )}
-                  Pago real $20.000 (MercadoPago)
-                </Button>
-                <Button 
-                  variant="outline"
-                  size="default"
-                  className="text-amber-800 border-amber-400 hover:bg-amber-100 dark:text-amber-200 dark:border-amber-600"
-                  onClick={() => {
-                    setPlanType('monthly');
-                    handleSubscribe(true);
-                  }}
-                  disabled={actionLoading || !userId}
-                >
-                  {actionLoading ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <DollarSign className="h-4 w-4 mr-2" />
-                  )}
-                  Simular pago (si MercadoPago falla)
-                </Button>
-                <Button 
-                  variant="outline"
-                  size="default"
-                  className="border-violet-400 text-violet-800 hover:bg-violet-50 dark:text-violet-200 dark:border-violet-600"
-                  onClick={() => {
-                    setPlanType('monthly');
-                    handleSubscribeDLocal();
-                  }}
-                  disabled={actionLoading || !userId}
-                >
-                  {actionLoading ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <CreditCard className="h-4 w-4 mr-2" />
-                  )}
-                  Pagar $20.000 con DLocal
-                </Button>
-              </div>
-              <p className="text-xs text-amber-700 dark:text-amber-300">
-                Si “Pago real” da error PA_UNAUTHORIZED, usá “Simular pago” para probar. Revisá credenciales en developers.mercadopago.com o contactá soporte MP.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {!subscriptionStatus?.hasSubscription ? (
         /* Página de Suscripción - Usuario NO suscripto */
+
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Plan Mensual */}
           <Card className={`transition-all ${planType === 'monthly' ? 'ring-2 ring-blue-500' : ''}`}>
