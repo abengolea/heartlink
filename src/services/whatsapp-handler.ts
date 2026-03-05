@@ -23,10 +23,15 @@ import { v4 as uuidv4 } from 'uuid';
 
 const DEV_MODE = process.env.WHATSAPP_DEV_MODE === 'true';
 
-/** Contacto compartido (vCard) - estructura del webhook de Meta */
+/** Contacto compartido - estructura del webhook de Meta (puede variar según versión/router) */
 interface IncomingContact {
   name?: { formatted_name?: string; first_name?: string };
-  phones?: Array<{ phone?: string; wa_id?: string }>;
+  phones?: Array<{ phone?: string; wa_id?: string; type?: string }>;
+  /** Algunos payloads incluyen vCard en lugar de phones */
+  vcard?: string;
+  /** Fallback: teléfono a nivel raíz (algunos routers) */
+  phone?: string;
+  wa_id?: string;
 }
 
 export interface WhatsAppHandlerPayload {
@@ -49,6 +54,8 @@ const studySessions = new Map<string, {
   patientId?: string;
   pendingPatientName?: string;
   requestingDoctorId?: string;
+  /** Teléfono del médico cuando viene de contacto compartido o escrito - evita depender de BD para el envío */
+  requestingDoctorPhone?: string;
   operatorId?: string;
   step: 'waiting_patient' | 'waiting_patient_name' | 'waiting_doctor' | 'waiting_doctor_phone' | 'completed';
   sessionId: string;
@@ -223,6 +230,7 @@ async function handleTextMessage(from: string, message: { text?: { body?: string
       ).catch(() => {});
     }
     session.requestingDoctorId = solicitante.id;
+    session.requestingDoctorPhone = phone; // Guardar para el envío al médico
     session.step = 'completed';
     studySessions.set(from, session);
     await createStudyFromWhatsApp(from, session, contactName);
@@ -235,18 +243,33 @@ async function handleTextMessage(from: string, message: { text?: { body?: string
   );
 }
 
-/** Extrae teléfono y nombre de un contacto compartido (vCard).
- * Preferir wa_id (canónico de WhatsApp). Si solo hay phone del vCard, normalizar con toWhatsAppFormat.
+/** Extrae teléfono de un string vCard (TEL:...) */
+function extractPhoneFromVcard(vcard: string): string | undefined {
+  const telMatch = vcard.match(/TEL[;:]?\s*([+\d\s\-()]+)/i);
+  if (!telMatch?.[1]) return undefined;
+  return telMatch[1].replace(/\D/g, '').replace(/^0+/, '') || undefined;
+}
+
+/** Extrae teléfono y nombre de un contacto compartido.
+ * Soporta: phones[].wa_id/phone (Meta), vcard (TEL:), phone/wa_id a nivel raíz.
  */
 function extractPhoneFromContact(contact: IncomingContact): { phone?: string; name?: string } {
-  const phones = contact?.phones;
-  if (!phones?.length) return {};
-  const withWaId = phones.find((p) => p?.wa_id);
-  const raw = withWaId?.wa_id || phones[0]?.phone || '';
-  if (!raw || !raw.trim()) return {};
-  const phoneNorm = toWhatsAppFormat(raw);
   const name = contact?.name?.formatted_name || contact?.name?.first_name || undefined;
-  if (!phoneNorm || phoneNorm.length < 12) {
+  let raw = '';
+
+  const phones = contact?.phones;
+  if (phones?.length) {
+    const withWaId = phones.find((p) => p?.wa_id);
+    raw = withWaId?.wa_id || phones[0]?.phone || '';
+  }
+  if (!raw && contact?.wa_id) raw = String(contact.wa_id);
+  if (!raw && contact?.phone) raw = String(contact.phone);
+  if (!raw && contact?.vcard) raw = extractPhoneFromVcard(contact.vcard) || '';
+
+  if (!raw || !String(raw).trim()) return { name };
+
+  const phoneNorm = toWhatsAppFormat(String(raw).trim());
+  if (!phoneNorm || phoneNorm.length < 10) {
     console.warn('[WhatsApp] Contacto con número inválido o muy corto:', raw, '→', phoneNorm);
     return { phone: undefined, name };
   }
@@ -254,7 +277,7 @@ function extractPhoneFromContact(contact: IncomingContact): { phone?: string; na
   return { phone: phoneNorm, name };
 }
 
-async function handleContactsMessage(from: string, message: { contacts?: IncomingContact[]; contact?: IncomingContact }, contactName: string): Promise<void> {
+async function handleContactsMessage(from: string, message: { contacts?: IncomingContact[]; contact?: IncomingContact; [k: string]: unknown }, contactName: string): Promise<void> {
   const session = studySessions.get(from);
   if (session?.step !== 'waiting_doctor_phone') {
     await WhatsAppService.sendTextMessage(
@@ -264,15 +287,20 @@ async function handleContactsMessage(from: string, message: { contacts?: Incomin
     return;
   }
 
-  const contactsRaw = message?.contacts ?? (message?.contact ? [message.contact] : []);
-  const contacts = Array.isArray(contactsRaw) ? contactsRaw : [contactsRaw];
+  // NotificasHub puede reenviar message tal cual o anidado - soportar varias estructuras
+  const msgContacts = message?.contacts ?? (message?.contact ? [message.contact] : []);
+  const contactsRaw = Array.isArray(msgContacts) ? msgContacts : msgContacts ? [msgContacts] : [];
+  const contacts = contactsRaw.flat().filter(Boolean);
+
   if (!contacts.length) {
+    console.warn('[WhatsApp] Mensaje contacts sin datos:', { hasContacts: !!message?.contacts, hasContact: !!message?.contact, keys: Object.keys(message || {}) });
     await WhatsAppService.sendTextMessage(from, '❌ No se pudo leer el contacto. Intenta compartirlo de nuevo o escribe el número.');
     return;
   }
 
-  const { phone, name } = extractPhoneFromContact(contacts[0]);
+  const { phone, name } = extractPhoneFromContact(contacts[0] as IncomingContact);
   if (!phone) {
+    console.warn('[WhatsApp] Contacto sin número válido:', JSON.stringify(contacts[0]).slice(0, 200));
     await WhatsAppService.sendTextMessage(from, '❌ El contacto no tiene número. Escribe el número manualmente (ej: 5491112345678).');
     return;
   }
@@ -297,6 +325,7 @@ async function handleContactsMessage(from: string, message: { contacts?: Incomin
   }
 
   session.requestingDoctorId = solicitante.id;
+  session.requestingDoctorPhone = phone; // Guardar para el envío - evita depender de BD
   session.step = 'completed';
   studySessions.set(from, session);
   await createStudyFromWhatsApp(from, session, contactName);
@@ -390,7 +419,11 @@ async function sendDoctorSelection(from: string, operatorId?: string): Promise<v
   await WhatsAppService.sendListMessage(from, '👨‍⚕️ Médico solicitante', 'Selecciona el médico o agrega uno:', listItems);
 }
 
-async function createStudyFromWhatsApp(from: string, session: { videoUrl?: string; patientId?: string; pendingPatientName?: string; requestingDoctorId?: string; operatorId?: string }, contactName: string): Promise<void> {
+async function createStudyFromWhatsApp(
+  from: string,
+  session: { videoUrl?: string; patientId?: string; pendingPatientName?: string; requestingDoctorId?: string; requestingDoctorPhone?: string; operatorId?: string },
+  contactName: string
+): Promise<void> {
   await WhatsAppService.sendTextMessage(from, '⏳ Creando estudio...');
 
   const [patients, users] = await Promise.all([getAllPatients(), getAllUsers()]);
@@ -432,10 +465,12 @@ async function createStudyFromWhatsApp(from: string, session: { videoUrl?: strin
     `✅ *Estudio creado*\n\n📋 ID: ${result.studyId}\n👤 Paciente: ${patientName}\n👨‍⚕️ Médico: ${requestingDoctor.name}\n\n🔗 ${publicUrl}`
   );
 
-  if (requestingDoctor.phone?.trim()) {
-    const phone = toWhatsAppFormat(requestingDoctor.phone);
-    if (!phone || phone.length < 12) {
-      console.warn('[WhatsApp Handler] Teléfono del médico inválido:', requestingDoctor.phone);
+  // Priorizar phone de la sesión (contacto compartido/escrito) sobre el de BD - más fiable
+  const phoneToSend = session.requestingDoctorPhone || requestingDoctor.phone?.trim();
+  if (phoneToSend) {
+    const phone = toWhatsAppFormat(phoneToSend);
+    if (!phone || phone.length < 10) {
+      console.warn('[WhatsApp Handler] Teléfono del médico inválido:', phoneToSend);
     } else {
       const estudioDesc = patientName;
       const sendResult = await WhatsAppService.sendStudyTemplate(
@@ -456,6 +491,8 @@ async function createStudyFromWhatsApp(from: string, session: { videoUrl?: strin
         });
       }
     }
+  } else {
+    console.warn('[WhatsApp Handler] Médico sin teléfono - no se envía notificación:', requestingDoctor.name, requestingDoctor.id);
   }
 
   studySessions.delete(from);

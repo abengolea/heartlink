@@ -26,10 +26,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { message, from, contactName, messageId, timestamp } = body;
+  const { message: rawMessage, from, contactName, messageId, timestamp } = body;
+  // Algunos routers envían el mensaje anidado en message.message
+  const message = (rawMessage as { message?: unknown })?.message ?? rawMessage;
   const fromResolved = from ?? (message as { from?: string })?.from;
   const msgType = (message as { type?: string })?.type ?? 'unknown';
-  console.log('[whatsapp/incoming] Request received', { from: fromResolved, msgType });
+  console.log('[whatsapp/incoming] Request received', { from: fromResolved, msgType, hasContacts: !!(message as { contacts?: unknown })?.contacts });
 
   if (!fromResolved || !message) {
     return NextResponse.json(

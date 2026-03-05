@@ -102,7 +102,7 @@ Tipos que HeartLink necesita:
 - `video` – **`message.video.id`** (obligatorio para videos)
 - `image` – `message.image.id`
 - `interactive` – respuestas a listas (paciente, médico)
-- `contacts` – `message.contacts` (vCard con nombre y teléfono)
+- `contacts` – **`message.contacts`** (array de contactos compartidos). Cada contacto tiene `name`, `phones` (o `vcard`). Meta envía `message.contacts` cuando el usuario comparte un contacto. Reenviar el objeto `message` completo sin filtrar – si se pierde `contacts`, HeartLink no puede extraer el teléfono del médico solicitante y no enviará la notificación.
 
 ---
 
