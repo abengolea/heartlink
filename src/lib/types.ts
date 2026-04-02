@@ -49,6 +49,8 @@ export interface User {
   status?: 'active' | 'inactive' | 'pending_approval';
   subscriptionStatus?: 'active' | 'inactive' | 'suspended' | 'trial';
   subscriptionId?: string;
+  /** Envíos gratuitos de notificación WhatsApp al médico solicitante (solo operadores nuevos; se descuenta con cada envío exitoso si no hay suscripción paga activa) */
+  trialWhatsAppSendsRemaining?: number;
   createdAt?: string;
   updatedAt?: string;
 }

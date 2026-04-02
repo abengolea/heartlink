@@ -253,7 +253,9 @@ export default function OperatorsPage() {
       (user.email &&
         user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.specialty &&
-        user.specialty.toLowerCase().includes(searchTerm.toLowerCase()))
+        user.specialty.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.phone &&
+        user.phone.includes(searchTerm.replace(/\s/g, "")))
   );
 
   return (
@@ -432,6 +434,7 @@ export default function OperatorsPage() {
             </DialogDescription>
           </DialogHeader>
           <OperatorForm
+            key={`${isCreating ? "c" : "e"}-${editingUser?.id ?? "new"}`}
             user={editingUser}
             isCreating={isCreating}
             onSubmit={handleCreateOrUpdate}

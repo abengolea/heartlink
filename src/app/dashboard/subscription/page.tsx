@@ -23,6 +23,7 @@ interface SubscriptionStatus {
   statusColor: string;
   shouldShowWarning: boolean;
   reason?: string;
+  trialSendsRemaining?: number;
 }
 
 function SubscriptionPageContent() {
@@ -279,10 +280,12 @@ function SubscriptionPageContent() {
             Gestionar Suscripción
           </h1>
           <p className="text-muted-foreground text-sm">
-            {subscriptionStatus?.hasSubscription 
+            {subscriptionStatus?.hasSubscription
               ? 'Administra tu suscripción, historial de pagos y configuraciones.'
-              : 'Suscríbete para acceder a todas las funcionalidades de HeartLink.'
-            }
+              : subscriptionStatus?.trialSendsRemaining != null &&
+                  subscriptionStatus.trialSendsRemaining > 0
+                ? `Tienes ${subscriptionStatus.trialSendsRemaining} envío(s) de prueba gratis al médico por WhatsApp. Podés suscribirte cuando quieras para usar HeartLink sin ese límite.`
+                : 'Suscríbete para acceder a todas las funcionalidades de HeartLink.'}
           </p>
         </div>
         <div className="flex items-center gap-2">

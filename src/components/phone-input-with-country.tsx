@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { applyArgentinaNationalMobileNine, toDigits } from "@/lib/phone-format";
 
 /** Lista ampliada de países, Argentina primero por defecto para operadores */
 const COUNTRIES = [
@@ -60,15 +61,33 @@ function parsePhone(value: string): { countryCode: string; numberPart: string } 
 
 /**
  * Construye el número completo para guardar.
- * NO agregamos el 9 automáticamente (causaba que no llegaran mensajes de WhatsApp).
+ * Argentina: antepone 54 desde el selector y agrega el 9 móvil si falta (área + número).
  */
 function buildFullPhone(countryCode: string, numberPart: string): string {
   const raw = (numberPart ?? "").trim();
   if (!raw) return "";
   if (!countryCode) return raw;
-  const digits = raw.replace(/\D/g, "");
+  let digits = raw.replace(/\D/g, "");
   if (!digits) return "";
-  return `${countryCode.replace(/\D/g, "")}${digits}`;
+  const cc = countryCode.replace(/\D/g, "");
+  if (cc === "54") {
+    digits = applyArgentinaNationalMobileNine(digits);
+  }
+  return `${cc}${digits}`;
+}
+
+/**
+ * Si el usuario pega el número completo sin "+", quita el prefijo del país
+ * para no duplicar 54 y "llenar" el campo antes de tiempo.
+ */
+function stripDialCodeFromNationalDigits(countryDial: string, typed: string): string {
+  let d = typed.replace(/\D/g, "");
+  const cc = countryDial.replace(/\D/g, "");
+  if (!cc || d.length <= cc.length) return d;
+  if (d.startsWith(cc)) {
+    d = d.slice(cc.length);
+  }
+  return d;
 }
 
 interface PhoneInputWithCountryProps {
@@ -82,8 +101,8 @@ interface PhoneInputWithCountryProps {
   disabled?: boolean;
 }
 
-/** Placeholder para Argentina: ingresa solo código de área + número (sin el 9) */
-const PLACEHOLDER_AR = "336 451-3355";
+/** Argentina: solo área + número; el 9 móvil y el 54 se completan solos. */
+const PLACEHOLDER_AR = "341 203-3382";
 
 export function PhoneInputWithCountry({
   value = "",
@@ -96,6 +115,8 @@ export function PhoneInputWithCountry({
 }: PhoneInputWithCountryProps) {
   const effectivePlaceholder = placeholder ?? PLACEHOLDER_AR;
   const [internalValue, setInternalValue] = useState(value);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   useEffect(() => {
     if (onChange === undefined && value !== undefined) setInternalValue(value);
   }, [value, onChange]);
@@ -104,6 +125,19 @@ export function PhoneInputWithCountry({
   const currentCountry = COUNTRIES.find((c) => c.dial === countryCode) ?? COUNTRIES[0];
   const fullPhone = buildFullPhone(countryCode || "+54", numberPart);
 
+  /** Migra números AR viejos (54 sin 9) al formato WhatsApp 549… al abrir el formulario. */
+  useEffect(() => {
+    const cb = onChangeRef.current;
+    if (!cb) return;
+    const trimmed = (effectiveValue ?? "").trim();
+    if (!trimmed) return;
+    const { countryCode: ccParsed, numberPart: npParsed } = parsePhone(trimmed);
+    if (ccParsed.replace(/\D/g, "") !== "54") return;
+    const normalized = buildFullPhone(ccParsed, npParsed);
+    if (!normalized || toDigits(trimmed) === normalized) return;
+    cb(normalized);
+  }, [effectiveValue]);
+
   const handleCountryChange = (dial: string) => {
     const full = buildFullPhone(dial, numberPart);
     onChange?.(full);
@@ -111,20 +145,24 @@ export function PhoneInputWithCountry({
   };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const full = buildFullPhone(countryCode || "+54", e.target.value);
+    const national = stripDialCodeFromNationalDigits(
+      countryCode || "+54",
+      e.target.value
+    );
+    const full = buildFullPhone(countryCode || "+54", national);
     onChange?.(full);
     setInternalValue(full);
   };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col gap-2 min-w-0 sm:flex-row sm:gap-2">
       {name && <input type="hidden" name={name} value={fullPhone} />}
       <Select
         value={currentCountry.dial}
         onValueChange={handleCountryChange}
         disabled={disabled}
       >
-        <SelectTrigger className="w-[140px] shrink-0">
+        <SelectTrigger className="w-full shrink-0 sm:w-[140px]">
           <SelectValue placeholder="País" />
         </SelectTrigger>
         <SelectContent>
@@ -143,7 +181,8 @@ export function PhoneInputWithCountry({
         placeholder={effectivePlaceholder}
         required={required}
         disabled={disabled}
-        className="flex-1"
+        className="flex-1 min-w-0"
+        autoComplete="tel-national"
       />
     </div>
   );

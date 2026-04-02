@@ -6,6 +6,7 @@ import {
   CreditCard,
   Database,
   FileText,
+  Gift,
   Home,
   Link2,
   ListOrdered,
@@ -72,6 +73,14 @@ export function AdminSidebar() {
             >
               <Receipt className="h-4 w-4" />
               Suscripciones
+            </Link>
+            <Link
+              href="/admin/envios-prueba"
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+              prefetch={false}
+            >
+              <Gift className="h-4 w-4" />
+              Envíos de prueba
             </Link>
             <Link
               href="/dashboard/patients"

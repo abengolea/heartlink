@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, getAuthenticatedUser } from "@/lib/api-auth";
 import { verifySubscriptionAccess, createAccessControlResponse } from "@/middleware/subscription-access";
+import { consumeTrialWhatsAppSendIfOnTrial } from "@/lib/firestore";
 import { logWhatsAppSend } from "@/lib/notificashub";
 import { toWhatsAppFormat } from "@/lib/phone-format";
 
@@ -111,6 +112,10 @@ export async function POST(request: NextRequest) {
       messageId: messageId ?? null,
       operatorId: authUser.dbUser.id,
     });
+
+    if (authUser.dbUser.role === "operator") {
+      await consumeTrialWhatsAppSendIfOnTrial(authUser.dbUser.id);
+    }
 
     return NextResponse.json({
       success: true,

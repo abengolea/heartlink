@@ -79,6 +79,8 @@ WHATSAPP_TOKEN=xxxxxxxxxxxxxxxxxxxx
 
 # Idioma de plantillas (opcional, default: es_AR)
 WHATSAPP_TEMPLATE_LANGUAGE=es_AR
+# Opcional: rechazar videos por duración (segundos) si el webhook incluye seconds/duration. Ej: 45
+# WHATSAPP_VIDEO_MAX_DURATION_SECONDS=45
 ```
 
 ### NotificasHub (recepción de videos por WhatsApp)

@@ -43,7 +43,21 @@ export async function verifySubscriptionAccess(userId: string) {
     
     // Usuario tiene acceso
     console.log('✅ [Access Control] Access granted for user:', userId);
-    
+
+    if (accessCheck.reason === 'trial_sends') {
+      const left = accessCheck.trialSendsRemaining ?? 0;
+      return {
+        hasAccess: true,
+        subscription: accessCheck.subscription,
+        reason: 'trial_sends',
+        message:
+          left === 1
+            ? 'Modo prueba: te queda 1 envío gratis por WhatsApp al médico solicitante.'
+            : `Modo prueba: te quedan ${left} envíos gratis por WhatsApp al médico solicitante.`,
+        trialSendsRemaining: accessCheck.trialSendsRemaining,
+      };
+    }
+
     if (accessCheck.reason === 'grace_period') {
       console.log('⚠️ [Access Control] User in grace period:', userId);
       return {

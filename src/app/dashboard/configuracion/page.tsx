@@ -172,10 +172,12 @@ export default function ConfiguracionPage() {
                 <PhoneInputWithCountry
                   value={myPhone}
                   onChange={setMyPhone}
-                  placeholder="336 451-3355"
+                  placeholder="341 203-3382"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Argentina: ingresá solo código de área + número (ej. 336 451-3355). El 9 se agrega automáticamente.
+                  Argentina: elegí el país en el desplegable y escribí solo código de área y número (ej.{" "}
+                  <span className="font-mono">3412033382</span>). Se guarda como WhatsApp móvil (+54 9…) solo.
+                  Si también pegás el 9 o el número completo, se respeta.
                 </p>
               </div>
               <Button onClick={handleSavePhone} disabled={phoneSaving}>

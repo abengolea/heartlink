@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
+import { sanitizeFirebaseEnvString } from '@/lib/sanitize-firebase-env';
 
 /**
  * Login vía backend: evita auth/network-request-failed cuando el navegador
@@ -20,8 +21,10 @@ export async function POST(request: NextRequest) {
     }
 
     // FIREBASE_API_KEY (runtime) tiene prioridad; fallback a NEXT_PUBLIC_* (build)
-    const apiKey = process.env.FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-    if (!apiKey || apiKey.trim() === '') {
+    const apiKey =
+      sanitizeFirebaseEnvString(process.env.FIREBASE_API_KEY) ||
+      sanitizeFirebaseEnvString(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+    if (!apiKey) {
       console.error('❌ [Login Backend] FIREBASE_API_KEY o NEXT_PUBLIC_FIREBASE_API_KEY no configurada/vacía');
       return NextResponse.json(
         { error: 'Configuración del servidor incompleta' },
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar credenciales vía REST API (el servidor SÍ puede alcanzar Google)
     const res = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -32,7 +32,8 @@ interface WhatsAppCloudMessage {
   timestamp: string;
   type: string;
   text?: { body: string };
-  video?: { id: string };
+  /** Inbound video: id obligatorio; seconds/file_size opcionales (Cloud API / routers) */
+  video?: { id: string; seconds?: number; file_size?: number; mime_type?: string; caption?: string };
   image?: { id: string };
   audio?: { id: string };
   document?: { id: string };

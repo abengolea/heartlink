@@ -42,6 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { User } from "@/lib/types";
 import { Input } from "@/components/ui/input";
+import { PhoneInputWithCountry } from "@/components/phone-input-with-country";
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { toast } from "sonner";
 
@@ -173,7 +174,8 @@ export default function AdminUsersPage() {
 
   const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+    (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+    (user.phone?.includes(searchTerm.replace(/\s/g, "")) ?? false)
   );
 
   return (
@@ -216,7 +218,7 @@ export default function AdminUsersPage() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                     type="search"
-                    placeholder="Buscar por nombre..."
+                    placeholder="Buscar por nombre, email o teléfono..."
                     className="w-full rounded-lg bg-background pl-8"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -235,6 +237,7 @@ export default function AdminUsersPage() {
               <TableRow>
                 <TableHead>Nombre</TableHead>
                 <TableHead className="hidden sm:table-cell">Email</TableHead>
+                <TableHead className="hidden lg:table-cell">Teléfono</TableHead>
                 <TableHead>Rol</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="hidden md:table-cell">
@@ -250,6 +253,7 @@ export default function AdminUsersPage() {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{user.email || '-'}</TableCell>
+                  <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{user.phone || "—"}</TableCell>
                   <TableCell>
                     <Badge
                       variant={user.role === "operator" ? "default" : "secondary"}
@@ -334,6 +338,7 @@ export default function AdminUsersPage() {
           </DialogHeader>
           {editingUser && (
             <EditUserForm
+              key={editingUser.id}
               user={editingUser}
               onSave={handleSaveEdit}
               onCancel={() => setEditingUser(null)}
@@ -360,16 +365,24 @@ function EditUserForm({
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email || "");
   const validRoles: User["role"][] = ["admin", "operator", "solicitante", "medico_solicitante"];
-  const normalizedRole = (): User["role"] => {
-    if (user.role === "medico_solicitante") return "solicitante";
-    return validRoles.includes(user.role) ? user.role : "operator";
-  };
+  const normalizedRole = (): User["role"] =>
+    validRoles.includes(user.role) ? user.role : "operator";
   const [role, setRole] = useState<User["role"]>(normalizedRole());
   const [status, setStatus] = useState<User["status"]>(user.status || "active");
+  const [phone, setPhone] = useState(user.phone || "");
+
+  const needsPhone =
+    role === "operator" ||
+    role === "solicitante" ||
+    role === "medico_solicitante";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, email, role, status });
+    if (needsPhone && !phone.trim()) {
+      toast.error("El teléfono (WhatsApp) es obligatorio para operadores y solicitantes.");
+      return;
+    }
+    onSave({ name, email, role, status, phone: phone.trim() || undefined });
   };
 
   return (
@@ -395,6 +408,22 @@ function EditUserForm({
         />
       </div>
       <div className="space-y-2">
+        <Label htmlFor="edit-phone">
+          Teléfono (WhatsApp)
+          {needsPhone ? " *" : ""}
+        </Label>
+        <PhoneInputWithCountry
+          id="edit-phone"
+          value={phone}
+          onChange={setPhone}
+          placeholder="Código de país y número"
+          required={needsPhone}
+        />
+        <p className="text-xs text-muted-foreground">
+          Necesario para identificar al operador en WhatsApp y enviar estudios.
+        </p>
+      </div>
+      <div className="space-y-2">
         <Label htmlFor="edit-role">Rol</Label>
         <Select value={role} onValueChange={(v) => setRole(v as User["role"])}>
           <SelectTrigger id="edit-role">
@@ -404,6 +433,7 @@ function EditUserForm({
             <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="operator">Operador (realiza estudios)</SelectItem>
             <SelectItem value="solicitante">Solicitante (pide estudios)</SelectItem>
+            <SelectItem value="medico_solicitante">Médico solicitante</SelectItem>
           </SelectContent>
         </Select>
       </div>

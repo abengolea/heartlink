@@ -3,17 +3,18 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
+  Activity,
   BarChart3,
   ChevronRight,
   CreditCard,
   DollarSign,
+  FileText,
+  Gift,
   MessageSquare,
   RefreshCw,
   Stethoscope,
-  Users,
-  FileText,
   Syringe,
-  Activity,
+  Users,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -286,6 +287,14 @@ export default function AdminPage() {
             icon={FileText}
             accent="amber"
             href="/dashboard/studies"
+          />
+          <StatCard
+            title="Bonificar envíos trial"
+            value="WhatsApp"
+            subtitle="Sumar envíos gratis a operadores"
+            icon={Gift}
+            accent="violet"
+            href="/admin/envios-prueba"
           />
           <StatCard
             title="Mensajes WhatsApp enviados"

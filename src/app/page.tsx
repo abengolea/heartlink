@@ -268,6 +268,10 @@ export default function LoginPage() {
                   } else {
                     if (result.error?.includes("popup-closed")) {
                       toast.info("Inicio de sesión cancelado");
+                    } else if (result.error?.includes("network-request-failed")) {
+                      toast.error(
+                        "Error de conexión. Revisa tu internet, desactiva VPN o bloqueadores de anuncios y vuelve a intentar."
+                      );
                     } else {
                       toast.error(result.error || "Error al iniciar con Google");
                     }

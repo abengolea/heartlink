@@ -123,7 +123,11 @@ export default function RequestersPage() {
       
       const payload = {
         ...userData,
-        role: 'solicitante', // Asegurar que el rol sea correcto
+        role: isCreating
+          ? 'solicitante'
+          : (editingUser?.role === 'medico_solicitante'
+              ? 'medico_solicitante'
+              : 'solicitante'),
       };
 
       console.log(`🔄 [RequestersPage] ${isCreating ? 'Creating' : 'Updating'} requester:`, payload);
@@ -252,7 +256,8 @@ export default function RequestersPage() {
   const filteredRequesters = requesters.filter((user) =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (user.specialty && user.specialty.toLowerCase().includes(searchTerm.toLowerCase()))
+    (user.specialty && user.specialty.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (user.phone && user.phone.includes(searchTerm.replace(/\s/g, '')))
   );
 
   return (
@@ -314,6 +319,7 @@ export default function RequestersPage() {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead className="hidden md:table-cell">Email</TableHead>
+                  <TableHead className="hidden md:table-cell">Teléfono (WhatsApp)</TableHead>
                   <TableHead className="hidden lg:table-cell">Especialidad</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>
@@ -324,7 +330,7 @@ export default function RequestersPage() {
               <TableBody>
                 {filteredRequesters.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {searchTerm ? 'No se encontraron médicos que coincidan con la búsqueda' : 'No hay médicos solicitantes registrados'}
                     </TableCell>
                   </TableRow>
@@ -338,6 +344,7 @@ export default function RequestersPage() {
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{user.email || '-'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{user.phone || '-'}</TableCell>
                       <TableCell className="hidden lg:table-cell">{user.specialty || '-'}</TableCell>
                       <TableCell>
                         <Badge variant={user.status === 'active' ? 'outline' : 'secondary'}>
@@ -403,6 +410,7 @@ export default function RequestersPage() {
             </DialogDescription>
           </DialogHeader>
           <UserForm
+            key={`${isCreating ? "c" : "e"}-${editingUser?.id ?? "new"}`}
             user={editingUser}
             isCreating={isCreating}
             onSubmit={handleCreateOrUpdate}

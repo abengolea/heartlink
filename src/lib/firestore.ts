@@ -4,6 +4,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { registerInNotificasHub } from '@/lib/notificashub';
 import type { Study, StudyComment, Patient, User, Subscription, PaymentRecord, DataDeletionRequest, UserPreferences } from './types';
 
+/** Envíos de prueba al crear un médico operador (notificación WhatsApp al solicitante) */
+export const DEFAULT_OPERATOR_TRIAL_WHATSAPP_SENDS = 5;
+
 // Initialize Firestore with Firebase Admin
 function getFirestoreAdmin() {
   const app = initializeFirebaseAdmin();
@@ -258,8 +261,19 @@ export async function createUser(userData: Omit<User, 'id'>): Promise<string> {
     const db = getFirestoreAdmin();
     const usersRef = db.collection('users');
     
+    const withTrial: Record<string, unknown> =
+      userData.role === 'operator'
+        ? {
+            trialWhatsAppSendsRemaining:
+              userData.trialWhatsAppSendsRemaining !== undefined
+                ? userData.trialWhatsAppSendsRemaining
+                : DEFAULT_OPERATOR_TRIAL_WHATSAPP_SENDS,
+          }
+        : {};
+
     const docRef = await usersRef.add({
       ...userData,
+      ...withTrial,
       createdAt: new Date(),
       updatedAt: new Date()
     });
@@ -469,6 +483,40 @@ export async function updateUser(id: string, userData: Partial<User>): Promise<v
     console.error('❌ [Firestore] Error updating user:', error);
     throw new Error(`Failed to update user in Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+const MAX_TRIAL_WHATSAPP_SENDS_CAP = 50_000;
+const MAX_TRIAL_SENDS_ADD_PER_REQUEST = 500;
+
+/** Suma envíos de prueba WhatsApp a un médico operador (uso admin). */
+export async function addOperatorTrialWhatsAppSends(
+  userId: string,
+  amount: number
+): Promise<{ previous: number; newTotal: number }> {
+  if (
+    !Number.isFinite(amount) ||
+    Math.floor(amount) !== amount ||
+    amount < 1 ||
+    amount > MAX_TRIAL_SENDS_ADD_PER_REQUEST
+  ) {
+    throw new Error('INVALID_AMOUNT');
+  }
+
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error('USER_NOT_FOUND');
+  }
+  if (user.role !== 'operator') {
+    throw new Error('NOT_OPERATOR');
+  }
+
+  const previous = user.trialWhatsAppSendsRemaining ?? 0;
+  const newTotal = Math.min(previous + amount, MAX_TRIAL_WHATSAPP_SENDS_CAP);
+
+  await updateUser(userId, { trialWhatsAppSendsRemaining: newTotal });
+  console.log('✅ [Firestore] Trial WhatsApp sends bonificados:', userId, previous, '→', newTotal);
+
+  return { previous, newTotal };
 }
 
 // Operator-Doctor relationship: médicos solicitantes con los que trabaja cada operador
@@ -755,53 +803,95 @@ export async function addPaymentRecord(subscriptionId: string, paymentData: Paym
   }
 }
 
+export type UserAccessResult = {
+  hasAccess: boolean;
+  subscription: Subscription | null;
+  reason?: string;
+  trialSendsRemaining?: number;
+};
+
 // Check if user has active subscription and access
-export async function checkUserAccess(userId: string): Promise<{ hasAccess: boolean; subscription: Subscription | null; reason?: string }> {
+export async function checkUserAccess(userId: string): Promise<UserAccessResult> {
   console.log('🔐 [Firestore] Checking user access for:', userId);
-  
+
   try {
     const subscription = await getSubscriptionByUserId(userId);
-    
-    if (!subscription) {
-      console.log('❌ [Firestore] No subscription found for user:', userId);
-      return { hasAccess: false, subscription: null, reason: 'no_subscription' };
-    }
-    
-    // Check if access is blocked
-    if (subscription.isAccessBlocked) {
+
+    if (subscription?.isAccessBlocked) {
       console.log('🚫 [Firestore] Access blocked for user:', userId);
       return { hasAccess: false, subscription, reason: 'access_blocked' };
     }
-    
-    // Check if subscription is active
-    if (subscription.status !== 'active') {
-      console.log('❌ [Firestore] Subscription not active for user:', userId);
-      return { hasAccess: false, subscription, reason: 'subscription_inactive' };
-    }
-    
-    // Check if still within grace period if overdue
-    const now = new Date();
-    const endDate = new Date(subscription.endDate);
-    
-    if (now > endDate) {
-      const gracePeriodEnd = subscription.gracePeriodEndDate ? new Date(subscription.gracePeriodEndDate) : null;
-      
-      if (!gracePeriodEnd || now > gracePeriodEnd) {
-        console.log('❌ [Firestore] Subscription expired and grace period ended:', userId);
-        return { hasAccess: false, subscription, reason: 'expired' };
-      } else {
+
+    if (subscription && subscription.status === 'active') {
+      const now = new Date();
+      const endDate = new Date(subscription.endDate);
+
+      if (now <= endDate) {
+        console.log('✅ [Firestore] User has active subscription:', userId);
+        return { hasAccess: true, subscription };
+      }
+
+      const gracePeriodEnd = subscription.gracePeriodEndDate
+        ? new Date(subscription.gracePeriodEndDate)
+        : null;
+
+      if (gracePeriodEnd && now <= gracePeriodEnd) {
         console.log('⚠️ [Firestore] Subscription expired but within grace period:', userId);
         return { hasAccess: true, subscription, reason: 'grace_period' };
       }
     }
-    
-    console.log('✅ [Firestore] User has active access:', userId);
-    return { hasAccess: true, subscription };
-    
+
+    const user = await getUserById(userId);
+    const trialLeft =
+      user?.role === 'operator' ? (user.trialWhatsAppSendsRemaining ?? 0) : 0;
+
+    if (trialLeft > 0) {
+      console.log('✅ [Firestore] Operator trial sends remaining:', userId, trialLeft);
+      return {
+        hasAccess: true,
+        subscription: subscription ?? null,
+        reason: 'trial_sends',
+        trialSendsRemaining: trialLeft,
+      };
+    }
+
+    if (!subscription) {
+      console.log('❌ [Firestore] No subscription found for user:', userId);
+      return { hasAccess: false, subscription: null, reason: 'no_subscription' };
+    }
+
+    if (subscription.status !== 'active') {
+      console.log('❌ [Firestore] Subscription not active for user:', userId);
+      return { hasAccess: false, subscription, reason: 'subscription_inactive' };
+    }
+
+    console.log('❌ [Firestore] Subscription expired and grace period ended:', userId);
+    return { hasAccess: false, subscription, reason: 'expired' };
   } catch (error) {
     console.error('❌ [Firestore] Error checking user access:', error);
     throw new Error(`Failed to check user access: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+/** Tras un envío WhatsApp exitoso al médico: descuenta un envío de prueba si el acceso era solo por trial */
+export async function consumeTrialWhatsAppSendIfOnTrial(userId: string): Promise<void> {
+  const access = await checkUserAccess(userId);
+  if (access.reason !== 'trial_sends') return;
+
+  const db = getFirestoreAdmin();
+  const ref = db.collection('users').doc(userId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const data = snap.data() as User;
+    if (data.role !== 'operator') return;
+    const n = data.trialWhatsAppSendsRemaining ?? 0;
+    if (n < 1) return;
+    tx.update(ref, {
+      trialWhatsAppSendsRemaining: n - 1,
+      updatedAt: new Date(),
+    });
+  });
 }
 
 // Get all subscriptions (admin)

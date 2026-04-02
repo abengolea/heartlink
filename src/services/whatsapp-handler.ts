@@ -11,6 +11,7 @@ import {
   getOperatorByWhatsAppPhone,
   getSolicitanteByPhone,
   checkUserAccess,
+  consumeTrialWhatsAppSendIfOnTrial,
   generateOrGetShareTokenAndUrl,
   findOrCreatePatient,
   createUser,
@@ -22,6 +23,76 @@ import { toWhatsAppFormat } from '@/lib/phone-format';
 import { v4 as uuidv4 } from 'uuid';
 
 const DEV_MODE = process.env.WHATSAPP_DEV_MODE === 'true';
+
+/** Límite de tamaño de video de WhatsApp Cloud API (envío como multimedia) */
+const WHATSAPP_VIDEO_MAX_BYTES = 16 * 1024 * 1024;
+
+function heartlinkBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'https://heartlink--heartlink-f4ftq.us-central1.hosted.app'
+  ).replace(/\/$/, '');
+}
+
+function subscriptionPageUrl(): string {
+  return `${heartlinkBaseUrl()}/dashboard/subscription`;
+}
+
+/** Respuesta por WhatsApp cuando el operador no puede usar el flujo (sin plan / sin envíos de prueba). */
+function messageForWhatsAppAccessDenied(reason?: string): string {
+  const url = subscriptionPageUrl();
+  switch (reason) {
+    case 'no_subscription':
+      return (
+        '⚠️ *Límite de envíos gratis alcanzado*\n\n' +
+        'Ya usaste todos los envíos de prueba por WhatsApp al médico solicitante. ' +
+        'Para seguir enviando estudios desde acá, ingresá a HeartLink y contratá un plan:\n\n' +
+        `🔗 ${url}\n\n` +
+        'Iniciá sesión con tu cuenta en esa página para ver precios y activar el envío.'
+      );
+    case 'expired':
+      return (
+        '⚠️ *Suscripción vencida*\n\n' +
+        'Tu plan ya no está activo. Renová tu plan en HeartLink para volver a enviar por WhatsApp:\n\n' +
+        `🔗 ${url}`
+      );
+    case 'access_blocked':
+      return (
+        '⚠️ *Acceso suspendido*\n\n' +
+        'Tu cuenta tiene el acceso bloqueado. Regularizá la situación o contactá soporte desde la web:\n\n' +
+        `🔗 ${url}`
+      );
+    case 'subscription_inactive':
+      return (
+        '⚠️ *Suscripción inactiva*\n\n' +
+        'Activá o renová tu plan en HeartLink para seguir usando el envío por WhatsApp:\n\n' +
+        `🔗 ${url}`
+      );
+    default:
+      return (
+        '❌ Necesitás suscripción activa o envíos de prueba disponibles para subir estudios por WhatsApp.\n\n' +
+        'Revisá tu plan acá:\n\n' +
+        `🔗 ${url}`
+      );
+  }
+}
+
+function parseOptionalMaxVideoDurationSeconds(): number | null {
+  const raw = process.env.WHATSAPP_VIDEO_MAX_DURATION_SECONDS?.trim();
+  if (!raw) return null;
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+/** Duración en segundos desde el webhook (Meta suele enviar `seconds`; algunos routers usan `duration`). */
+function videoDurationSecondsFromMessage(video: { seconds?: unknown; duration?: unknown }): number | null {
+  const s = video.seconds ?? video.duration;
+  if (s == null || s === '') return null;
+  const n = typeof s === 'string' ? parseFloat(s) : Number(s);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}
 
 /** Contacto compartido - estructura del webhook de Meta (puede variar según versión/router) */
 interface IncomingContact {
@@ -41,7 +112,7 @@ export interface WhatsAppHandlerPayload {
   message: {
     type?: string;
     text?: { body?: string };
-    video?: { id: string };
+    video?: { id: string; seconds?: number; duration?: number; file_size?: number };
     interactive?: { list_reply?: { id: string } };
     contacts?: IncomingContact[];
     [key: string]: unknown;
@@ -120,9 +191,14 @@ export async function handleWhatsAppMessage(data: WhatsAppHandlerPayload): Promi
   }
 }
 
-async function handleVideoMessage(from: string, message: { video?: { id: string } }, contactName: string): Promise<void> {
-  console.log('[WhatsApp Handler] handleVideoMessage - video id:', message?.video?.id);
-  if (!message?.video?.id) {
+async function handleVideoMessage(
+  from: string,
+  message: { video?: { id: string; seconds?: number; duration?: number; file_size?: number } },
+  contactName: string
+): Promise<void> {
+  const videoMeta = message?.video;
+  console.log('[WhatsApp Handler] handleVideoMessage - video id:', videoMeta?.id);
+  if (!videoMeta?.id) {
     console.error('[WhatsApp Handler] Video sin id:', JSON.stringify(message));
     await WhatsAppService.sendTextMessage(from, '❌ No se pudo obtener el video.');
     return;
@@ -137,25 +213,53 @@ async function handleVideoMessage(from: string, message: { video?: { id: string 
       );
       return;
     }
-    // Admin y operator pueden subir sin verificar suscripción individual
-    const rolesWithAccess = ['admin', 'operator'];
-    const accessResult = rolesWithAccess.includes(operator.role || '')
-      ? { hasAccess: true }
-      : await checkUserAccess(operator.id);
-    if (!accessResult.hasAccess) {
-      await WhatsAppService.sendTextMessage(
-        from,
-        '❌ Necesitas licencia activa para subir estudios por WhatsApp.'
-      );
-      return;
+    if (operator.role !== 'admin') {
+      const accessResult = await checkUserAccess(operator.id);
+      if (!accessResult.hasAccess) {
+        await WhatsAppService.sendTextMessage(
+          from,
+          messageForWhatsAppAccessDenied(accessResult.reason)
+        );
+        return;
+      }
     }
+  }
+
+  const maxDurationSec = parseOptionalMaxVideoDurationSeconds();
+  const durationSecs = videoDurationSecondsFromMessage(videoMeta);
+  if (maxDurationSec != null && durationSecs != null && durationSecs > maxDurationSec) {
+    await WhatsAppService.sendTextMessage(
+      from,
+      `❌ El video supera la duración permitida (${maxDurationSec} s). Enviá uno más corto o subilo desde la app web.`
+    );
+    return;
+  }
+
+  const declaredSize =
+    typeof videoMeta.file_size === 'number' && Number.isFinite(videoMeta.file_size)
+      ? videoMeta.file_size
+      : null;
+  if (declaredSize != null && declaredSize > WHATSAPP_VIDEO_MAX_BYTES) {
+    await WhatsAppService.sendTextMessage(
+      from,
+      '❌ El video supera el límite de WhatsApp (16 MB). Comprimí el archivo o subilo desde la app web.'
+    );
+    return;
   }
 
   await WhatsAppService.sendTextMessage(from, '🎥 Video recibido. Procesando...');
 
-  const videoBuffer = await WhatsAppService.downloadMedia(message.video.id);
+  const videoBuffer = await WhatsAppService.downloadMedia(videoMeta.id);
   if (!videoBuffer) {
     await WhatsAppService.sendTextMessage(from, '❌ No se pudo descargar el video.');
+    return;
+  }
+
+  if (videoBuffer.length > WHATSAPP_VIDEO_MAX_BYTES) {
+    await WhatsAppService.sendTextMessage(
+      from,
+      '❌ El video supera el límite de WhatsApp (16 MB). Comprimí el archivo o subilo desde la app web.'
+    );
     return;
   }
 
@@ -177,16 +281,18 @@ async function handleTextMessage(from: string, message: { text?: { body?: string
   const text = (message?.text?.body ?? '').toLowerCase().trim();
 
   if (text === 'hola' || text === 'hello' || text === 'hi') {
+    const maxDur = parseOptionalMaxVideoDurationSeconds();
+    const durHint = maxDur != null ? `; duración máx. ${maxDur} s` : '';
     await WhatsAppService.sendTextMessage(
       from,
-      `¡Hola ${contactName}! 👋\n\nEnvía un video del estudio para comenzar.`
+      `¡Hola ${contactName}! 👋\n\nEnvía un video del estudio para comenzar (máx. 16 MB, límite WhatsApp${durHint}).`
     );
     return;
   }
   if (text === 'ayuda' || text === 'help') {
     await WhatsAppService.sendTextMessage(
       from,
-      '📖 *Ayuda*\n\n1. Envía un video del estudio\n2. Selecciona paciente\n3. Selecciona médico o comparte su contacto\n4. ¡Listo!\n\n"cancelar" para cancelar.'
+      '📖 *Ayuda*\n\n1. Envía un video del estudio (máx. 16 MB; si aplica, respeta la duración máx. que te indicó tu centro)\n2. Selecciona paciente\n3. Selecciona médico o comparte su contacto\n4. ¡Listo!\n\n"cancelar" para cancelar.'
     );
     return;
   }
@@ -489,6 +595,9 @@ async function createStudyFromWhatsApp(
           link: publicUrl,
           operatorId: session.operatorId,
         });
+        if (session.operatorId) {
+          await consumeTrialWhatsAppSendIfOnTrial(session.operatorId);
+        }
       }
     }
   } else {

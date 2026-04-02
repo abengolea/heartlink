@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStudyById, updateStudy, getPatientById, getUserById } from '@/lib/firestore';
+import { getStudyById, updateStudy, getPatientById, getUserById, consumeTrialWhatsAppSendIfOnTrial } from '@/lib/firestore';
 import { requireRole, getAuthenticatedUser } from '@/lib/api-auth';
 import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 import { randomBytes } from 'crypto';
@@ -83,6 +83,10 @@ export async function POST(
       link: publicUrl,
       operatorId: authUser.dbUser.id,
     });
+
+    if (authUser.dbUser.role === 'operator') {
+      await consumeTrialWhatsAppSendIfOnTrial(authUser.dbUser.id);
+    }
 
     return NextResponse.json({ success: true, message: 'Mensaje enviado correctamente' });
   } catch (error) {
