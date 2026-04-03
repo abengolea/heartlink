@@ -561,6 +561,7 @@ async function createStudyFromWhatsApp(
     patientName,
     requestingDoctorName: requestingDoctor.name,
     description: `Subido por WhatsApp - ${contactName}`,
+    ...(session.operatorId ? { operatorId: session.operatorId } : {}),
   };
 
   const result = await studyUploadFlow(input);

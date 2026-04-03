@@ -16,6 +16,8 @@ export type StudyUploadFlowInput = {
   requestingDoctorName: string;
   description?: string;
   pdfUrl?: string;
+  /** Operador que sube el estudio (web / WhatsApp) */
+  operatorId?: string;
 };
 
 export type StudyUploadFlowOutput = {
@@ -49,6 +51,7 @@ export async function processStudyUpload(input: StudyUploadFlowInput): Promise<S
   const studyId = await createStudy({
     patientId: patient.id,  // ID string, no el objeto
     requestingDoctorId,
+    ...(input.operatorId ? { operatorId: input.operatorId } : {}),
     videoUrl,
     reportUrl: input.pdfUrl || '',  // PDF opcional en campo separado
     date: new Date().toISOString(),

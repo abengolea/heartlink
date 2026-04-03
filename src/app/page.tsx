@@ -205,14 +205,16 @@ export default function LoginPage() {
         
         toast.error(errorMessage, {
           duration: 6000,
-          style: { fontSize: '16px', minWidth: '320px', padding: '16px 20px' },
+          classNames: { toast: 'w-[min(100vw-2rem,380px)]' },
+          style: { fontSize: '16px', padding: '16px 20px' },
         });
       }
     } catch (error) {
       console.error('❌ [Register] Unexpected error:', error);
       toast.error("Error inesperado. Intenta nuevamente", {
         duration: 6000,
-        style: { fontSize: '16px', minWidth: '320px', padding: '16px 20px' },
+        classNames: { toast: 'w-[min(100vw-2rem,380px)]' },
+        style: { fontSize: '16px', padding: '16px 20px' },
       });
     } finally {
       setRegisterLoading(false);
@@ -227,8 +229,9 @@ export default function LoginPage() {
             <Image
                 src="/corazon.jpg"
                 alt="Imagen de portada - Cardiología"
-                width="800"
-                height="600"
+                width={800}
+                height={600}
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 className="mx-auto rounded-lg object-cover"
             />
             <div className="text-center">

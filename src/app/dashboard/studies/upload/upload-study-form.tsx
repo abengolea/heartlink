@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 // Removed Alert imports since we use toast notifications instead
@@ -17,14 +17,26 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { PhoneInputWithCountry } from "@/components/phone-input-with-country";
 // Remove server-side Firestore imports from client component
-import { CheckCircle, FileText, Loader2, UploadCloud, Wand2 } from "lucide-react";
+import { CheckCircle, FileText, Loader2, UploadCloud, Wand2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
 import { Progress } from "@/components/ui/progress";
 import { ALLOWED_VIDEO_TYPES, ALLOWED_PDF_TYPES, MAX_FILE_SIZE, MAX_PDF_SIZE } from "@/lib/upload-constants";
 import { useAuth } from "@/contexts/auth-context";
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
+
+type ListUser = { id: string; name: string; specialty?: string };
+type ListPatient = { id: string; name: string };
 
 // Removed initialUploadState since we don't use useActionState anymore
 
@@ -40,65 +52,80 @@ export function UploadStudyForm() {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [description, setDescription] = useState('');
-    const [users, setUsers] = useState<any[]>([]);
-    const [patients, setPatients] = useState<any[]>([]);
-    const [selectedPatientName, setSelectedPatientName] = useState<string>('');
-    const [selectedRequestingDoctorName, setSelectedRequestingDoctorName] = useState<string>('');
+    const [users, setUsers] = useState<ListUser[]>([]);
+    const [patients, setPatients] = useState<ListPatient[]>([]);
+    const [selectedPatientId, setSelectedPatientId] = useState<string>('');
+    const [selectedRequesterId, setSelectedRequesterId] = useState<string>('');
 
-    // Removed useEffect since we handle success/error in direct server action call
+    const [newPatientOpen, setNewPatientOpen] = useState(false);
+    const [newRequesterOpen, setNewRequesterOpen] = useState(false);
+    const [savingPatient, setSavingPatient] = useState(false);
+    const [savingRequester, setSavingRequester] = useState(false);
+    const [requesterQuickMode, setRequesterQuickMode] = useState(false);
+    const [inviteSpecialty, setInviteSpecialty] = useState('');
 
-    // Load doctors (operadores: vinculados + disponibles; admin/solicitante: según API) y pacientes
-    useEffect(() => {
-        async function loadData() {
-            try {
-                const [doctorsRes, availableRes, patientsRes] = await Promise.all([
-                    fetchWithAuth('/api/operators/me/doctors'),
-                    fetchWithAuth('/api/operators/me/doctors/available').catch(() => ({ ok: false })),
-                    fetchWithAuth('/api/patients')
+    const canInviteRequester =
+        dbUser?.role === 'operator' || dbUser?.role === 'admin';
+    const isSolicitante =
+        dbUser?.role === 'medico_solicitante' || dbUser?.role === 'solicitante';
+
+    const loadLists = useCallback(async () => {
+        try {
+            const [doctorsRes, availableRes, patientsRes] = await Promise.all([
+                fetchWithAuth('/api/operators/me/doctors'),
+                fetchWithAuth('/api/operators/me/doctors/available').catch(() => null),
+                fetchWithAuth('/api/patients'),
+            ]);
+            if (doctorsRes.ok && patientsRes.ok) {
+                const [linkedDoctors, patientsData] = await Promise.all([
+                    doctorsRes.json(),
+                    patientsRes.json(),
                 ]);
-                if (doctorsRes.ok && patientsRes.ok) {
-                    const [linkedDoctors, patientsData] = await Promise.all([
-                        doctorsRes.json(),
-                        patientsRes.json()
-                    ]);
-                    let doctorsList = Array.isArray(linkedDoctors) ? linkedDoctors : [];
-                    let available: any[] = [];
-                    if (availableRes?.ok) {
-                        try {
-                            const data = await availableRes.json();
-                            available = Array.isArray(data) ? data : [];
-                        } catch {
-                            available = [];
-                        }
+                let doctorsList = Array.isArray(linkedDoctors) ? linkedDoctors : [];
+                let available: ListUser[] = [];
+                if (availableRes?.ok) {
+                    try {
+                        const data = await availableRes.json();
+                        available = Array.isArray(data) ? data : [];
+                    } catch {
+                        available = [];
                     }
-                    // Combinar vinculados + disponibles (sin duplicados) para que el dropdown siempre tenga opciones
-                    if (doctorsList.length === 0 && available.length > 0) {
-                        doctorsList = available;
-                    } else if (doctorsList.length > 0 && available.length > 0) {
-                        const linkedIds = new Set(doctorsList.map((d: { id: string }) => d.id));
-                        const extra = available.filter((d: { id: string }) => !linkedIds.has(d.id));
-                        doctorsList = [...doctorsList, ...extra].sort((a: { name?: string }, b: { name?: string }) => (a.name || '').localeCompare(b.name || ''));
-                    }
-                    setUsers(doctorsList.filter((u: { id?: string; name?: string }) => u?.id && u?.name));
-                    setPatients(patientsData);
-                } else {
-                    throw new Error('Failed to load data from API');
                 }
-            } catch (error) {
-                console.error('Error loading data:', error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: 'Error al cargar datos.'
-                });
-                setUsers([]);
-                setPatients([]);
+                if (doctorsList.length === 0 && available.length > 0) {
+                    doctorsList = available;
+                } else if (doctorsList.length > 0 && available.length > 0) {
+                    const linkedIds = new Set(
+                        doctorsList.map((d: { id: string }) => d.id)
+                    );
+                    const extra = available.filter((d) => !linkedIds.has(d.id));
+                    doctorsList = [...doctorsList, ...extra].sort((a, b) =>
+                        (a.name || '').localeCompare(b.name || '')
+                    );
+                }
+                setUsers(
+                    doctorsList.filter(
+                        (u: { id?: string; name?: string }) => u?.id && u?.name
+                    ) as ListUser[]
+                );
+                setPatients(patientsData as ListPatient[]);
+            } else {
+                throw new Error('Failed to load data from API');
             }
+        } catch (error) {
+            console.error('Error loading data:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Error al cargar datos.',
+            });
+            setUsers([]);
+            setPatients([]);
         }
-        loadData();
     }, [toast]);
 
-    const requesters = users;
+    useEffect(() => {
+        loadLists();
+    }, [loadLists]);
 
     // Removed useEffect for state since we handle success/error directly in server action call
 
@@ -202,6 +229,152 @@ export function UploadStudyForm() {
         reader.readAsDataURL(videoFile);
     };
 
+    async function handleCreatePatient(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        const requesterIdForPatient = isSolicitante ? dbUser?.id : selectedRequesterId;
+        if (!requesterIdForPatient) {
+            toast({
+                variant: 'destructive',
+                title: 'Falta médico solicitante',
+                description: 'Selecciona primero el médico solicitante al que corresponde el paciente.',
+            });
+            return;
+        }
+        const fd = new FormData(event.currentTarget);
+        const name = (fd.get('newPatientName') as string)?.trim();
+        const phone = (fd.get('newPatientPhone') as string)?.trim();
+        if (!name || !phone) {
+            toast({
+                variant: 'destructive',
+                title: 'Datos incompletos',
+                description: 'Nombre y teléfono del paciente son obligatorios.',
+            });
+            return;
+        }
+        setSavingPatient(true);
+        try {
+            const patientData = {
+                name,
+                phone,
+                dni: (fd.get('newPatientDni') as string)?.trim() || undefined,
+                dob: (fd.get('newPatientDob') as string)?.trim() || undefined,
+                email: (fd.get('newPatientEmail') as string)?.trim() || undefined,
+                requesterId: requesterIdForPatient,
+                status: 'active',
+            };
+            const res = await fetchWithAuth('/api/patients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patientData),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                toast({
+                    variant: 'destructive',
+                    title: 'No se pudo crear el paciente',
+                    description: typeof data.error === 'string' ? data.error : `Error ${res.status}`,
+                });
+                return;
+            }
+            toast({ title: 'Paciente registrado', description: 'Ya puedes asignarlo al estudio.' });
+            setNewPatientOpen(false);
+            event.currentTarget.reset();
+            await loadLists();
+            if (data.id) setSelectedPatientId(data.id);
+        } finally {
+            setSavingPatient(false);
+        }
+    }
+
+    async function handleInviteRequester(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (!canInviteRequester) return;
+        const fd = new FormData(event.currentTarget);
+        setSavingRequester(true);
+        try {
+            let body: Record<string, string>;
+            if (requesterQuickMode) {
+                const phone = (fd.get('invitePhone') as string)?.trim();
+                if (!phone) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Teléfono obligatorio',
+                        description: 'Indica el WhatsApp del médico solicitante.',
+                    });
+                    return;
+                }
+                body = { phone };
+            } else {
+                const name = (fd.get('inviteName') as string)?.trim();
+                const email = (fd.get('inviteEmail') as string)?.trim();
+                const phone = (fd.get('invitePhone') as string)?.trim();
+                if (!name || !email || !phone || !inviteSpecialty) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Datos incompletos',
+                        description: 'Completa todos los campos del solicitante.',
+                    });
+                    return;
+                }
+                body = { name, email, phone, specialty: inviteSpecialty };
+            }
+
+            let res = await fetchWithAuth('/api/invite-solicitante', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            let data = await res.json().catch(() => ({}));
+
+            if (res.status === 409 && data.userId && dbUser?.role === 'operator') {
+                const linkRes = await fetchWithAuth('/api/operators/me/doctors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requesterId: data.userId }),
+                });
+                if (linkRes.ok) {
+                    toast({
+                        title: 'Médico vinculado',
+                        description:
+                            'Ya existía un solicitante con ese número; se añadió a tu lista.',
+                    });
+                    setNewRequesterOpen(false);
+                    setInviteSpecialty('');
+                    event.currentTarget.reset();
+                    await loadLists();
+                    setSelectedRequesterId(data.userId);
+                    return;
+                }
+            }
+
+            if (!res.ok) {
+                toast({
+                    variant: 'destructive',
+                    title: 'No se pudo registrar el solicitante',
+                    description: typeof data.error === 'string' ? data.error : `Error ${res.status}`,
+                });
+                return;
+            }
+
+            toast({
+                title: requesterQuickMode ? 'Solicitante creado' : 'Solicitante invitado',
+                description:
+                    typeof data.message === 'string'
+                        ? data.message
+                        : 'El médico quedó disponible para asignar estudios.',
+            });
+            setNewRequesterOpen(false);
+            setInviteSpecialty('');
+            event.currentTarget.reset();
+            await loadLists();
+            if (data.userId) setSelectedRequesterId(data.userId);
+        } finally {
+            setSavingRequester(false);
+        }
+    }
+
+    const newPatientNeedsRequesterFirst = !isSolicitante && !selectedRequesterId;
+
     const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         
@@ -209,8 +382,18 @@ export function UploadStudyForm() {
             toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un video.' });
             return;
         }
-        if (!selectedPatientName || !selectedRequestingDoctorName) {
+        if (!selectedPatientId || !selectedRequesterId) {
             toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona paciente y médico solicitante.' });
+            return;
+        }
+        const patient = patients.find((p) => p.id === selectedPatientId);
+        const requester = users.find((u) => u.id === selectedRequesterId);
+        if (!patient?.name || !requester?.name) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudieron resolver paciente o médico. Vuelve a cargar la página.',
+            });
             return;
         }
 
@@ -225,8 +408,8 @@ export function UploadStudyForm() {
             const formData = new FormData();
             formData.append('video', videoFile);
             if (pdfFile) formData.append('pdf', pdfFile);
-            formData.append('patientName', selectedPatientName);
-            formData.append('requestingDoctorName', selectedRequestingDoctorName);
+            formData.append('patientName', patient.name);
+            formData.append('requestingDoctorName', requester.name);
             formData.append('description', description || '');
             
             console.log('Subiendo video y datos al servidor...');
@@ -337,7 +520,7 @@ export function UploadStudyForm() {
                 {uploadProgress === 100 && !isUploading && (
                      <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
                         <CheckCircle className="h-4 w-4" />
-                        <span>Video subido exitosamente. Haz clic en "Guardar Estudio".</span>
+                        <span>Video subido exitosamente. Haz clic en Guardar estudio.</span>
                     </div>
                 )}
             </div>
@@ -354,44 +537,91 @@ export function UploadStudyForm() {
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="patientName">Nombre Completo del Paciente</Label>
-                <Select name="patientName" required value={selectedPatientName || undefined} onValueChange={setSelectedPatientName}>
-                    <SelectTrigger id="patientName">
-                        <SelectValue placeholder="Seleccionar paciente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {patients.map(patient => (
-                            <SelectItem key={patient.id} value={patient.name}>
-                                {patient.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor="requestingDoctorName">Nombre del Médico Solicitante</Label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <Label htmlFor="requestingDoctorName" className="mb-0">Nombre del Médico Solicitante</Label>
+                    {canInviteRequester && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 sm:w-auto w-full"
+                            onClick={() => setNewRequesterOpen(true)}
+                        >
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Nuevo solicitante
+                        </Button>
+                    )}
+                </div>
                 {users.length === 0 ? (
                     <div className="rounded-md border border-dashed border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4 text-sm text-amber-800 dark:text-amber-200">
                         <p className="font-medium">No hay médicos solicitantes disponibles</p>
                         <p className="mt-1 text-muted-foreground">
-                            Agrega médicos en <Link href="/dashboard/requesters" className="underline font-medium">Médicos Solicitantes</Link> para poder asignar estudios.
+                            {canInviteRequester ? (
+                                <>Usa &quot;Nuevo solicitante&quot; arriba o gestiona la lista en{' '}
+                                <Link href="/dashboard/requesters" className="underline font-medium">Médicos Solicitantes</Link>.</>
+                            ) : (
+                                <>Agrega médicos en <Link href="/dashboard/requesters" className="underline font-medium">Médicos Solicitantes</Link> para poder asignar estudios.</>
+                            )}
                         </p>
                     </div>
                 ) : (
-                    <Select name="requestingDoctorName" required value={selectedRequestingDoctorName || undefined} onValueChange={setSelectedRequestingDoctorName}>
+                    <Select
+                        name="requestingDoctorName"
+                        required
+                        value={selectedRequesterId || undefined}
+                        onValueChange={setSelectedRequesterId}
+                    >
                         <SelectTrigger id="requestingDoctorName">
                             <SelectValue placeholder="Seleccionar médico solicitante" />
                         </SelectTrigger>
                         <SelectContent>
-                            {users.map(user => (
-                                <SelectItem key={user.id} value={user.name}>
+                            {users.map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
                                     {user.name} - {user.specialty || 'Médico'}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                 )}
+            </div>
+
+            <div className="grid gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <Label htmlFor="patientName" className="mb-0">Nombre Completo del Paciente</Label>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 sm:w-auto w-full"
+                        disabled={newPatientNeedsRequesterFirst}
+                        onClick={() => setNewPatientOpen(true)}
+                    >
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Nuevo paciente
+                    </Button>
+                </div>
+                {newPatientNeedsRequesterFirst && (
+                    <p className="text-xs text-muted-foreground">
+                        Elige primero el médico solicitante; el paciente quedará asociado a él.
+                    </p>
+                )}
+                <Select
+                    name="patientName"
+                    required
+                    value={selectedPatientId || undefined}
+                    onValueChange={setSelectedPatientId}
+                >
+                    <SelectTrigger id="patientName">
+                        <SelectValue placeholder="Seleccionar paciente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {patients.map((patient) => (
+                            <SelectItem key={patient.id} value={patient.id}>
+                                {patient.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="grid gap-2">
@@ -418,6 +648,144 @@ export function UploadStudyForm() {
         </form>
                 </CardContent>
             </Card>
+
+            <Dialog open={newPatientOpen} onOpenChange={setNewPatientOpen}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Registrar paciente</DialogTitle>
+                        <DialogDescription>
+                            Los datos se guardan en tu cuenta. Nombre y teléfono son obligatorios; el resto es opcional.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleCreatePatient} className="grid gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="newPatientName">Nombre completo</Label>
+                            <Input id="newPatientName" name="newPatientName" placeholder="Ana María López" required />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="newPatientPhone">Teléfono</Label>
+                            <PhoneInputWithCountry
+                                id="newPatientPhone"
+                                name="newPatientPhone"
+                                placeholder="341 203-3382"
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="newPatientDni">DNI (opcional)</Label>
+                                <Input id="newPatientDni" name="newPatientDni" placeholder="12345678" />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="newPatientDob">Fecha de nac. (opcional)</Label>
+                                <Input id="newPatientDob" name="newPatientDob" type="date" />
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="newPatientEmail">Email (opcional)</Label>
+                            <Input id="newPatientEmail" name="newPatientEmail" type="email" placeholder="paciente@ejemplo.com" />
+                        </div>
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <Button type="button" variant="outline" onClick={() => setNewPatientOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={savingPatient}>
+                                {savingPatient ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : null}
+                                Guardar paciente
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={newRequesterOpen}
+                onOpenChange={(open) => {
+                    setNewRequesterOpen(open);
+                    if (!open) {
+                        setInviteSpecialty('');
+                    }
+                }}
+            >
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Nuevo médico solicitante</DialogTitle>
+                        <DialogDescription>
+                            {requesterQuickMode
+                                ? 'Solo necesitas el WhatsApp. El médico podrá completar su perfil después.'
+                                : 'Invitación completa: el médico recibirá un email para activar su cuenta.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="mb-2">
+                        <Button
+                            type="button"
+                            variant="link"
+                            className="h-auto p-0 text-sm"
+                            onClick={() => setRequesterQuickMode((q) => !q)}
+                        >
+                            {requesterQuickMode ? 'Usar formulario completo (email)' : 'Solo teléfono (alta rápida)'}
+                        </Button>
+                    </div>
+                    <form onSubmit={handleInviteRequester} className="grid gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="invitePhone">Teléfono (WhatsApp)</Label>
+                            <PhoneInputWithCountry
+                                id="invitePhone"
+                                name="invitePhone"
+                                placeholder="9 336 451-3355"
+                                required
+                            />
+                        </div>
+                        {!requesterQuickMode && (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="inviteName">Nombre completo</Label>
+                                    <Input id="inviteName" name="inviteName" placeholder="Dr. Juan Pérez" required />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="inviteEmail">Email</Label>
+                                    <Input id="inviteEmail" name="inviteEmail" type="email" placeholder="jperez@hospital.com" required />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="inviteSpecialty">Especialidad</Label>
+                                    <Select value={inviteSpecialty} onValueChange={setInviteSpecialty} required>
+                                        <SelectTrigger id="inviteSpecialty">
+                                            <SelectValue placeholder="Seleccionar especialidad" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Medicina Interna">Medicina Interna</SelectItem>
+                                            <SelectItem value="Cardiología">Cardiología</SelectItem>
+                                            <SelectItem value="Neurología">Neurología</SelectItem>
+                                            <SelectItem value="Oncología">Oncología</SelectItem>
+                                            <SelectItem value="Pediatría">Pediatría</SelectItem>
+                                            <SelectItem value="Ginecología">Ginecología</SelectItem>
+                                            <SelectItem value="Traumatología">Traumatología</SelectItem>
+                                            <SelectItem value="Dermatología">Dermatología</SelectItem>
+                                            <SelectItem value="Oftalmología">Oftalmología</SelectItem>
+                                            <SelectItem value="Otorrinolaringología">Otorrinolaringología</SelectItem>
+                                            <SelectItem value="Psiquiatría">Psiquiatría</SelectItem>
+                                            <SelectItem value="Urología">Urología</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </>
+                        )}
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <Button type="button" variant="outline" onClick={() => setNewRequesterOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={savingRequester}>
+                                {savingRequester ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : null}
+                                {requesterQuickMode ? 'Registrar' : 'Invitar'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

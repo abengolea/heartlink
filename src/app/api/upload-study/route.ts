@@ -90,7 +90,11 @@ export async function POST(request: Request) {
     
     console.log('✅ [UPLOAD-STUDY] Subscription verified, proceeding with upload...');
     console.log('🔍 [UPLOAD-STUDY] About to call uploadStudy server action...');
-    
+
+    if (authUser.dbUser.role === 'operator') {
+      formData.set('operatorId', authUser.dbUser.id);
+    }
+
     const result = await uploadStudy(null, formData);
     
     console.log('✅ [UPLOAD-STUDY] Server action completed!');

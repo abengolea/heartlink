@@ -13,10 +13,12 @@ import {
   Mail,
   Receipt,
   Syringe,
+  UserPlus,
   Users,
   Webhook,
 } from "lucide-react";
 import Logo from "@/components/logo";
+import { SidebarNavLink } from "@/components/sidebar-nav-link";
 
 export function AdminSidebar() {
   return (
@@ -25,7 +27,7 @@ export function AdminSidebar() {
         <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
           <Link
             href="/admin"
-            className="flex items-center gap-2 font-semibold"
+            className="flex items-center gap-2 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
             prefetch={false}
           >
             <Logo />
@@ -33,111 +35,63 @@ export function AdminSidebar() {
           </Link>
         </div>
         <div className="flex-1">
-          <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            <Link
-              href="/admin"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+          <nav className="grid items-start px-2 lg:px-4">
+            <SidebarNavLink href="/admin" prefetch={false}>
               <Home className="h-4 w-4" />
-              Dashboard
-            </Link>
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+              Panel admin
+            </SidebarNavLink>
+            <SidebarNavLink href="/dashboard" prefetch={false}>
               <BarChart3 className="h-4 w-4" />
-              Panel Principal
-            </Link>
-            <Link
-              href="/admin/users"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+              Panel principal
+            </SidebarNavLink>
+            <SidebarNavLink href="/admin/users" prefetch={false}>
               <Users className="h-4 w-4" />
               Usuarios
-            </Link>
-            <Link
-              href="/admin/pricing"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            </SidebarNavLink>
+            <SidebarNavLink href="/admin/pricing" prefetch={false}>
               <CreditCard className="h-4 w-4" />
               Facturación
-            </Link>
-            <Link
-              href="/admin/suscripciones"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            </SidebarNavLink>
+            <SidebarNavLink href="/admin/suscripciones" prefetch={false}>
               <Receipt className="h-4 w-4" />
               Suscripciones
-            </Link>
-            <Link
-              href="/admin/envios-prueba"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            </SidebarNavLink>
+            <SidebarNavLink href="/admin/envios-prueba" prefetch={false}>
               <Gift className="h-4 w-4" />
               Envíos de prueba
-            </Link>
-            <Link
-              href="/dashboard/patients"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            </SidebarNavLink>
+            <SidebarNavLink href="/dashboard/operators" prefetch={false}>
+              <UserPlus className="h-4 w-4" />
+              Médicos operadores
+            </SidebarNavLink>
+            <SidebarNavLink href="/dashboard/patients" prefetch={false}>
               <Syringe className="h-4 w-4" />
               Pacientes
-            </Link>
-            <Link
-              href="/dashboard/studies"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            </SidebarNavLink>
+            <SidebarNavLink href="/dashboard/studies" prefetch={false}>
               <FileText className="h-4 w-4" />
               Estudios
-            </Link>
-            <Link
-              href="/admin/links-publicos"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            </SidebarNavLink>
+            <SidebarNavLink href="/admin/links-publicos" prefetch={false}>
               <Link2 className="h-4 w-4" />
-              Links Públicos
-            </Link>
-            <Link
-              href="/admin/backups"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+              Links públicos
+            </SidebarNavLink>
+            <SidebarNavLink href="/admin/backups" prefetch={false}>
               <Database className="h-4 w-4" />
-              Copias de Seguridad
-            </Link>
-            <Link
-              href="/admin/trigger-mail-test"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+              Copias de seguridad
+            </SidebarNavLink>
+            <SidebarNavLink href="/admin/trigger-mail-test" prefetch={false}>
               <Mail className="h-4 w-4" />
-              Probar Trigger Mail
-            </Link>
-            <Link
-              href="/admin/actividad"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+              Probar envío de correo
+            </SidebarNavLink>
+            <SidebarNavLink href="/admin/actividad" prefetch={false}>
               <ListOrdered className="h-4 w-4" />
               Actividad
-            </Link>
-            <Link
-              href="/admin/soporte"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            </SidebarNavLink>
+            <SidebarNavLink href="/admin/soporte" prefetch={false}>
               <Webhook className="h-4 w-4" />
-              Soporte / Errores
-            </Link>
+              Soporte / errores
+            </SidebarNavLink>
           </nav>
         </div>
       </div>

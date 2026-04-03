@@ -6,6 +6,7 @@ import { randomBytes } from 'crypto';
 import { WhatsAppService } from '@/services/whatsapp';
 import { toWhatsAppFormat } from '@/lib/phone-format';
 import { logWhatsAppSend } from '@/lib/notificashub';
+import { studyReadableByUser } from '@/lib/study-access';
 
 /**
  * POST: Envía el enlace del estudio por WhatsApp a un número.
@@ -34,6 +35,10 @@ export async function POST(
     const study = await getStudyById(id);
     if (!study) {
       return NextResponse.json({ error: 'Estudio no encontrado' }, { status: 404 });
+    }
+
+    if (!(await studyReadableByUser(authUser, study))) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
     const body = await request.json();

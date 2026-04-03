@@ -134,66 +134,75 @@ export default function VideoPlayer({ videoUrl }: VideoPlayerProps) {
     );
   }
 
-  // Dynamic container class based on video orientation (responsive para mobile)
-  const containerClass = isVertical 
-    ? "w-full max-w-full sm:max-w-md mx-auto bg-muted rounded-lg overflow-hidden min-h-[280px] sm:min-h-[320px] flex items-center justify-center px-1 sm:px-0" // Vertical: full width en mobile
-    : "aspect-video bg-muted rounded-lg overflow-hidden w-full"; // Horizontal: estándar
+  // Vertical: columna (video arriba, metadatos abajo). flex en fila dejaba el panel recortado.
+  const containerClass = isVertical
+    ? "w-full max-w-full sm:max-w-lg mx-auto bg-muted rounded-lg flex flex-col items-stretch gap-3 px-3 py-4 sm:px-4 min-w-0"
+    : "aspect-video bg-muted rounded-lg overflow-hidden w-full min-w-0";
+
+  const videoWrapperClass = isVertical
+    ? "flex justify-center w-full min-w-0"
+    : "h-full w-full min-h-0";
 
   const videoClass = isVertical
-    ? "w-full max-h-[min(70vh,560px)] object-contain" // Vertical: usa altura disponible
-    : "w-full h-full object-cover";  // Horizontal: llena el contenedor
+    ? "w-auto max-w-full max-h-[min(70vh,560px)] h-auto object-contain"
+    : "w-full h-full object-cover";
 
   return (
     <div className={containerClass}>
-      <video 
-        ref={videoRef}
-        className={videoClass}
-        controls
-        preload="metadata"
-        onLoadedMetadata={handleLoadedMetadata}
-        playsInline
-        webkit-playsinline="true"
-        onError={() => {
-          const mediaError = videoRef.current?.error;
-          const errMsg = mediaError ? `Código ${mediaError.code}: ${mediaError.message || 'No se pudo cargar el video'}` : 'Error reproduciendo el video';
-          console.error('Video playback error:', mediaError?.code, mediaError?.message);
-          setError(errMsg);
-          setShowFallback(true);
-        }}
-        onLoadStart={() => console.log('Video started loading')}
-        onCanPlay={() => console.log('Video can play')}
-        onCanPlayThrough={() => console.log('Video can play through')}
+      <div className={videoWrapperClass}>
+        <video
+          ref={videoRef}
+          className={videoClass}
+          controls
+          preload="metadata"
+          onLoadedMetadata={handleLoadedMetadata}
+          playsInline
+          webkit-playsinline="true"
+          onError={() => {
+            const mediaError = videoRef.current?.error;
+            const errMsg = mediaError ? `Código ${mediaError.code}: ${mediaError.message || 'No se pudo cargar el video'}` : 'Error reproduciendo el video';
+            console.error('Video playback error:', mediaError?.code, mediaError?.message);
+            setError(errMsg);
+            setShowFallback(true);
+          }}
+          onLoadStart={() => console.log('Video started loading')}
+          onCanPlay={() => console.log('Video can play')}
+          onCanPlayThrough={() => console.log('Video can play through')}
+        >
+          {/* Multiple sources for maximum compatibility */}
+          <source src={signedUrl} type="video/mp4; codecs=avc1.42E01E,mp4a.40.2" />
+          <source src={signedUrl} type="video/mp4" />
+          <source src={signedUrl} type="video/webm" />
+          <source src={signedUrl} type="video/ogg" />
+          <source src={signedUrl} />
+
+          {/* Fallback message with browser info */}
+          <div className="p-4 text-center">
+            <p className="text-red-600 mb-2">❌ Tu navegador no puede reproducir este video</p>
+            <p className="text-sm text-gray-600 mb-3">
+              Prueba con <strong>Google Chrome</strong> o <strong>Firefox</strong>
+            </p>
+            <a
+              href={signedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline text-sm"
+            >
+              📱 Abrir video en nueva pestaña
+            </a>
+          </div>
+        </video>
+      </div>
+      <div
+        className={`text-xs text-muted-foreground w-full min-w-0 space-y-1 break-words [overflow-wrap:anywhere] ${isVertical ? "" : "mt-2"}`}
       >
-        {/* Multiple sources for maximum compatibility */}
-        <source src={signedUrl} type="video/mp4; codecs=avc1.42E01E,mp4a.40.2" />
-        <source src={signedUrl} type="video/mp4" />
-        <source src={signedUrl} type="video/webm" />
-        <source src={signedUrl} type="video/ogg" />
-        <source src={signedUrl} />
-        
-        {/* Fallback message with browser info */}
-        <div className="p-4 text-center">
-          <p className="text-red-600 mb-2">❌ Tu navegador no puede reproducir este video</p>
-          <p className="text-sm text-gray-600 mb-3">
-            Prueba con <strong>Google Chrome</strong> o <strong>Firefox</strong>
-          </p>
-          <a 
-            href={signedUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-600 underline text-sm"
-          >
-            📱 Abrir video en nueva pestaña
-          </a>
-        </div>
-      </video>
-      <div className="mt-2 text-xs text-gray-500 break-all space-y-1 overflow-hidden">
         <div className="flex flex-wrap gap-x-2 gap-y-0.5">
           <span><strong>Orientación:</strong> {isVertical ? '📱 Vertical' : '🖥️ Horizontal'}</span>
           <span><strong>Navegador:</strong> {browserInfo}</span>
         </div>
         <div className="hidden sm:block">
-          <strong>URL:</strong> {videoUrl.substring(0, 50)}...
+          <strong>URL:</strong>{" "}
+          <span className="font-mono opacity-90">{videoUrl}</span>
         </div>
         {browserInfo.includes('⚠️') && (
           <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">

@@ -1,15 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { CreditCard, FileText, Home, Settings, Shield, Stethoscope, Upload, Users, UserPlus, Workflow } from "lucide-react";
 import Logo from "@/components/logo";
 import { useAuth } from "@/contexts/auth-context";
 import { AdminSidebar } from "@/components/admin-sidebar";
+import { SidebarNavLink } from "@/components/sidebar-nav-link";
+import Link from "next/link";
 
 export function DashboardSidebar() {
   const { dbUser } = useAuth();
 
-  // Admin siempre ve el sidebar de admin (fijo) - no el de médico operador
   if (dbUser?.role === "admin") {
     return <AdminSidebar />;
   }
@@ -17,7 +17,6 @@ export function DashboardSidebar() {
   const isOperator =
     dbUser?.role === "operator" ||
     dbUser?.role === "admin";
-  const isAdmin = dbUser?.role === "admin";
 
   return (
     <div className="hidden border-r bg-muted/40 md:block">
@@ -28,110 +27,52 @@ export function DashboardSidebar() {
           </Link>
         </div>
         <div className="flex-1">
-          <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+          <nav className="grid items-start px-2 lg:px-4">
+            <SidebarNavLink href="/dashboard" prefetch={false}>
               <Home className="h-4 w-4" />
               Panel de control
-            </Link>
-            {isAdmin && (
-              <Link
-                href="/admin/suscripciones"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                prefetch={false}
-              >
-                <Shield className="h-4 w-4" />
-                Admin
-              </Link>
-            )}
-            <Link
-              href="/dashboard/patients"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            </SidebarNavLink>
+            <SidebarNavLink href="/dashboard/patients" prefetch={false}>
               <Users className="h-4 w-4" />
               Pacientes
-            </Link>
-            {/* Admin ve ambos: Operadores y Solicitantes; Operadores solo Solicitantes; Solicitantes ven sus operadores */}
-            {isAdmin && (
-              <Link
-                href="/dashboard/operators"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                prefetch={false}
-              >
-                <UserPlus className="h-4 w-4" />
-                Médicos Operadores
-              </Link>
-            )}
+            </SidebarNavLink>
             {isOperator ? (
-              <Link
-                href="/dashboard/requesters"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                prefetch={false}
-              >
+              <SidebarNavLink href="/dashboard/requesters" prefetch={false}>
                 <Stethoscope className="h-4 w-4" />
                 Médicos Solicitantes
-              </Link>
+              </SidebarNavLink>
             ) : (
-              <Link
-                href="/dashboard/doctors"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                prefetch={false}
-              >
+              <SidebarNavLink href="/dashboard/doctors" prefetch={false}>
                 <Stethoscope className="h-4 w-4" />
                 Médicos
-              </Link>
+              </SidebarNavLink>
             )}
-            <Link
-              href="/dashboard/studies"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            <SidebarNavLink href="/dashboard/studies" prefetch={false}>
               <FileText className="h-4 w-4" />
               Estudios
-            </Link>
+            </SidebarNavLink>
             {isOperator && (
-              <Link
-                href="/dashboard/studies/upload"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                prefetch={false}
-              >
+              <SidebarNavLink href="/dashboard/studies/upload" prefetch={false}>
                 <Upload className="h-4 w-4" />
                 Subir Estudio
-              </Link>
+              </SidebarNavLink>
             )}
             {isOperator && (
-              <Link
-                href="/dashboard/whatsapp-upload"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                prefetch={false}
-              >
+              <SidebarNavLink href="/dashboard/whatsapp-upload" prefetch={false}>
                 <Workflow className="h-4 w-4" />
                 Subir por WhatsApp
-              </Link>
+              </SidebarNavLink>
             )}
-            {/* Suscripción solo para médico operador (operator), NO para admin */}
             {dbUser?.role === 'operator' && (
-              <Link
-                href="/dashboard/subscription"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                prefetch={false}
-              >
+              <SidebarNavLink href="/dashboard/subscription" prefetch={false}>
                 <CreditCard className="h-4 w-4" />
                 Suscripción
-              </Link>
+              </SidebarNavLink>
             )}
-            <Link
-              href="/dashboard/configuracion"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              prefetch={false}
-            >
+            <SidebarNavLink href="/dashboard/configuracion" prefetch={false}>
               <Settings className="h-4 w-4" />
               Configuración
-            </Link>
+            </SidebarNavLink>
           </nav>
         </div>
       </div>

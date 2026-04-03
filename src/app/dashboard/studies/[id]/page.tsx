@@ -1,5 +1,7 @@
-import { getAllPatients, getAllUsers, getPatientById, getUserById, getStudyById, generateOrGetShareTokenAndUrl } from "@/lib/firestore";
-import { notFound } from "next/navigation";
+import { getPatientById, getUserById, getStudyById, generateOrGetShareTokenAndUrl } from "@/lib/firestore";
+import { notFound, redirect } from "next/navigation";
+import { getServerAuthenticatedUser } from "@/lib/server-auth";
+import { studyReadableByUser } from "@/lib/study-access";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
@@ -19,10 +21,13 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
         notFound();
     }
 
-    const [patients, users] = await Promise.all([
-        getAllPatients(),
-        getAllUsers()
-    ]);
+    const authUser = await getServerAuthenticatedUser();
+    if (!authUser) {
+        redirect('/');
+    }
+    if (!(await studyReadableByUser(authUser, study))) {
+        notFound();
+    }
 
     // patientId puede ser string o objeto (estudios antiguos)
     const patientIdRaw = study.patientId;
@@ -31,11 +36,19 @@ export default async function StudyDetailPage({ params }: { params: Promise<{ id
         patient = patientIdRaw as { id: string; name?: string; dni?: string; requesterId?: string };
     } else {
         const pid = typeof patientIdRaw === 'string' ? patientIdRaw : (patientIdRaw as { id?: string })?.id;
-        patient = pid ? (patients.find(p => p.id === pid) ?? await getPatientById(pid)) : null;
+        patient = pid ? await getPatientById(pid) : null;
     }
     const requesterIdRaw = patient?.requesterId;
-    const requesterId = typeof requesterIdRaw === 'string' ? requesterIdRaw : (requesterIdRaw as { id?: string })?.id;
-    const requester = requesterId ? (users.find(u => u.id === requesterId) ?? await getUserById(requesterId)) : null;
+    const requesterIdFromPatient =
+      typeof requesterIdRaw === 'string'
+        ? requesterIdRaw
+        : typeof requesterIdRaw === 'object' &&
+            requesterIdRaw !== null &&
+            'id' in requesterIdRaw
+          ? String((requesterIdRaw as { id: unknown }).id)
+          : undefined;
+    const effectiveDoctorId = study.requestingDoctorId || requesterIdFromPatient;
+    const requester = effectiveDoctorId ? await getUserById(effectiveDoctorId) : null;
 
     let publicUrl = '';
     try {

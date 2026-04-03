@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getSubscriptionByUserId, updateSubscription, updateUser } from '@/lib/firestore';
 
 export async function POST(request: NextRequest) {
@@ -48,8 +49,8 @@ export async function POST(request: NextRequest) {
       endDate: newEndDate.toISOString(),
       nextBillingDate: newBillingDate.toISOString(),
       reactivationDate: now.toISOString(),
-      cancellationReason: undefined,
-      cancellationDate: undefined,
+      cancellationReason: FieldValue.delete(),
+      cancellationDate: FieldValue.delete(),
     };
 
     console.log('🔄 [API] Reactivating subscription:', subscription.id);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllUsers, createUser } from '@/lib/firestore';
+import { getAllUsers, createUser, getDoctorsByOperator } from '@/lib/firestore';
 import { getAuthenticatedUser, requireRole } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
@@ -7,6 +7,19 @@ export async function GET(request: NextRequest) {
     const authUser = await getAuthenticatedUser(request);
     if (!authUser) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    const role = authUser.dbUser.role;
+    if (role === 'medico_solicitante' || role === 'solicitante') {
+      return NextResponse.json([authUser.dbUser]);
+    }
+    if (role === 'operator') {
+      const doctors = await getDoctorsByOperator(authUser.dbUser.id);
+      const byId = new Map<string, (typeof authUser.dbUser)>();
+      byId.set(authUser.dbUser.id, authUser.dbUser);
+      for (const d of doctors) {
+        byId.set(d.id, d);
+      }
+      return NextResponse.json([...byId.values()]);
     }
     const users = await getAllUsers();
     return NextResponse.json(users);
