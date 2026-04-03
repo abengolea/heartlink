@@ -47,6 +47,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   filePath: z.string().min(1, 'La ruta del archivo es obligatoria.'),
   pdfFilePath: z.string().optional(),
+  operatorId: z.string().optional(),
 });
 
 type State = {
@@ -69,6 +70,7 @@ export async function uploadStudy(
       description: formData.get('description'),
       filePath: formData.get('filePath'),
       pdfFilePath: formData.get('pdfFilePath') || undefined,
+      operatorId: (formData.get('operatorId') as string) || undefined,
     });
 
     if (!validatedFields.success) {
@@ -79,7 +81,8 @@ export async function uploadStudy(
         };
     }
     
-    const { patientName, requestingDoctorName, description, filePath, pdfFilePath } = validatedFields.data;
+    const { patientName, requestingDoctorName, description, filePath, pdfFilePath, operatorId } =
+      validatedFields.data;
     console.log(`[uploadStudy] Processing study for patient: ${patientName}, file: ${filePath}, pdf: ${pdfFilePath || 'none'}`);
 
     // The file is already uploaded, so we get its public URL
@@ -95,6 +98,7 @@ export async function uploadStudy(
         requestingDoctorName,
         description,
         pdfUrl,
+        ...(operatorId ? { operatorId } : {}),
     };
 
     console.log('[uploadStudy] Processing study...');

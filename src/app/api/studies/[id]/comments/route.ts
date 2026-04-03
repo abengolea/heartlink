@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStudyById, addCommentToStudy } from '@/lib/firestore';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { studyReadableByUser } from '@/lib/study-access';
 import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 
 /**
@@ -29,6 +30,10 @@ export async function POST(
     
     if (!study) {
       return NextResponse.json({ error: 'Estudio no encontrado' }, { status: 404 });
+    }
+
+    if (!(await studyReadableByUser(authUser, study))) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
     const body = await request.json();

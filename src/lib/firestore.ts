@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, type UpdateData } from 'firebase-admin/firestore';
 import { registerInNotificasHub } from '@/lib/notificashub';
 import type { Study, StudyComment, Patient, User, Subscription, PaymentRecord, DataDeletionRequest, UserPreferences } from './types';
 
@@ -250,6 +250,60 @@ export async function getAllPatients(): Promise<Patient[]> {
   } catch (error) {
     console.error('❌ [Firestore] Error getting patients:', error);
     throw new Error(`Failed to get patients from Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/** Pacientes asignados a un médico solicitante (requesterId) */
+export async function getPatientsByRequesterId(requesterId: string): Promise<Patient[]> {
+  try {
+    const db = getFirestoreAdmin();
+    const patientsSnapshot = await db
+      .collection('patients')
+      .where('requesterId', '==', requesterId)
+      .get();
+
+    const patients: Patient[] = [];
+    patientsSnapshot.forEach((doc) => {
+      patients.push({
+        id: doc.id,
+        ...doc.data(),
+      } as Patient);
+    });
+    return patients;
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting patients by requester:', error);
+    throw new Error(
+      `Failed to get patients by requester: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+const FIRESTORE_IN_QUERY_MAX = 30;
+
+/** Pacientes cuyo requesterId está en la lista (p. ej. todos los solicitantes de un operador). */
+export async function getPatientsByRequesterIds(requesterIds: string[]): Promise<Patient[]> {
+  const uniq = [...new Set(requesterIds.filter(Boolean))];
+  if (uniq.length === 0) return [];
+
+  try {
+    const db = getFirestoreAdmin();
+    const patients: Patient[] = [];
+    for (let i = 0; i < uniq.length; i += FIRESTORE_IN_QUERY_MAX) {
+      const chunk = uniq.slice(i, i + FIRESTORE_IN_QUERY_MAX);
+      const snap = await db.collection('patients').where('requesterId', 'in', chunk).get();
+      snap.forEach((doc) => {
+        patients.push({
+          id: doc.id,
+          ...doc.data(),
+        } as Patient);
+      });
+    }
+    return patients;
+  } catch (error) {
+    console.error('❌ [Firestore] Error getting patients by requester ids:', error);
+    throw new Error(
+      `Failed to get patients by requester ids: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -754,16 +808,20 @@ export async function getSubscriptionByExternalPaymentId(externalId: string): Pr
   }
 }
 
-// Update subscription in Firestore
-export async function updateSubscription(id: string, subscriptionData: Partial<Subscription>): Promise<void> {
+// Update subscription in Firestore (omits undefined values; use FieldValue.delete() to remove fields)
+export async function updateSubscription(
+  id: string,
+  subscriptionData: UpdateData<Subscription>
+): Promise<void> {
   console.log('💳 [Firestore] Updating subscription:', id);
   
   try {
     const db = getFirestoreAdmin();
-    await db.collection('subscriptions').doc(id).update({
-      ...subscriptionData,
-      updatedAt: new Date().toISOString()
-    });
+    const merged = { ...subscriptionData, updatedAt: new Date().toISOString() };
+    const payload = Object.fromEntries(
+      Object.entries(merged).filter(([, value]) => value !== undefined)
+    );
+    await db.collection('subscriptions').doc(id).update(payload);
     
     console.log('✅ [Firestore] Subscription updated:', id);
     
@@ -810,6 +868,16 @@ export type UserAccessResult = {
   trialSendsRemaining?: number;
 };
 
+/** Normaliza isAccessBlocked desde Firestore (boolean, string legacy, etc.) */
+function subscriptionAccessBlocked(sub: Pick<Subscription, 'isAccessBlocked'> | null | undefined): boolean {
+  if (!sub) return false;
+  const v = sub.isAccessBlocked as unknown;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'string') return v.toLowerCase() === 'true' || v === '1';
+  if (typeof v === 'number') return v !== 0;
+  return Boolean(v);
+}
+
 // Check if user has active subscription and access
 export async function checkUserAccess(userId: string): Promise<UserAccessResult> {
   console.log('🔐 [Firestore] Checking user access for:', userId);
@@ -817,7 +885,28 @@ export async function checkUserAccess(userId: string): Promise<UserAccessResult>
   try {
     const subscription = await getSubscriptionByUserId(userId);
 
-    if (subscription?.isAccessBlocked) {
+    // Suscripción vigente + estado active: debe dar acceso. Si isAccessBlocked quedó en true
+    // (p. ej. reactivación parcial / datos viejos), se corrige en Firestore.
+    if (subscription && subscription.status === 'active') {
+      const now = new Date();
+      const endDate = new Date(subscription.endDate);
+
+      if (now <= endDate) {
+        if (subscriptionAccessBlocked(subscription)) {
+          console.warn(
+            '⚠️ [Firestore] Repairing stale isAccessBlocked for active subscription in period:',
+            userId
+          );
+          await updateSubscription(subscription.id, { isAccessBlocked: false });
+          const repaired = { ...subscription, isAccessBlocked: false };
+          return { hasAccess: true, subscription: repaired };
+        }
+        console.log('✅ [Firestore] User has active subscription:', userId);
+        return { hasAccess: true, subscription };
+      }
+    }
+
+    if (subscriptionAccessBlocked(subscription)) {
       console.log('🚫 [Firestore] Access blocked for user:', userId);
       return { hasAccess: false, subscription, reason: 'access_blocked' };
     }
@@ -825,12 +914,6 @@ export async function checkUserAccess(userId: string): Promise<UserAccessResult>
     if (subscription && subscription.status === 'active') {
       const now = new Date();
       const endDate = new Date(subscription.endDate);
-
-      if (now <= endDate) {
-        console.log('✅ [Firestore] User has active subscription:', userId);
-        return { hasAccess: true, subscription };
-      }
-
       const gracePeriodEnd = subscription.gracePeriodEndDate
         ? new Date(subscription.gracePeriodEndDate)
         : null;

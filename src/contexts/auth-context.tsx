@@ -4,8 +4,12 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { User as DBUser } from '@/lib/types';
 
+/** Sesión solo con cookie (sin usuario en Firebase SDK en el cliente). */
+export type SessionUser = { uid: string; email: string };
+
 interface AuthContextType {
   firebaseUser: User | null;
+  sessionUser: SessionUser | null;
   dbUser: DBUser | null;
   loading: boolean;
   error: Error | undefined;
@@ -16,6 +20,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const defaultAuthValue: AuthContextType = {
   firebaseUser: null,
+  sessionUser: null,
   dbUser: null,
   loading: true,
   error: undefined,

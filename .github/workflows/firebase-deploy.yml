@@ -10,15 +10,18 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+    env:
+      # Opt-in temprano a Node 24 para actions (evita ruido de deprecación; ver changelog GitHub Actions).
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
         cache: 'npm'
         
     - name: Install dependencies
@@ -38,11 +41,9 @@ jobs:
       continue-on-error: true
 
     # App Hosting despliega la app Next.js automáticamente desde GitHub.
-    # Aquí solo desplegamos Functions, Storage y Database.
+    # Aquí solo desplegamos Functions, Storage y Database (requiere FIREBASE_TOKEN en secrets).
     - name: Deploy Functions and Rules
       if: github.ref == 'refs/heads/main'
-      run: |
-        npm install -g firebase-tools
-        firebase deploy --only functions,storage,database --project heartlink-f4ftq --token ${{ secrets.FIREBASE_TOKEN }}
+      run: npx --yes firebase-tools@14 deploy --only functions,storage,database --project heartlink-f4ftq --non-interactive --token "$FIREBASE_TOKEN"
       env:
         FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

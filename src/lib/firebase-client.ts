@@ -1,6 +1,6 @@
 // Firebase Client Configuration (for frontend authentication)
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithCustomToken, signInWithPopup, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { sanitizeFirebaseEnvString } from '@/lib/sanitize-firebase-env';
 
@@ -12,6 +12,15 @@ const firebaseConfig = {
   messagingSenderId: sanitizeFirebaseEnvString(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID),
   appId: sanitizeFirebaseEnvString(process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
 };
+
+// DIAGNÓSTICO TEMPORAL — borrar luego del fix
+console.log('[HeartLink Firebase Config]', {
+  apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 8)}...` : '⚠️ UNDEFINED/EMPTY',
+  authDomain: firebaseConfig.authDomain ?? '⚠️ UNDEFINED/EMPTY',
+  projectId: firebaseConfig.projectId ?? '⚠️ UNDEFINED/EMPTY',
+  appId: firebaseConfig.appId ? `${firebaseConfig.appId.substring(0, 12)}...` : '⚠️ UNDEFINED/EMPTY',
+  messagingSenderId: firebaseConfig.messagingSenderId ?? '⚠️ UNDEFINED/EMPTY',
+});
 
 // Initialize Firebase app (client-side)
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -45,8 +54,8 @@ export const loginWithEmail = async (email: string, password: string) => {
 };
 
 /**
- * Login vía backend: evita auth/network-request-failed cuando el navegador
- * no puede conectar con Firebase. Usar como fallback.
+ * Login vía backend: establece cookie de sesión httpOnly (createSessionCookie)
+ * para no depender de signInWithCustomToken ni de identitytoolkit desde el navegador.
  */
 export const loginWithEmailViaBackend = async (email: string, password: string) => {
   try {
@@ -54,17 +63,16 @@ export const loginWithEmailViaBackend = async (email: string, password: string) 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
+      credentials: 'same-origin',
     });
     const data = await res.json();
     if (!res.ok) {
       return { success: false, error: data.error || 'Error al iniciar sesión' };
     }
-    const { customToken } = data;
-    if (!customToken) {
-      return { success: false, error: 'Respuesta inválida del servidor' };
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('heartlink-auth-session'));
     }
-    const result = await signInWithCustomToken(auth, customToken);
-    return { success: true, user: result.user };
+    return { success: true, user: null };
   } catch (error: any) {
     console.error('Login via backend error:', error);
     return { success: false, error: error.message };

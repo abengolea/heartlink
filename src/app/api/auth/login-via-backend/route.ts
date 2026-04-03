@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeFirebaseAdmin } from '@/lib/firebase-admin-v4';
 import { sanitizeFirebaseEnvString } from '@/lib/sanitize-firebase-env';
+import {
+  isSecureCookieRuntime,
+  SESSION_COOKIE_NAME,
+  SESSION_DURATION_MS,
+  SESSION_MAX_AGE_SEC,
+} from '@/lib/auth-session-cookie';
 
 /**
- * Login vía backend: evita auth/network-request-failed cuando el navegador
- * no puede conectar directamente con identitytoolkit.googleapis.com.
- * El servidor hace la verificación y devuelve un custom token.
+ * Login vía backend: verifica credenciales con Identity Toolkit (servidor)
+ * y crea sesión con cookie httpOnly (createSessionCookie); el cliente no llama a Firebase Auth.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar credenciales vía REST API (el servidor SÍ puede alcanzar Google)
-    const res = await fetch(
+    const toolkitRes = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`,
       {
         method: 'POST',
@@ -46,9 +51,9 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    const data = await res.json();
+    const data = await toolkitRes.json();
 
-    if (!res.ok) {
+    if (!toolkitRes.ok) {
       const errorCode = data?.error?.message || 'unknown';
       const errorMsg = data?.error?.message || data?.error || 'Error de autenticación';
       console.warn('❌ [Login Backend] Auth failed:', errorCode);
@@ -58,20 +63,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uid = data.localId;
-    if (!uid) {
+    const idToken = data.idToken as string | undefined;
+    if (!idToken) {
       return NextResponse.json(
-        { error: 'Respuesta inválida de Firebase' },
+        { error: 'Respuesta inválida de Firebase (sin idToken)' },
         { status: 500 }
       );
     }
 
-    // Crear custom token para que el cliente establezca la sesión
     const app = initializeFirebaseAdmin();
     const auth = getAuth(app);
-    const customToken = await auth.createCustomToken(uid);
+    const sessionCookie = await auth.createSessionCookie(idToken, {
+      expiresIn: SESSION_DURATION_MS,
+    });
 
-    return NextResponse.json({ customToken });
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {
+      httpOnly: true,
+      secure: isSecureCookieRuntime(),
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SESSION_MAX_AGE_SEC,
+    });
+    return response;
   } catch (err) {
     console.error('❌ [Login Backend] Error:', err);
     return NextResponse.json(

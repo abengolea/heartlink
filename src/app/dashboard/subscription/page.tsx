@@ -24,6 +24,7 @@ interface SubscriptionStatus {
   shouldShowWarning: boolean;
   reason?: string;
   trialSendsRemaining?: number;
+  accessInfo?: { reason?: string; message?: string; color?: string };
 }
 
 function SubscriptionPageContent() {
@@ -234,7 +235,19 @@ function SubscriptionPageContent() {
     }).format(amount);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, opts?: { hasAccess?: boolean; blockReason?: string }) => {
+    if (
+      status === 'active' &&
+      opts?.hasAccess === false &&
+      opts?.blockReason === 'access_blocked'
+    ) {
+      return (
+        <Badge className="bg-amber-100 text-amber-900 border border-amber-300">
+          Activa · sin acceso
+        </Badge>
+      );
+    }
+
     const statusMap = {
       active: { label: 'Activa', color: 'bg-green-100 text-green-800' },
       inactive: { label: 'Inactiva', color: 'bg-gray-100 text-gray-800' },
@@ -444,7 +457,10 @@ function SubscriptionPageContent() {
                   <User className="h-5 w-5" />
                   Estado de Suscripción
                 </CardTitle>
-                {getStatusBadge(subscriptionStatus.subscription?.status)}
+                {getStatusBadge(subscriptionStatus.subscription?.status, {
+                  hasAccess: subscriptionStatus.hasAccess,
+                  blockReason: subscriptionStatus.accessInfo?.reason,
+                })}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">

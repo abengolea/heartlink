@@ -10,6 +10,8 @@ export interface StudyComment {
 export interface Study {
   id: string;
   patientId: string;
+  /** Operador que realizó / cargó el estudio (aislamiento entre operadores) */
+  operatorId?: string;
   /** Médico solicitante - guardado para acceso público sin depender del paciente */
   requestingDoctorId?: string;
   videoUrl?: string;

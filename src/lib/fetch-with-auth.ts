@@ -15,5 +15,9 @@ export async function fetchWithAuth(
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  return fetch(url, { ...options, headers });
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: options.credentials ?? 'same-origin',
+  });
 }

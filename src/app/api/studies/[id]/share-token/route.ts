@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStudyById, updateStudy, getPatientById, getUserById } from '@/lib/firestore';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { studyReadableByUser } from '@/lib/study-access';
 import { randomBytes } from 'crypto';
 
 /**
@@ -21,6 +22,10 @@ export async function GET(
     const study = await getStudyById(id);
     if (!study) {
       return NextResponse.json({ error: 'Estudio no encontrado' }, { status: 404 });
+    }
+
+    if (!(await studyReadableByUser(authUser, study))) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
     let shareToken = study.shareToken;

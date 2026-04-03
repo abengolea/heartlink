@@ -53,15 +53,16 @@ export default function AuthGuard({
   requireAuth = true, 
   allowedRoles = [] 
 }: AuthGuardProps) {
-  const { firebaseUser, dbUser, loading, error } = useAuth();
+  const { firebaseUser, sessionUser, dbUser, loading, error } = useAuth();
+  const authed = !!(firebaseUser || sessionUser);
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && requireAuth && !firebaseUser) {
+    if (!loading && requireAuth && !authed) {
       console.log('🔒 [AuthGuard] User not authenticated, redirecting to login');
       router.push('/');
     }
-  }, [firebaseUser, loading, requireAuth, router]);
+  }, [authed, loading, requireAuth, router]);
 
   // Loading state
   if (loading) {
@@ -106,7 +107,7 @@ export default function AuthGuard({
   }
 
   // Not authenticated
-  if (requireAuth && !firebaseUser) {
+  if (requireAuth && !authed) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -131,7 +132,7 @@ export default function AuthGuard({
   }
 
   // User not found in database
-  if (requireAuth && firebaseUser && !dbUser) {
+  if (requireAuth && authed && !dbUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -145,7 +146,7 @@ export default function AuthGuard({
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              <strong>Email:</strong> {firebaseUser.email}
+              <strong>Email:</strong> {firebaseUser?.email ?? sessionUser?.email}
             </div>
             <Button 
               onClick={() => router.push('/')} 
@@ -175,7 +176,7 @@ export default function AuthGuard({
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              <strong>Email:</strong> {dbUser.email || firebaseUser?.email}
+              <strong>Email:</strong> {dbUser.email || firebaseUser?.email || sessionUser?.email}
             </div>
             <Button 
               onClick={() => router.push('/')} 

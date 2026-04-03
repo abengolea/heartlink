@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPatientById, updatePatient, getDoctorsByOperator } from '@/lib/firestore';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { normalizeRequesterIdOnPatient } from '@/lib/study-access';
 import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 
 /**
@@ -40,6 +41,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { error: 'Patient not found' },
         { status: 404 }
       );
+    }
+    const role = authUser.dbUser.role;
+    if (role === 'medico_solicitante' || role === 'solicitante') {
+      const owner = normalizeRequesterIdOnPatient(patient);
+      if (owner !== authUser.dbUser.id) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      }
+    }
+    if (role === 'operator') {
+      const doctors = await getDoctorsByOperator(authUser.dbUser.id);
+      const allowed = new Set(doctors.map((d) => d.id));
+      const owner = normalizeRequesterIdOnPatient(patient);
+      if (!owner || !allowed.has(owner)) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      }
     }
     return NextResponse.json(patient);
   } catch (error) {

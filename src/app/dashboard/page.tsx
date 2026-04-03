@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ComponentType } from "react";
 import { ArrowUpRight, Activity, Users, FileText, AlertTriangle, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import {
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface Patient {
   id: string;
@@ -42,6 +43,31 @@ interface User {
   id: string;
   name: string;
   role?: string;
+}
+
+function StatCell({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  className,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  icon: ComponentType<{ className?: string }>;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-col gap-1 min-w-0", className)}>
+      <div className="flex items-center justify-between gap-2 text-muted-foreground">
+        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+        <Icon className="h-4 w-4 shrink-0 opacity-80" />
+      </div>
+      <p className="text-2xl font-bold tabular-nums tracking-tight">{value}</p>
+      <p className="text-xs text-muted-foreground leading-snug">{hint}</p>
+    </div>
+  );
 }
 
 export default function Dashboard() {
@@ -88,66 +114,62 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="flex flex-1 flex-col gap-4">
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 w-12 animate-pulse rounded bg-muted" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                  <div className="h-8 w-12 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-full max-w-[8rem] animate-pulse rounded bg-muted" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="flex flex-1 flex-col gap-4">
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Pacientes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{patients.length}</div>
-            <p className="text-xs text-muted-foreground">Pacientes registrados</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Estudios</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{studies.length}</div>
-            <p className="text-xs text-muted-foreground">Estudios en la plataforma</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Casos Urgentes</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{urgentCount}</div>
-            <p className="text-xs text-muted-foreground">Estudios marcados como urgentes</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Actividad de la Plataforma</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
-            <p className="text-xs text-muted-foreground">Usuarios registrados</p>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Resumen</CardTitle>
+          <CardDescription>Vista rápida de pacientes, estudios, urgencias y usuarios.</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-2">
+          <div className="grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4 lg:gap-10">
+            <StatCell
+              label="Pacientes"
+              value={patients.length}
+              hint="Registrados en la plataforma"
+              icon={Users}
+            />
+            <StatCell
+              label="Estudios"
+              value={studies.length}
+              hint="Total en la plataforma"
+              icon={FileText}
+            />
+            <StatCell
+              label="Urgentes"
+              value={urgentCount}
+              hint="Marcados como urgencia"
+              icon={AlertTriangle}
+            />
+            <StatCell
+              label="Usuarios"
+              value={users.length}
+              hint="Cuentas registradas"
+              icon={Activity}
+            />
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="grid gap-2 flex-1">
