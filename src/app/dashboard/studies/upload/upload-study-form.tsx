@@ -31,7 +31,15 @@ import { CheckCircle, FileText, Loader2, UploadCloud, Wand2, UserPlus } from "lu
 import { useToast } from "@/hooks/use-toast";
 import { transcribeAudioAction } from "@/actions/transcribe-audio";
 import { Progress } from "@/components/ui/progress";
-import { ALLOWED_VIDEO_TYPES, ALLOWED_PDF_TYPES, MAX_FILE_SIZE, MAX_PDF_SIZE } from "@/lib/upload-constants";
+import {
+  ALLOWED_VIDEO_TYPES,
+  ALLOWED_PDF_TYPES,
+  MAX_FILE_SIZE,
+  MAX_PDF_SIZE,
+  isVideoDurationAllowed,
+  MIN_VIDEO_DURATION_USER_MESSAGE,
+} from "@/lib/upload-constants";
+import { probeVideoDurationSeconds } from "@/lib/video-duration-client";
 import { useAuth } from "@/contexts/auth-context";
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
 
@@ -47,6 +55,8 @@ export function UploadStudyForm() {
     const { dbUser } = useAuth();
     
     const [videoFile, setVideoFile] = useState<File | null>(null);
+    /** Duración válida del video seleccionado (segundos); requerida para subir. */
+    const [videoDurationSec, setVideoDurationSec] = useState<number | null>(null);
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -131,33 +141,68 @@ export function UploadStudyForm() {
 
     const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (file) {
-            console.log(`Selected video file: ${file.name}, size: ${file.size}, type: ${file.type}`);
-            
-            // Validate file type
-            if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Tipo de archivo no válido',
-                    description: 'Solo se permiten archivos de video (MP4, WEBM, AVI, MOV).',
-                });
-                event.target.value = '';
-                return;
-            }
-            
-            // Validate file size
-            if (file.size > MAX_FILE_SIZE) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Archivo demasiado grande',
-                    description: 'El tamaño máximo permitido es 100MB.',
-                });
-                event.target.value = '';
-                return;
-            }
-            
-            setVideoFile(file);
+        const input = event.target;
+
+        if (!file) {
+            setVideoFile(null);
+            setVideoDurationSec(null);
+            return;
         }
+
+        console.log(`Selected video file: ${file.name}, size: ${file.size}, type: ${file.type}`);
+
+        if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+            toast({
+                variant: 'destructive',
+                title: 'Tipo de archivo no válido',
+                description: 'Solo se permiten archivos de video (MP4, WEBM, AVI, MOV).',
+            });
+            input.value = '';
+            setVideoFile(null);
+            setVideoDurationSec(null);
+            return;
+        }
+
+        if (file.size > MAX_FILE_SIZE) {
+            toast({
+                variant: 'destructive',
+                title: 'Archivo demasiado grande',
+                description: 'El tamaño máximo permitido es 100MB.',
+            });
+            input.value = '';
+            setVideoFile(null);
+            setVideoDurationSec(null);
+            return;
+        }
+
+        void (async () => {
+            try {
+                const duration = await probeVideoDurationSeconds(file);
+                if (!isVideoDurationAllowed(duration)) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Video demasiado corto',
+                        description: MIN_VIDEO_DURATION_USER_MESSAGE,
+                    });
+                    input.value = '';
+                    setVideoFile(null);
+                    setVideoDurationSec(null);
+                    return;
+                }
+                setVideoFile(file);
+                setVideoDurationSec(duration);
+            } catch {
+                toast({
+                    variant: 'destructive',
+                    title: 'No se pudo leer el video',
+                    description:
+                        'No se pudo obtener la duración. Probá con otro archivo o formato (MP4 recomendado).',
+                });
+                input.value = '';
+                setVideoFile(null);
+                setVideoDurationSec(null);
+            }
+        })();
     };
 
     const handlePdfChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -382,6 +427,17 @@ export function UploadStudyForm() {
             toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona un video.' });
             return;
         }
+        if (
+            videoDurationSec == null ||
+            !isVideoDurationAllowed(videoDurationSec)
+        ) {
+            toast({
+                variant: 'destructive',
+                title: 'Video no válido',
+                description: MIN_VIDEO_DURATION_USER_MESSAGE,
+            });
+            return;
+        }
         if (!selectedPatientId || !selectedRequesterId) {
             toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona paciente y médico solicitante.' });
             return;
@@ -407,6 +463,7 @@ export function UploadStudyForm() {
             // Enviar todo en una sola petición: el servidor sube el video a Firebase
             const formData = new FormData();
             formData.append('video', videoFile);
+            formData.append('videoDurationSec', String(videoDurationSec));
             if (pdfFile) formData.append('pdf', pdfFile);
             formData.append('patientName', patient.name);
             formData.append('requestingDoctorName', requester.name);
@@ -471,6 +528,7 @@ export function UploadStudyForm() {
                     description: result.message,
                 });
                 setVideoFile(null);
+                setVideoDurationSec(null);
                 setPdfFile(null);
                 setUploadProgress(0);
                 if (result.data?.studyId) {
@@ -514,7 +572,7 @@ export function UploadStudyForm() {
                 <CardContent>
         <form ref={formRef} onSubmit={handleFormSubmit} className="grid gap-6">
             <div className="grid gap-2">
-                <Label htmlFor="video">Video del Estudio (MP4, WEBM)</Label>
+                <Label htmlFor="video">Video del Estudio (MP4, WEBM) — mínimo 1 minuto</Label>
                 <Input id="video" name="video" type="file" accept="video/mp4,video/webm,video/avi,video/mov" required onChange={handleVideoChange}/>
                 {isUploading && <Progress value={uploadProgress} className="w-full mt-2" />}
                 {uploadProgress === 100 && !isUploading && (

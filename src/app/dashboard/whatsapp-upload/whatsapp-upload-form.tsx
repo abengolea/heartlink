@@ -17,6 +17,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, UploadCloud, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  isVideoDurationAllowed,
+  MIN_VIDEO_DURATION_USER_MESSAGE,
+} from "@/lib/upload-constants";
+import { probeVideoDurationSeconds } from "@/lib/video-duration-client";
 
 const formSchema = z.object({
   video: z.any().refine((files) => files?.length > 0, "Se requiere un archivo de video."),
@@ -44,6 +49,7 @@ interface Requester {
 
 export function WhatsappUploadForm() {
     const [videoDataUri, setVideoDataUri] = useState('');
+    const [clientError, setClientError] = useState('');
     const formRef = useRef<HTMLFormElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const [requesters, setRequesters] = useState<Requester[]>([]);
@@ -89,9 +95,26 @@ export function WhatsappUploadForm() {
         }
     }, [videoFile]);
     
-    const onFormSubmit = (data: FormFields) => {
-        if(!videoDataUri) {
+    const onFormSubmit = async (data: FormFields) => {
+        setClientError('');
+        if (!videoDataUri) {
             console.error("No hay datos de URI de video disponibles");
+            return;
+        }
+
+        const file = data.video?.[0];
+        if (!file) return;
+
+        try {
+            const duration = await probeVideoDurationSeconds(file);
+            if (!isVideoDurationAllowed(duration)) {
+                setClientError(MIN_VIDEO_DURATION_USER_MESSAGE);
+                return;
+            }
+        } catch {
+            setClientError(
+                'No se pudo leer la duración del video. Probá con otro archivo o formato MP4.'
+            );
             return;
         }
 
@@ -99,7 +122,7 @@ export function WhatsappUploadForm() {
         formData.append('patientName', data.patientName);
         formData.append('requestingDoctorName', data.requestingDoctorName);
         formData.append('videoDataUri', videoDataUri);
-        
+
         formAction(formData);
     };
 
@@ -107,6 +130,7 @@ export function WhatsappUploadForm() {
         if (state.status === 'success') {
             reset();
             setVideoDataUri('');
+            setClientError('');
             if(videoInputRef.current) {
                 videoInputRef.current.value = "";
             }
@@ -116,10 +140,17 @@ export function WhatsappUploadForm() {
   return (
     <form ref={formRef} action={formAction} onSubmit={(evt) => {
         evt.preventDefault();
-        handleSubmit(onFormSubmit)();
+        void handleSubmit(onFormSubmit)();
     }} className="grid gap-6">
+        {clientError ? (
+            <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Video no válido</AlertTitle>
+                <AlertDescription>{clientError}</AlertDescription>
+            </Alert>
+        ) : null}
         <div className="grid gap-2">
-            <Label htmlFor="video">Video del Estudio (MP4)</Label>
+            <Label htmlFor="video">Video del Estudio (MP4) — mínimo 1 minuto</Label>
             <Input id="video" type="file" accept="video/mp4" {...register('video')} ref={videoInputRef}/>
             {errors.video && <p className="text-sm text-destructive">{typeof errors.video.message === 'string' ? errors.video.message : ''}</p>}
         </div>
