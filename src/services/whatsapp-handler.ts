@@ -20,6 +20,7 @@ import {
 import { logWhatsAppSend } from '@/lib/notificashub';
 import { studyUploadFlow, StudyUploadFlowInput } from '@/ai/flows/study-upload-flow';
 import { toWhatsAppFormat } from '@/lib/phone-format';
+import { MIN_VIDEO_DURATION_SECONDS } from '@/lib/upload-constants';
 import { v4 as uuidv4 } from 'uuid';
 
 const DEV_MODE = process.env.WHATSAPP_DEV_MODE === 'true';
@@ -36,6 +37,19 @@ function heartlinkBaseUrl(): string {
 
 function subscriptionPageUrl(): string {
   return `${heartlinkBaseUrl()}/dashboard/subscription`;
+}
+
+function studiesUploadUrl(): string {
+  return `${heartlinkBaseUrl()}/dashboard/studies/upload`;
+}
+
+/** Mensaje cuando el video dura menos del mínimo exigido (siempre con respuesta clara al operador). */
+function messageVideoTooShortWhatsApp(): string {
+  return (
+    `❌ Este video *no alcanza la duración mínima*.\n\n` +
+    `Necesitamos una grabación *superior a 1 minuto* (más de 60 segundos).\n\n` +
+    `Enviá de nuevo un video más largo o subilo desde la app:\n${studiesUploadUrl()}`
+  );
 }
 
 /** Respuesta por WhatsApp cuando el operador no puede usar el flujo (sin plan / sin envíos de prueba). */
@@ -179,7 +193,7 @@ export async function handleWhatsAppMessage(data: WhatsAppHandlerPayload): Promi
       default:
         await WhatsAppService.sendTextMessage(
           from,
-          '❌ Envía un video del estudio para comenzar.'
+          '❌ Enviá un video del estudio (*superior a 1 minuto*) para comenzar.'
         );
     }
   } catch (error) {
@@ -235,6 +249,11 @@ async function handleVideoMessage(
     return;
   }
 
+  if (durationSecs != null && durationSecs < MIN_VIDEO_DURATION_SECONDS) {
+    await WhatsAppService.sendTextMessage(from, messageVideoTooShortWhatsApp());
+    return;
+  }
+
   const declaredSize =
     typeof videoMeta.file_size === 'number' && Number.isFinite(videoMeta.file_size)
       ? videoMeta.file_size
@@ -247,7 +266,13 @@ async function handleVideoMessage(
     return;
   }
 
-  await WhatsAppService.sendTextMessage(from, '🎥 Video recibido. Procesando...');
+  const processingAck =
+    durationSecs == null
+      ? `🎥 Video recibido. Procesando...\n\n` +
+        `ℹ️ *Requisito:* la grabación debe ser *superior a 1 minuto*. ` +
+        `Si este envío fuera más corto, tendrás que mandar otro video o usar la web:\n${studiesUploadUrl()}`
+      : '🎥 Video recibido. Procesando...';
+  await WhatsAppService.sendTextMessage(from, processingAck);
 
   const videoBuffer = await WhatsAppService.downloadMedia(videoMeta.id);
   if (!videoBuffer) {
@@ -282,17 +307,21 @@ async function handleTextMessage(from: string, message: { text?: { body?: string
 
   if (text === 'hola' || text === 'hello' || text === 'hi') {
     const maxDur = parseOptionalMaxVideoDurationSeconds();
-    const durHint = maxDur != null ? `; duración máx. ${maxDur} s` : '';
+    const durHint =
+      maxDur != null
+        ? ` Duración máxima indicada por tu centro: ${maxDur} s.`
+        : '';
     await WhatsAppService.sendTextMessage(
       from,
-      `¡Hola ${contactName}! 👋\n\nEnvía un video del estudio para comenzar (máx. 16 MB, límite WhatsApp${durHint}).`
+      `¡Hola ${contactName}! 👋\n\nEnvía un video del estudio para comenzar ` +
+        `(grabación *superior a 1 minuto*, máx. 16 MB).${durHint}`
     );
     return;
   }
   if (text === 'ayuda' || text === 'help') {
     await WhatsAppService.sendTextMessage(
       from,
-      '📖 *Ayuda*\n\n1. Envía un video del estudio (máx. 16 MB; si aplica, respeta la duración máx. que te indicó tu centro)\n2. Selecciona paciente\n3. Selecciona médico o comparte su contacto\n4. ¡Listo!\n\n"cancelar" para cancelar.'
+      '📖 *Ayuda*\n\n1. Envía un video del estudio (*superior a 1 minuto*, máx. 16 MB; si aplica, respetá también la duración máxima que te indicó tu centro)\n2. Selecciona paciente\n3. Selecciona médico o comparte su contacto\n4. ¡Listo!\n\n"cancelar" para cancelar.'
     );
     return;
   }
@@ -345,7 +374,7 @@ async function handleTextMessage(from: string, message: { text?: { body?: string
 
   await WhatsAppService.sendTextMessage(
     from,
-    '🤔 Envía un video para crear un estudio, o "ayuda" para más información.'
+    '🤔 Enviá un video (*superior a 1 minuto*) para crear un estudio, o escribí "ayuda".'
   );
 }
 
@@ -388,7 +417,7 @@ async function handleContactsMessage(from: string, message: { contacts?: Incomin
   if (session?.step !== 'waiting_doctor_phone') {
     await WhatsAppService.sendTextMessage(
       from,
-      '📱 Comparte el contacto cuando te lo pida el sistema (al agregar un médico solicitante). O envía un video para comenzar.'
+      '📱 Compartí el contacto cuando te lo pida el sistema (al agregar un médico solicitante). O enviá un video *superior a 1 minuto* para comenzar.'
     );
     return;
   }
@@ -440,7 +469,10 @@ async function handleContactsMessage(from: string, message: { contacts?: Incomin
 async function handleInteractiveMessage(from: string, message: { interactive?: { list_reply?: { id: string } } }, contactName: string): Promise<void> {
   const session = studySessions.get(from);
   if (!session) {
-    await WhatsAppService.sendTextMessage(from, '❌ No hay sesión activa. Envía un video para comenzar.');
+    await WhatsAppService.sendTextMessage(
+      from,
+      '❌ No hay sesión activa. Enviá un video *superior a 1 minuto* para comenzar.'
+    );
     return;
   }
 

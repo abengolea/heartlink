@@ -3,7 +3,14 @@ import { uploadStudy } from '@/actions/upload-study';
 import { verifySubscriptionAccess, createAccessControlResponse } from '@/middleware/subscription-access';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import { uploadStudyVideoFromBuffer, uploadStudyPdfFromBuffer } from '@/services/firebase';
-import { ALLOWED_VIDEO_TYPES, ALLOWED_PDF_TYPES, MAX_FILE_SIZE, MAX_PDF_SIZE } from '@/lib/upload-constants';
+import {
+  ALLOWED_VIDEO_TYPES,
+  ALLOWED_PDF_TYPES,
+  MAX_FILE_SIZE,
+  MAX_PDF_SIZE,
+  isVideoDurationAllowed,
+  MIN_VIDEO_DURATION_USER_MESSAGE,
+} from '@/lib/upload-constants';
 
 export async function POST(request: Request) {
   console.log('🔍 [UPLOAD-STUDY] Starting upload study via endpoint...');
@@ -39,6 +46,17 @@ export async function POST(request: Request) {
       }
       if (!ALLOWED_VIDEO_TYPES.includes(videoFile.type)) {
         return NextResponse.json({ success: false, error: 'Tipo de video no permitido.' }, { status: 415 });
+      }
+      const durationRaw = formData.get('videoDurationSec');
+      const durationSec =
+        durationRaw !== null && durationRaw !== ''
+          ? Number.parseFloat(String(durationRaw))
+          : NaN;
+      if (!isVideoDurationAllowed(durationSec)) {
+        return NextResponse.json(
+          { success: false, error: MIN_VIDEO_DURATION_USER_MESSAGE },
+          { status: 400 }
+        );
       }
       const buffer = Buffer.from(await videoFile.arrayBuffer());
       filePath = await uploadStudyVideoFromBuffer(buffer, videoFile.name, videoFile.type);
