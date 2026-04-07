@@ -40,8 +40,20 @@ jobs:
       run: npm run lint
       continue-on-error: true
 
-    # App Hosting despliega la app Next.js automáticamente desde GitHub.
-    # Aquí solo desplegamos Functions, Storage y Database (requiere FIREBASE_TOKEN en secrets).
+    # App Hosting (Next.js): el auto-deploy desde GitHub a veces no dispara; forzar rollout del commit actual.
+    - name: Force App Hosting rollout
+      if: github.ref == 'refs/heads/main'
+      run: |
+        npx --yes firebase-tools@14 apphosting:rollouts:create heartlink \
+          --project heartlink-f4ftq \
+          --git-commit "${{ github.sha }}" \
+          --force \
+          --non-interactive \
+          --token "$FIREBASE_TOKEN"
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+    # Functions, Storage y Database (requiere FIREBASE_TOKEN en secrets).
     - name: Deploy Functions and Rules
       if: github.ref == 'refs/heads/main'
       run: npx --yes firebase-tools@14 deploy --only functions,storage,database --project heartlink-f4ftq --non-interactive --token "$FIREBASE_TOKEN"
