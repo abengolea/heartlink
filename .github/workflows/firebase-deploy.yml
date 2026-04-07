@@ -40,9 +40,18 @@ jobs:
       run: npm run lint
       continue-on-error: true
 
-    # App Hosting (Next.js): el auto-deploy desde GitHub a veces no dispara; forzar rollout del commit actual.
+    # Functions, Storage y Database (requiere FIREBASE_TOKEN en secrets).
+    - name: Deploy Functions and Rules
+      if: github.ref == 'refs/heads/main'
+      run: npx --yes firebase-tools@14 deploy --only functions,storage,database --project heartlink-f4ftq --non-interactive --token "$FIREBASE_TOKEN"
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+    # App Hosting (Next.js): forzar rollout del commit. Si falla (p. ej. conexión GitHub rota en Developer Connect),
+    # no debe bloquear el deploy anterior. Revisar consola Firebase → App Hosting → integración GitHub.
     - name: Force App Hosting rollout
       if: github.ref == 'refs/heads/main'
+      continue-on-error: true
       run: |
         npx --yes firebase-tools@14 apphosting:rollouts:create heartlink \
           --project heartlink-f4ftq \
@@ -50,12 +59,5 @@ jobs:
           --force \
           --non-interactive \
           --token "$FIREBASE_TOKEN"
-      env:
-        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-
-    # Functions, Storage y Database (requiere FIREBASE_TOKEN en secrets).
-    - name: Deploy Functions and Rules
-      if: github.ref == 'refs/heads/main'
-      run: npx --yes firebase-tools@14 deploy --only functions,storage,database --project heartlink-f4ftq --non-interactive --token "$FIREBASE_TOKEN"
       env:
         FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
