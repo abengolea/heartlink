@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { handleWhatsAppMessage } from '@/services/whatsapp-handler';
+import { handleWhatsAppMessage, UserNotRegisteredError } from '@/services/whatsapp-handler';
 
 /**
  * POST: Recibe mensajes de WhatsApp reenviados desde NotificasHub.
@@ -53,6 +53,10 @@ export async function POST(req: Request) {
     console.log('[whatsapp/incoming] Processed OK', { from: fromResolved });
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof UserNotRegisteredError) {
+      console.log('[whatsapp/incoming] User not registered → 404 para fallback en hub', { from: fromResolved });
+      return NextResponse.json({ error: 'user_not_registered' }, { status: 404 });
+    }
     console.error('[whatsapp/incoming] Handler error:', error);
     return NextResponse.json(
       { error: 'Handler failed', ok: false },

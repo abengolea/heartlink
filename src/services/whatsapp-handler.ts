@@ -158,6 +158,13 @@ export async function handleIncomingMessage(from: string, message: WhatsAppHandl
   return handleWhatsAppMessage(payload);
 }
 
+export class UserNotRegisteredError extends Error {
+  constructor(phone: string) {
+    super(`User not registered: ${phone}`);
+    this.name = 'UserNotRegisteredError';
+  }
+}
+
 export async function handleWhatsAppMessage(data: WhatsAppHandlerPayload): Promise<void> {
   const { from, message, contactName } = data;
   const msgType = message?.type ?? 'text';
@@ -168,11 +175,7 @@ export async function handleWhatsAppMessage(data: WhatsAppHandlerPayload): Promi
   if (!DEV_MODE) {
     const operator = await getOperatorByWhatsAppPhone(from);
     if (!operator) {
-      await WhatsAppService.sendTextMessage(
-        from,
-        'Este canal es exclusivo para usuarios registrados.'
-      );
-      return;
+      throw new UserNotRegisteredError(from);
     }
   }
 
