@@ -1,10 +1,10 @@
 # Firebase App Hosting Configuration - FORCE DEPLOY v2.9.0
 # DEPLOY: SECURE SECRETS - API Keys Hidden from GitHub
 runConfig:
-  cpu: 4
-  memoryMiB: 2048
+  cpu: 1
+  memoryMiB: 512
   maxInstances: 10
-  minInstances: 1
+  minInstances: 0
   concurrency: 100
 
 env:
